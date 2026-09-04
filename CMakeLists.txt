@@ -5,6 +5,10 @@ project(vk-gfx
   LANGUAGES C CXX
 )
 
+# export compile commands for IDE
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
+
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug CACHE STRING "" FORCE)
 endif()
@@ -19,9 +23,9 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_PROTOTYPES")
 if ( CMAKE_COMPILER_IS_GNUCC )
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wextra -Wuninitialized -Wpedantic -fPIC")
     if(CMAKE_BUILD_TYPE MATCHES Debug)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wunused-variable")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=unused-variable -Wno-error=unused-function")
     else()
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable") # Add optimization
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wunused-variable -Wunused-function") # Add optimization
     endif()
 endif ( CMAKE_COMPILER_IS_GNUCC )
 if ( MSVC )
@@ -62,4 +66,4 @@ set (CMAKE_CXX_STANDARD 20)
 
 include_directories(${INCLUDE_DIR})
 add_executable(triangle-example ${SRC_EXAMPLES} ${EXAMPLES_DIR}/triangle.cpp)
-target_link_libraries(triangle-example PRIVATE vk-gfx glfw)
+target_link_libraries(triangle-example PRIVATE vk-gfx ${LIBRARIES} glfw)
