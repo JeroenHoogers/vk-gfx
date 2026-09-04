@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <vulkan/vulkan.h>
@@ -7,12 +8,17 @@ namespace gfx
 {
 	inline void vk_assert_impl(VkResult result, const char* file, int line) {
 		if (result != VK_SUCCESS) {
-			std::fprintf(stderr, "Vulkan error: %d at %s:%d\n",
-						 static_cast<int>(result), file, line);
+			std::fprintf(stderr, "Vulkan error: %d at %s:%d\n", static_cast<int>(result), file, line);
 
 			std::abort();
 		}
 	}
+
+	struct QueueFamilyIndices
+	{
+		std::uint32_t graphicsFamily;
+		std::uint32_t presentFamily;
+	};
 
 	struct Device
 	{
@@ -20,12 +26,14 @@ namespace gfx
 		VkPhysicalDevice physicalDevice;
 		VkDevice device;
 		VkDebugUtilsMessengerEXT debugMessenger;
+		VkQueue graphicsQueue;
 	};
 
 	struct DeviceCreateParams
 	{
 		std::string appname = "vulkan app";
 		std::vector<const char*> extensions{};
+		std::vector<const char*> deviceExtensions{};
 		std::vector<const char*> layers{};
 		bool enableValidation = false;
 	};
