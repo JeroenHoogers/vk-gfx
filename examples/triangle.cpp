@@ -12,7 +12,8 @@ int main() {
 
 	gfx::DeviceInit deviceInit = gfx::create_device({
 		.appname = appName,
-		.extensions = window.extensions,
+		.extensions = {},
+		.window = window.callbacks,
 		.enableValidation = enableValidationLayers
 	});
 

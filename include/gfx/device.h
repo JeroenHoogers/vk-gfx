@@ -1,4 +1,5 @@
 #pragma once
+#include "window.h"
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -27,6 +28,7 @@ namespace gfx
 		VkDevice device;
 		VkDebugUtilsMessengerEXT debugMessenger;
 		VkQueue graphicsQueue;
+		VkQueue presentQueue;
 	};
 
 	struct DeviceCreateParams
@@ -35,6 +37,7 @@ namespace gfx
 		std::vector<const char*> extensions{};
 		std::vector<const char*> deviceExtensions{};
 		std::vector<const char*> layers{};
+		WindowCallbacks window{};
 		bool enableValidation = false;
 	};
 

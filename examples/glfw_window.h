@@ -6,12 +6,12 @@
 #include <vulkan/vulkan.h>
 #include <cstdint>
 #include <string>
-#include <vector>
+#include <gfx/window.h>
 
 struct Window
 {
 	GLFWwindow* window;
-	std::vector<const char*> extensions;
+	gfx::WindowCallbacks callbacks;
 };
 
 Window create_window(std::uint32_t width, std::uint32_t height, const std::string& title);
