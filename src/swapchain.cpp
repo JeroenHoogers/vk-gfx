@@ -68,6 +68,44 @@ namespace gfx
 
 			return availableFormats[0];
 		}
+
+		std::vector<VkImageView> create_swap_image_views(Device* device, const std::vector<VkImage>& images, VkFormat imageFormat) {
+			std::vector<VkImageView> imageViews(images.size());
+
+			for (size_t i = 0; i < images.size(); i++) {
+				VkImageViewCreateInfo createInfo{
+					.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+					.pNext = nullptr,
+					.flags = 0,
+					.image = images[i],
+					.viewType = VK_IMAGE_VIEW_TYPE_2D,
+					.format = imageFormat,
+					.components = {
+						.r = VK_COMPONENT_SWIZZLE_IDENTITY,
+						.g = VK_COMPONENT_SWIZZLE_IDENTITY,
+						.b = VK_COMPONENT_SWIZZLE_IDENTITY,
+						.a = VK_COMPONENT_SWIZZLE_IDENTITY
+					},
+					.subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1}
+				};
+
+				VkResult result = vkCreateImageView(device->device, &createInfo, nullptr, &imageViews[i]);
+				VK_ASSERT(result);
+			}
+			return imageViews;
+		}
+
+		void destroy_swapchain(Device* device) {
+			for (auto& frame : device->swapchain->frames) {
+				vkDestroyImageView(device->device, frame.imageView, nullptr);
+			}
+
+			vkDestroySwapchainKHR(device->device, device->swapchain->swapchain, nullptr);
+
+			delete device->swapchain;
+			device->swapchain = nullptr;
+		}
+
 	} // namespace detail
 
 	Swapchain* create_swapchain(Device* device, VkFormat desiredFormat) {
@@ -128,9 +166,19 @@ namespace gfx
 		result = vkGetSwapchainImagesKHR(device->device, swapchain, &imageCount, swapchainImages.data());
 		VK_ASSERT(result);
 
+		std::vector<VkImageView> swapchainImageViews = detail::create_swap_image_views(device, swapchainImages, surfaceFormat.format);
+
+		std::vector<SwapchainFrame> frames(imageCount);
+		for (std::uint32_t i = 0; i < frames.size(); i++) {
+			frames[i] = {
+				.image = swapchainImages[i],
+				.imageView = swapchainImageViews[i]
+			};
+		}
+
 		Swapchain* pSwapchain = new Swapchain{
 			.swapchain = swapchain,
-			.images = std::move(swapchainImages)
+			.frames = frames
 		};
 
 		return pSwapchain;

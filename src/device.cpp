@@ -342,12 +342,15 @@ namespace gfx
 	}
 
 	void destroy_device(Device* device) {
+		detail::destroy_swapchain(device);
+
+		vkDestroySurfaceKHR(device->instance, device->surface, nullptr);
+		vkDestroyDevice(device->device, nullptr);
+
 		if (device->debugMessenger != VK_NULL_HANDLE) {
 			destroy_debug_utils_messenger_ext(device->instance, device->debugMessenger, nullptr);
 		}
 
-		vkDestroySurfaceKHR(device->instance, device->surface, nullptr);
-		vkDestroyDevice(device->device, nullptr);
 		vkDestroyInstance(device->instance, nullptr);
 
 		delete device;

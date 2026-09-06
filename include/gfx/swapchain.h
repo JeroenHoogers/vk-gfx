@@ -6,6 +6,18 @@ namespace gfx
 {
 	struct Device;
 
+	struct SwapchainFrame
+	{
+		VkImage image;
+		VkImageView imageView;
+	};
+
+	struct Swapchain
+	{
+		VkSwapchainKHR swapchain;
+		std::vector<SwapchainFrame> frames;
+	};
+
 	namespace detail
 	{
 		struct SwapChainSupportDetails
@@ -18,17 +30,12 @@ namespace gfx
 		SwapChainSupportDetails query_swapchain_support(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
 
 		VkPresentModeKHR choose_swap_present_mode(const std::vector<VkPresentModeKHR>& availableModes);
+
+		void create_swapchain_image_views(const std::vector<VkImage>& images);
+
+		void destroy_swapchain(Device* device);
 	} // namespace detail
 
-	struct Swapchain
-	{
-		VkSwapchainKHR swapchain;
-		std::vector<VkImage> images;
-	};
-
-	struct SwapchainFrame
-	{
-	};
 
 	[[nodiscard]] Swapchain* create_swapchain(Device* device, VkFormat swapchainFormat);
 	[[nodiscard]] SwapchainFrame* aquire(Device* device);
