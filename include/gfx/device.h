@@ -19,6 +19,8 @@ namespace gfx
 	{
 		std::uint32_t graphicsFamily;
 		std::uint32_t presentFamily;
+
+		std::uint32_t queueFamilyCount;
 	};
 
 	struct Device
@@ -26,6 +28,7 @@ namespace gfx
 		VkInstance instance;
 		VkPhysicalDevice physicalDevice;
 		VkDevice device;
+		VkSurfaceKHR surface; // TODO: store in window?
 		VkDebugUtilsMessengerEXT debugMessenger;
 		VkQueue graphicsQueue;
 		VkQueue presentQueue;
@@ -37,7 +40,7 @@ namespace gfx
 		std::vector<const char*> extensions{};
 		std::vector<const char*> deviceExtensions{};
 		std::vector<const char*> layers{};
-		WindowCallbacks window{};
+		WindowCallbacks* window = nullptr;
 		bool enableValidation = false;
 	};
 

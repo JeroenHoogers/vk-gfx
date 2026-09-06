@@ -111,24 +111,25 @@ namespace gfx
 		}
 
 		bool find_queue_families(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, QueueFamilyIndices& indices) {
-			std::uint32_t queueFamilyCount = 0;
-			vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
+			vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &indices.queueFamilyCount, nullptr);
 
-			std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-			vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
+			std::vector<VkQueueFamilyProperties> queueFamilies(indices.queueFamilyCount);
+			vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &indices.queueFamilyCount, queueFamilies.data());
 
-			for (std::uint32_t i = 0; i < queueFamilyCount; i++) {
+			for (std::uint32_t i = 0; i < indices.queueFamilyCount; i++) {
 				bool hasGraphics = false;
 				if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
 					indices.graphicsFamily = i;
 					hasGraphics = true;
 				}
 
-				VkBool32 presentSupport = false;
-				vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &presentSupport);
+				VkBool32 presentSupport = !surface;
+				if (surface) {
+					vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &presentSupport);
 
-				if (presentSupport) {
-					indices.presentFamily = i;
+					if (presentSupport) {
+						indices.presentFamily = i;
+					}
 				}
 
 				if (hasGraphics && presentSupport)
@@ -179,16 +180,31 @@ namespace gfx
 			if (!find_queue_families(physicalDevice, surface, indices)) {
 			}
 
-			float queuePriority = 1.0f;
+			// make queue create infos
+			std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+			{
+				// TODO: this assumes all queues are required, should be adapted
+				std::vector<std::uint32_t> queueFamilies = {indices.graphicsFamily, indices.presentFamily};
+				std::vector<bool> exists(indices.queueFamilyCount, false);
 
-			VkDeviceQueueCreateInfo queueCreateInfo{
-				.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-				.pNext = nullptr,
-				.flags = 0,
-				.queueFamilyIndex = indices.graphicsFamily,
-				.queueCount = 1,
-				.pQueuePriorities = &queuePriority
-			};
+				float queuePriority = 1.0f;
+				for (uint32_t queueFamily : queueFamilies) {
+					if (exists[queueFamily]) {
+						continue;
+					}
+					VkDeviceQueueCreateInfo queueCreateInfo{
+						.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+						.pNext = nullptr,
+						.flags = 0,
+						.queueFamilyIndex = queueFamily,
+						.queueCount = 1,
+						.pQueuePriorities = &queuePriority
+					};
+					queueCreateInfos.push_back(queueCreateInfo);
+
+					exists[queueFamily] = true;
+				}
+			}
 
 			VkPhysicalDeviceFeatures deviceFeatures{};
 			deviceFeatures.samplerAnisotropy = VK_TRUE;
@@ -197,8 +213,8 @@ namespace gfx
 				.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 				.pNext = nullptr,
 				.flags = 0,
-				.queueCreateInfoCount = 1,
-				.pQueueCreateInfos = &queueCreateInfo,
+				.queueCreateInfoCount = static_cast<std::uint32_t>(queueCreateInfos.size()),
+				.pQueueCreateInfos = queueCreateInfos.data(),
 				.enabledLayerCount = 0,
 				.ppEnabledLayerNames = {},
 				.enabledExtensionCount = static_cast<std::uint32_t>(extensions.size()),
@@ -230,25 +246,31 @@ namespace gfx
 			// printf("Layer")
 		}
 
-		std::uint32_t windowExtensionCount = 0;
-		VkResult result = params.window.get_required_instance_extensions(&windowExtensionCount, nullptr, nullptr);
-		VK_ASSERT(result);
+		// add window instance extensions
+		if (params.window) {
+			std::uint32_t windowExtensionCount = 0;
+			VkResult result = params.window->get_required_instance_extensions(&windowExtensionCount, nullptr, nullptr);
+			VK_ASSERT(result);
 
-		// TODO: extend params vector and write into the offset?
-		std::vector<const char*> windowExtensions(windowExtensionCount);
-		result = params.window.get_required_instance_extensions(&windowExtensionCount, windowExtensions.data(), nullptr);
-		VK_ASSERT(result);
+			// TODO: extend params vector and write into the offset?
+			std::vector<const char*> windowExtensions(windowExtensionCount);
+			result = params.window->get_required_instance_extensions(&windowExtensionCount, windowExtensions.data(), nullptr);
+			VK_ASSERT(result);
 
-		for (std::uint32_t i = 0; i < windowExtensionCount; i++) {
-			printf("window ext %s\n", windowExtensions[i]);
-			params.extensions.push_back(windowExtensions[i]);
+			for (std::uint32_t i = 0; i < windowExtensionCount; i++) {
+				printf("window ext %s\n", windowExtensions[i]);
+				params.extensions.push_back(windowExtensions[i]);
+			}
 		}
+
 		VkInstance instance = create_instance(params.appname, params.extensions, params.layers);
+		VkSurfaceKHR surface = VK_NULL_HANDLE;
 
 		// create surface
-		VkSurfaceKHR surface;
-		result = params.window.create_surface(instance, &surface, params.window.user_data);
-		VK_ASSERT(result);
+		if (params.window) {
+			VkResult result = params.window->create_surface(instance, &surface, params.window->user_data);
+			VK_ASSERT(result);
+		}
 
 		VkPhysicalDevice physicalDevice = pick_physical_device(instance, surface);
 
@@ -265,6 +287,7 @@ namespace gfx
 			.instance = instance,
 			.physicalDevice = physicalDevice,
 			.device = device,
+			.surface = surface,
 			.debugMessenger = debugMessenger,
 			.graphicsQueue = graphicsQueue,
 			.presentQueue = presentQueue
@@ -280,6 +303,8 @@ namespace gfx
 			destroy_debug_utils_messenger_ext(device->instance, device->debugMessenger, nullptr);
 		}
 
+		vkDestroySurfaceKHR(device->instance, device->surface, nullptr);
+		vkDestroyDevice(device->device, nullptr);
 		vkDestroyInstance(device->instance, nullptr);
 	}
 } // namespace gfx

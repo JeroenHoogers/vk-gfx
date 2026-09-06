@@ -38,8 +38,6 @@ static VkResult glfw_create_surface(VkInstance instance, VkSurfaceKHR* surface, 
 
 Window create_window(std::uint32_t width, std::uint32_t height, const std::string& title) {
 	glfwSetErrorCallback(glfw_error_callback);
-	glfwInitHint(GLFW_WAYLAND_LIBDECOR, GLFW_WAYLAND_DISABLE_LIBDECOR);
-
 	glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	// glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
