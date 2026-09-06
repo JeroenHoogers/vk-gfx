@@ -13,6 +13,7 @@ int main() {
 	gfx::DeviceInit deviceInit = gfx::create_device({
 		.appname = appName,
 		.extensions = {},
+		.swapchainFormat = VK_FORMAT_B8G8R8A8_SRGB,
 		.window = &window.callbacks,
 		.enableValidation = enableValidationLayers
 	});

@@ -1,11 +1,44 @@
+#include "gfx/device.h"
+#include "gfx/swapchain.h"
 #include <cstdint>
 #include <cstring>
-#include <gfx/device.h>
 #include <string>
 #include <vector>
 
 namespace gfx
 {
+	namespace detail
+	{
+		bool find_queue_families(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, QueueFamilyIndices& indices) {
+			vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &indices.queueFamilyCount, nullptr);
+
+			std::vector<VkQueueFamilyProperties> queueFamilies(indices.queueFamilyCount);
+			vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &indices.queueFamilyCount, queueFamilies.data());
+
+			for (std::uint32_t i = 0; i < indices.queueFamilyCount; i++) {
+				bool hasGraphics = false;
+				if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+					indices.graphicsFamily = i;
+					hasGraphics = true;
+				}
+
+				VkBool32 presentSupport = !surface;
+				if (surface) {
+					vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &presentSupport);
+
+					if (presentSupport) {
+						indices.presentFamily = i;
+					}
+				}
+
+				if (hasGraphics && presentSupport)
+					return true;
+			}
+
+			return false;
+		}
+	} // namespace internal
+
 	namespace
 	{
 		// TODO: allow user callback instead
@@ -110,49 +143,42 @@ namespace gfx
 			return true;
 		}
 
-		bool find_queue_families(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, QueueFamilyIndices& indices) {
-			vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &indices.queueFamilyCount, nullptr);
+		bool is_device_suitable(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, const std::vector<const char*>& extensions) {
+			detail::QueueFamilyIndices indices;
 
-			std::vector<VkQueueFamilyProperties> queueFamilies(indices.queueFamilyCount);
-			vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &indices.queueFamilyCount, queueFamilies.data());
-
-			for (std::uint32_t i = 0; i < indices.queueFamilyCount; i++) {
-				bool hasGraphics = false;
-				if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-					indices.graphicsFamily = i;
-					hasGraphics = true;
-				}
-
-				VkBool32 presentSupport = !surface;
-				if (surface) {
-					vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &presentSupport);
-
-					if (presentSupport) {
-						indices.presentFamily = i;
-					}
-				}
-
-				if (hasGraphics && presentSupport)
-					return true;
-			}
-
-			return false;
-		}
-
-		bool is_device_suitable(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) {
-			QueueFamilyIndices indices;
-
+			// check queue families
 			bool has_queue_families = find_queue_families(physicalDevice, surface, indices);
 
-			VkPhysicalDeviceProperties deviceProperties;
-			VkPhysicalDeviceFeatures deviceFeatures;
-			vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
-			vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
+			// check required extensions
+			std::uint32_t extensionCount;
+			vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
+			std::vector<VkExtensionProperties> extensionProperties(extensionCount);
 
-			return has_queue_families;
+			vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, extensionProperties.data());
+
+			bool has_extensions = true;
+			for (const auto& requiredExtension : extensions) {
+				bool found = false;
+				for (const auto& deviceExtension : extensionProperties) {
+					if (std::strncmp(deviceExtension.extensionName, requiredExtension, sizeof(deviceExtension.extensionName)) == 0) {
+						found = true;
+						break;
+					}
+				}
+				has_extensions |= found;
+			}
+
+			// check swapchain
+			bool swapchain_adequate = false;
+			if (has_extensions) {
+				auto supportDetails = detail::query_swapchain_support(physicalDevice, surface);
+				swapchain_adequate = !supportDetails.formats.empty() && !supportDetails.presentModes.empty();
+			}
+
+			return has_queue_families && has_extensions && swapchain_adequate;
 		}
 
-		VkPhysicalDevice pick_physical_device(VkInstance instance, VkSurfaceKHR surface) {
+		VkPhysicalDevice pick_physical_device(VkInstance instance, VkSurfaceKHR surface, const std::vector<const char*>& extensions) {
 			std::uint32_t deviceCount = 0;
 			vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
@@ -165,8 +191,11 @@ namespace gfx
 			vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
 			for (const VkPhysicalDevice& physicalDevice : devices) {
-				if (is_device_suitable(physicalDevice, surface)) {
-					printf("found physical device!\n");
+				if (is_device_suitable(physicalDevice, surface, extensions)) {
+					VkPhysicalDeviceProperties deviceProperties;
+					vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
+
+					printf("Found suitable physical device: %s \n", deviceProperties.deviceName);
 					return physicalDevice;
 				}
 			}
@@ -176,8 +205,9 @@ namespace gfx
 		}
 
 		VkDevice create_logical_device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, const std::vector<const char*>& extensions, VkQueue& graphicsQueue, VkQueue& presentQueue) {
-			QueueFamilyIndices indices;
+			detail::QueueFamilyIndices indices;
 			if (!find_queue_families(physicalDevice, surface, indices)) {
+				fprintf(stderr, "failed to find required queue families!");
 			}
 
 			// make queue create infos
@@ -272,11 +302,20 @@ namespace gfx
 			VK_ASSERT(result);
 		}
 
-		VkPhysicalDevice physicalDevice = pick_physical_device(instance, surface);
+		// always create swapchain
+		std::vector<const char*> deviceExtensions = {
+			VK_KHR_SWAPCHAIN_EXTENSION_NAME
+		};
+
+		if (params.deviceExtensions.size() > 0) {
+			deviceExtensions.insert(deviceExtensions.end(), params.deviceExtensions.begin(), params.deviceExtensions.end());
+		}
+
+		VkPhysicalDevice physicalDevice = pick_physical_device(instance, surface, deviceExtensions);
 
 		VkQueue graphicsQueue = VK_NULL_HANDLE;
 		VkQueue presentQueue = VK_NULL_HANDLE;
-		VkDevice device = create_logical_device(physicalDevice, surface, params.deviceExtensions, graphicsQueue, presentQueue);
+		VkDevice device = create_logical_device(physicalDevice, surface, deviceExtensions, graphicsQueue, presentQueue);
 
 		VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
 		if (params.enableValidation) {
@@ -290,8 +329,12 @@ namespace gfx
 			.surface = surface,
 			.debugMessenger = debugMessenger,
 			.graphicsQueue = graphicsQueue,
-			.presentQueue = presentQueue
+			.presentQueue = presentQueue,
+			.swapchain = nullptr
 		};
+
+		Swapchain* swapchain = create_swapchain(pDevice, params.swapchainFormat);
+		pDevice->swapchain = swapchain;
 
 		return DeviceInit{
 			.device = pDevice
@@ -306,5 +349,8 @@ namespace gfx
 		vkDestroySurfaceKHR(device->instance, device->surface, nullptr);
 		vkDestroyDevice(device->device, nullptr);
 		vkDestroyInstance(device->instance, nullptr);
+
+		delete device;
+		device = nullptr;
 	}
 } // namespace gfx

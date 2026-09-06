@@ -1,4 +1,5 @@
 #pragma once
+#include "swapchain.h"
 #include "window.h"
 #include <cstdint>
 #include <string>
@@ -15,13 +16,20 @@ namespace gfx
 		}
 	}
 
-	struct QueueFamilyIndices
-	{
-		std::uint32_t graphicsFamily;
-		std::uint32_t presentFamily;
+	// TODO: probably don't want this in the public API
 
-		std::uint32_t queueFamilyCount;
-	};
+	namespace detail
+	{
+		struct QueueFamilyIndices
+		{
+			std::uint32_t graphicsFamily;
+			std::uint32_t presentFamily;
+
+			std::uint32_t queueFamilyCount;
+		};
+
+		bool find_queue_families(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, QueueFamilyIndices& indices);
+	} // namespace detail
 
 	struct Device
 	{
@@ -32,6 +40,7 @@ namespace gfx
 		VkDebugUtilsMessengerEXT debugMessenger;
 		VkQueue graphicsQueue;
 		VkQueue presentQueue;
+		Swapchain* swapchain;
 	};
 
 	struct DeviceCreateParams
@@ -40,6 +49,7 @@ namespace gfx
 		std::vector<const char*> extensions{};
 		std::vector<const char*> deviceExtensions{};
 		std::vector<const char*> layers{};
+		VkFormat swapchainFormat = VK_FORMAT_UNDEFINED; // TODO: move vulkan out of public API?
 		WindowCallbacks* window = nullptr;
 		bool enableValidation = false;
 	};

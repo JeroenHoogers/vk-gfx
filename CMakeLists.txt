@@ -23,9 +23,7 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_PROTOTYPES")
 if ( CMAKE_COMPILER_IS_GNUCC )
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wextra -Wuninitialized -Wpedantic -fPIC")
     if(CMAKE_BUILD_TYPE MATCHES Debug)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=unused-variable -Wno-error=unused-function")
-    else()
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wunused-variable -Wunused-function") # Add optimization
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=unused-variable -Wno-error=unused-function -Wno-error=unused-parameter")
     endif()
 endif ( CMAKE_COMPILER_IS_GNUCC )
 if ( MSVC )
@@ -42,6 +40,7 @@ set(ASSETS_DIR assets)
 
 set(SRC_LIB
     ${SOURCE_DIR}/device.cpp
+    ${SOURCE_DIR}/swapchain.cpp
 )
 
 set(SRC_EXAMPLES
