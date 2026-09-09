@@ -1,5 +1,4 @@
 #pragma once
-#include "swapchain.h"
 #include "window.h"
 #include <cstdint>
 #include <string>
@@ -31,6 +30,9 @@ namespace gfx
 		bool find_queue_families(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, QueueFamilyIndices& indices);
 	} // namespace detail
 
+	struct Swapchain;
+	struct Pipeline;
+
 	struct Device
 	{
 		VkInstance instance;
@@ -59,7 +61,7 @@ namespace gfx
 		Device* device;
 	};
 
-	DeviceInit create_device(DeviceCreateParams init);
+	DeviceInit create_device(const DeviceCreateParams& init);
 
 	void destroy_device(Device* device);
 } // namespace gfx

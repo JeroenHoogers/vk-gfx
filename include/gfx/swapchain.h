@@ -15,6 +15,7 @@ namespace gfx
 	struct Swapchain
 	{
 		VkSwapchainKHR swapchain;
+		VkExtent2D extent;
 		std::vector<SwapchainFrame> frames;
 	};
 

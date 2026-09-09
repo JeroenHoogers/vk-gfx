@@ -1,5 +1,6 @@
 #include <cstdint>
 #include "glfw_window.h"
+#include "common.h"
 #include <vk_gfx.h>
 
 int main() {
@@ -19,11 +20,20 @@ int main() {
 	});
 
 	gfx::Device* device = deviceInit.device;
+	// if () { // TODO: error handling
+		// gfx::destroy_device(device);
+		// close_window(window);
+	// }
+	gfx::Pipeline* pipeline = gfx::create_pipeline(device, {
+		.vertex_shader = load_shader("shaders/triangle.vert.spv"),
+		.fragment_shader = load_shader("shaders/triangle.frag.spv"),
+	});
 
 	while (poll_window_events(window)) {
 
 	}
 
+	gfx::destroy_pipeline(device, pipeline);
 	gfx::destroy_device(device);
 	close_window(window);
 

@@ -1,6 +1,7 @@
 #include "gfx/swapchain.h"
 #include "gfx/device.h"
 #include <algorithm>
+#include <limits>
 
 namespace gfx
 {
@@ -178,6 +179,7 @@ namespace gfx
 
 		Swapchain* pSwapchain = new Swapchain{
 			.swapchain = swapchain,
+			.extent = extent,
 			.frames = frames
 		};
 

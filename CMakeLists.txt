@@ -10,7 +10,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Debug CACHE STRING "" FORCE)
+  set(CMAKE_BUILD_TYPE Debug CACHE STRING "" FORCE)
 endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
@@ -21,17 +21,18 @@ set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DVK_PROTOTYPES")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_PROTOTYPES")
 
 if ( CMAKE_COMPILER_IS_GNUCC )
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wextra -Wuninitialized -Wpedantic -fPIC")
-    if(CMAKE_BUILD_TYPE MATCHES Debug)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=unused-variable -Wno-error=unused-function -Wno-error=unused-parameter")
-    endif()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wextra -Wuninitialized -Wpedantic -fPIC")
+  if(CMAKE_BUILD_TYPE MATCHES Debug)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=unused-variable -Wno-error=unused-function -Wno-error=unused-parameter")
+  endif()
 endif ( CMAKE_COMPILER_IS_GNUCC )
 if ( MSVC )
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4 /WX /MP")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4 /WX /MP")
 endif ( MSVC )
 
 find_package(Vulkan REQUIRED)
 set(LIBRARIES Vulkan::Vulkan)
+
 
 set(SOURCE_DIR src)
 set(INCLUDE_DIR include)
@@ -41,10 +42,11 @@ set(ASSETS_DIR assets)
 set(SRC_LIB
     ${SOURCE_DIR}/device.cpp
     ${SOURCE_DIR}/swapchain.cpp
+    ${SOURCE_DIR}/pipeline.cpp
 )
 
 set(SRC_EXAMPLES
-		${EXAMPLES_DIR}/glfw_window.cpp
+  ${EXAMPLES_DIR}/glfw_window.cpp
 )
 
 add_library(vk-gfx STATIC ${SRC_INCLUDE} ${SRC_LIB})
@@ -63,6 +65,42 @@ find_package(glfw3 3.3 REQUIRED)
 
 set (CMAKE_CXX_STANDARD 20)
 
+
+
+set(SHADER_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders")
+set(SHADER_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders")
+
+set(SRC_SHADERS
+  ${SHADER_SRC_DIR}/triangle.vert
+  ${SHADER_SRC_DIR}/triangle.frag
+)
+
+set(COMPILED_SHADERS)
+
+foreach(SHADER IN LISTS SRC_SHADERS)
+    get_filename_component(SHADER_NAME "${SHADER}" NAME)
+    set(OUTPUT "${SHADER_BINARY_DIR}/${SHADER_NAME}.spv")
+
+    add_custom_command(
+        OUTPUT "${OUTPUT}"
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+                "${SHADER_BINARY_DIR}"
+        COMMAND glslc
+                ${SHADER}
+                -o "${OUTPUT}"
+        DEPENDS "${SHADER}"
+        COMMENT "Compiling Vulkan shader ${SHADER_NAME}.."
+        VERBATIM
+    )
+
+    list(APPEND COMPILED_SHADERS "${OUTPUT}")
+endforeach()
+
+add_custom_target(compile_shaders ALL
+    DEPENDS ${COMPILED_SHADERS}
+)
+
 include_directories(${INCLUDE_DIR})
 add_executable(triangle-example ${SRC_EXAMPLES} ${EXAMPLES_DIR}/triangle.cpp)
 target_link_libraries(triangle-example PRIVATE vk-gfx ${LIBRARIES} glfw)
+add_dependencies(triangle-example compile_shaders)

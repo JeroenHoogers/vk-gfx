@@ -1,10 +1,10 @@
 #include "gfx/device.h"
 #include "gfx/swapchain.h"
+#include "gfx/pipeline.h"
 #include <cstdint>
 #include <cstring>
 #include <string>
 #include <vector>
-
 namespace gfx
 {
 	namespace detail
@@ -264,12 +264,15 @@ namespace gfx
 
 	} // namespace
 
-	DeviceInit create_device(DeviceCreateParams params) {
+	DeviceInit create_device(const DeviceCreateParams& params) {
 		constexpr const char* validationLayers = "VK_LAYER_KHRONOS_validation";
+		std::vector<const char*> deviceExtensions = params.deviceExtensions;
+		std::vector<const char*> extensions = params.extensions;
+		std::vector<const char*> layers = params.layers;
 
 		if (params.enableValidation) {
-			params.extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-			params.layers.push_back(validationLayers);
+			extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+			layers.push_back(validationLayers);
 		}
 
 		if (!check_layer_support(params.layers)) {
@@ -289,11 +292,11 @@ namespace gfx
 
 			for (std::uint32_t i = 0; i < windowExtensionCount; i++) {
 				printf("window ext %s\n", windowExtensions[i]);
-				params.extensions.push_back(windowExtensions[i]);
+				extensions.push_back(windowExtensions[i]);
 			}
 		}
 
-		VkInstance instance = create_instance(params.appname, params.extensions, params.layers);
+		VkInstance instance = create_instance(params.appname, extensions, layers);
 		VkSurfaceKHR surface = VK_NULL_HANDLE;
 
 		// create surface
@@ -303,13 +306,7 @@ namespace gfx
 		}
 
 		// always create swapchain
-		std::vector<const char*> deviceExtensions = {
-			VK_KHR_SWAPCHAIN_EXTENSION_NAME
-		};
-
-		if (params.deviceExtensions.size() > 0) {
-			deviceExtensions.insert(deviceExtensions.end(), params.deviceExtensions.begin(), params.deviceExtensions.end());
-		}
+		deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
 		VkPhysicalDevice physicalDevice = pick_physical_device(instance, surface, deviceExtensions);
 
