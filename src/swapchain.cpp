@@ -180,6 +180,7 @@ namespace gfx
 		Swapchain* pSwapchain = new Swapchain{
 			.swapchain = swapchain,
 			.extent = extent,
+			.format = surfaceFormat.format,
 			.frames = frames
 		};
 

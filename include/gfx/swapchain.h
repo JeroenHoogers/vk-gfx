@@ -16,6 +16,7 @@ namespace gfx
 	{
 		VkSwapchainKHR swapchain;
 		VkExtent2D extent;
+		VkFormat format;
 		std::vector<SwapchainFrame> frames;
 	};
 

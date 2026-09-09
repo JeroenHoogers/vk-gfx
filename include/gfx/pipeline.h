@@ -1,5 +1,6 @@
 #pragma once
 #include "device.h"
+#include "gfx/swapchain.h"
 #include <vector>
 
 namespace gfx
@@ -20,8 +21,9 @@ namespace gfx
 
 	struct Pipeline
 	{
-		VkPipelineLayout pipelineLayout;
 		VkPipeline pipeline;
+		VkPipelineLayout pipelineLayout;
+		VkRenderPass renderPass;
 	};
 
 	Pipeline* create_pipeline(Device* device, const PipelineParams& params);
