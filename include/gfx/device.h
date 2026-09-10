@@ -32,6 +32,8 @@ namespace gfx
 
 	struct Swapchain;
 	struct Pipeline;
+	struct RenderPass;
+	struct RenderTarget;
 
 	struct Device
 	{
@@ -42,7 +44,9 @@ namespace gfx
 		VkDebugUtilsMessengerEXT debugMessenger;
 		VkQueue graphicsQueue;
 		VkQueue presentQueue;
-		Swapchain* swapchain;
+		Swapchain* swapchain = nullptr;
+		RenderPass* renderPass = nullptr;
+		RenderTarget* renderTarget = nullptr;
 	};
 
 	struct DeviceCreateParams

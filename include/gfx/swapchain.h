@@ -35,11 +35,11 @@ namespace gfx
 
 		void create_swapchain_image_views(const std::vector<VkImage>& images);
 
-		void destroy_swapchain(Device* device);
 	} // namespace detail
 
 
 	[[nodiscard]] Swapchain* create_swapchain(Device* device, VkFormat swapchainFormat);
+	void destroy_swapchain(Device* device, Swapchain* swapchain);
 	[[nodiscard]] SwapchainFrame* aquire(Device* device);
 
 } // namespace gfx

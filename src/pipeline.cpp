@@ -1,5 +1,7 @@
+#include "gfx/device.h"
 #include "gfx/pipeline.h"
 #include "gfx/swapchain.h"
+#include "gfx/render_pass.h"
 
 namespace gfx
 {
@@ -19,47 +21,9 @@ namespace gfx
 			VK_ASSERT(result);
 			return shaderModule;
 		}
-
-		VkRenderPass create_render_pass(Device* device) {
-			VkAttachmentDescription colorAttachment{
-				.flags = 0,
-				.format = device->swapchain->format,
-				.samples = VK_SAMPLE_COUNT_1_BIT,
-				.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-				.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-				.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-				.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-				.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-				.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-			};
-
-			VkAttachmentReference colorAttachmentRef{
-				.attachment = 0,
-				.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-			};
-
-			VkSubpassDescription subpass{};
-			subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS; // TODO: support compute
-			subpass.colorAttachmentCount = 1;
-			subpass.pColorAttachments = &colorAttachmentRef;
-
-			VkRenderPassCreateInfo renderPassInfo{};
-			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-			renderPassInfo.attachmentCount = 1;
-			renderPassInfo.pAttachments = &colorAttachment;
-			renderPassInfo.subpassCount = 1;
-			renderPassInfo.pSubpasses = &subpass;
-
-			VkRenderPass renderPass;
-
-			VkResult result = vkCreateRenderPass(device->device, &renderPassInfo, nullptr, &renderPass);
-			VK_ASSERT(result);
-
-			return renderPass;
-		}
 	} // namespace detail
 
-	Pipeline* create_pipeline(Device* device, const PipelineParams& params) {
+	Pipeline* create_graphics_pipeline(Device* device, const PipelineParams& params) {
 
 		VkShaderModule vertShaderModule = detail::create_shader_module(device, params.vertex_shader);
 		VkShaderModule fragShaderModule = detail::create_shader_module(device, params.fragment_shader);
@@ -236,8 +200,6 @@ namespace gfx
 		VkResult result = vkCreatePipelineLayout(device->device, &pipelineLayoutInfo, nullptr, &pipelineLayout);
 		VK_ASSERT(result);
 
-		VkRenderPass renderPass = detail::create_render_pass(device);
-
 		VkGraphicsPipelineCreateInfo pipelineInfo{
 			.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
 			.pNext = nullptr,
@@ -254,7 +216,7 @@ namespace gfx
 			.pColorBlendState = &colorBlending,
 			.pDynamicState = &dynamicState,
 			.layout = pipelineLayout,
-			.renderPass = renderPass,
+			.renderPass = device->renderPass->renderPass,
 			.subpass = 0,
 			.basePipelineHandle = VK_NULL_HANDLE,
 			.basePipelineIndex = -1
@@ -266,8 +228,7 @@ namespace gfx
 
 		Pipeline* pPipeline = new Pipeline{
 			.pipeline = graphicsPipeline,
-			.pipelineLayout = pipelineLayout,
-			.renderPass = renderPass
+			.pipelineLayout = pipelineLayout
 		};
 
 		// cleanup shader modules
@@ -284,7 +245,6 @@ namespace gfx
 	void destroy_pipeline(Device* device, Pipeline* pipeline) {
 		vkDestroyPipeline(device->device, pipeline->pipeline, nullptr);
 		vkDestroyPipelineLayout(device->device, pipeline->pipelineLayout, nullptr);
-		vkDestroyRenderPass(device->device, pipeline->renderPass, nullptr);
 
 		pipeline = nullptr;
 	}

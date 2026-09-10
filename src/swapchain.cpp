@@ -96,17 +96,6 @@ namespace gfx
 			return imageViews;
 		}
 
-		void destroy_swapchain(Device* device) {
-			for (auto& frame : device->swapchain->frames) {
-				vkDestroyImageView(device->device, frame.imageView, nullptr);
-			}
-
-			vkDestroySwapchainKHR(device->device, device->swapchain->swapchain, nullptr);
-
-			delete device->swapchain;
-			device->swapchain = nullptr;
-		}
-
 	} // namespace detail
 
 	Swapchain* create_swapchain(Device* device, VkFormat desiredFormat) {
@@ -181,10 +170,21 @@ namespace gfx
 			.swapchain = swapchain,
 			.extent = extent,
 			.format = surfaceFormat.format,
-			.frames = frames
+			.frames = std::move(frames)
 		};
 
 		return pSwapchain;
+	}
+
+	void destroy_swapchain(Device* device, Swapchain* swapchain) {
+		for (auto& frame : swapchain->frames) {
+			vkDestroyImageView(device->device, frame.imageView, nullptr);
+		}
+
+		vkDestroySwapchainKHR(device->device, swapchain->swapchain, nullptr);
+
+		delete swapchain;
+		swapchain = nullptr;
 	}
 
 	SwapchainFrame* aquire(Device* device) {

@@ -24,18 +24,20 @@ int main() {
 		// gfx::destroy_device(device);
 		// close_window(window);
 	// }
-	gfx::Pipeline* pipeline = gfx::create_pipeline(device, {
+	gfx::Pipeline* pipeline = gfx::create_graphics_pipeline(device, {
 		.vertex_shader = load_shader("shaders/triangle.vert.spv"),
 		.fragment_shader = load_shader("shaders/triangle.frag.spv"),
 	});
 
 	while (poll_window_events(window)) {
-
+		gfx::SwapchainFrame* frame = gfx::aquire(device);
+		// gfx::begin_render_pass();
+		// gfx::end_render_pass()
 	}
 
 	gfx::destroy_pipeline(device, pipeline);
 	gfx::destroy_device(device);
 	close_window(window);
 
-	return  EXIT_SUCCESS;
+	return EXIT_SUCCESS;
 }

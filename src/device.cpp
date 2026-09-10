@@ -1,6 +1,8 @@
 #include "gfx/device.h"
 #include "gfx/swapchain.h"
-#include "gfx/pipeline.h"
+#include "gfx/render_pass.h"
+#include "gfx/render_target.h"
+
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -326,12 +328,17 @@ namespace gfx
 			.surface = surface,
 			.debugMessenger = debugMessenger,
 			.graphicsQueue = graphicsQueue,
-			.presentQueue = presentQueue,
-			.swapchain = nullptr
+			.presentQueue = presentQueue
 		};
 
 		Swapchain* swapchain = create_swapchain(pDevice, params.swapchainFormat);
 		pDevice->swapchain = swapchain;
+
+		RenderPass* renderPass = create_render_pass(pDevice);
+		pDevice->renderPass = renderPass;
+
+		RenderTarget* renderTarget = create_render_target(pDevice);
+		pDevice->renderTarget = renderTarget;
 
 		return DeviceInit{
 			.device = pDevice
@@ -339,7 +346,9 @@ namespace gfx
 	}
 
 	void destroy_device(Device* device) {
-		detail::destroy_swapchain(device);
+		destroy_render_target(device, device->renderTarget);
+		destroy_render_pass(device, device->renderPass);
+		destroy_swapchain(device, device->swapchain);
 
 		vkDestroySurfaceKHR(device->instance, device->surface, nullptr);
 		vkDestroyDevice(device->device, nullptr);

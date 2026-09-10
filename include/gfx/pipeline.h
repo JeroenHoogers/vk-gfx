@@ -1,10 +1,11 @@
 #pragma once
-#include "device.h"
-#include "gfx/swapchain.h"
+#include <vulkan/vulkan.h>
 #include <vector>
 
 namespace gfx
 {
+	struct Device;
+
 	struct VertexLayout {
 	    std::vector<VkVertexInputBindingDescription> bindings;
 	    std::vector<VkVertexInputAttributeDescription> attributes;
@@ -23,10 +24,9 @@ namespace gfx
 	{
 		VkPipeline pipeline;
 		VkPipelineLayout pipelineLayout;
-		VkRenderPass renderPass;
 	};
 
-	Pipeline* create_pipeline(Device* device, const PipelineParams& params);
+	Pipeline* create_graphics_pipeline(Device* device, const PipelineParams& params);
 	void bind_pipeline(Pipeline* pipeline); // TODO: add commands
 
 	void destroy_pipeline(Device* device, Pipeline* pipeline);
