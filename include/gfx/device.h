@@ -42,8 +42,9 @@ namespace gfx
 		VkDevice device;
 		VkSurfaceKHR surface; // TODO: store in window?
 		VkDebugUtilsMessengerEXT debugMessenger;
-		VkQueue graphicsQueue;
-		VkQueue presentQueue;
+		VkQueue graphicsQueue = VK_NULL_HANDLE;
+		VkQueue presentQueue = VK_NULL_HANDLE;
+		VkCommandPool commandPool = VK_NULL_HANDLE;
 		Swapchain* swapchain = nullptr;
 		RenderPass* renderPass = nullptr;
 		RenderTarget* renderTarget = nullptr;

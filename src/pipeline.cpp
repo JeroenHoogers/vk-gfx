@@ -1,7 +1,8 @@
-#include "gfx/device.h"
 #include "gfx/pipeline.h"
-#include "gfx/swapchain.h"
+#include "gfx/device.h"
 #include "gfx/render_pass.h"
+#include "gfx/swapchain.h"
+#include "gfx/command_buffer.h"
 
 namespace gfx
 {
@@ -240,6 +241,10 @@ namespace gfx
 		}
 
 		return pPipeline;
+	}
+
+	void bind_pipeline(Pipeline* pipeline, CommandBuffer* commands) {
+		vkCmdBindPipeline(commands->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->pipeline);
 	}
 
 	void destroy_pipeline(Device* device, Pipeline* pipeline) {

@@ -1,6 +1,8 @@
 #include "gfx/render_pass.h"
 #include "gfx/device.h"
 #include "gfx/swapchain.h"
+#include "gfx/render_target.h"
+#include "gfx/command_buffer.h"
 
 namespace gfx
 {
@@ -46,13 +48,27 @@ namespace gfx
 		return pRenderPass;
 	}
 
-	void begin_render_pass() {
-		// vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+	void begin_render_pass(Device* device, CommandBuffer* commands) {
+		VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
 
+		VkRenderPassBeginInfo renderPassInfo{
+			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+			.pNext = nullptr,
+			.renderPass = device->renderPass->renderPass,
+			.framebuffer = device->renderTarget->framebuffers[0],
+			.renderArea = {
+				.offset = {0, 0},
+				.extent = device->swapchain->extent
+			},
+			.clearValueCount = 1,
+			.pClearValues = &clearColor
+		};
+
+		vkCmdBeginRenderPass(commands->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 	}
 
-	void end_render_pass() {
-
+	void end_render_pass(CommandBuffer* commands) {
+		vkCmdEndRenderPass(commands->commandBuffer);
 	}
 
 	void destroy_render_pass(Device* device, RenderPass* renderPass) {

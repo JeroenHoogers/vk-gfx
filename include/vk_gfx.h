@@ -1,3 +1,5 @@
 #include "gfx/device.h"
 #include "gfx/pipeline.h"
 #include "gfx/swapchain.h"
+#include "gfx/command_buffer.h"
+#include "gfx/render_pass.h"

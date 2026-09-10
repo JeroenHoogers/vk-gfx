@@ -1,12 +1,13 @@
 #include "gfx/device.h"
-#include "gfx/swapchain.h"
 #include "gfx/render_pass.h"
 #include "gfx/render_target.h"
+#include "gfx/swapchain.h"
 
 #include <cstdint>
 #include <cstring>
 #include <string>
 #include <vector>
+
 namespace gfx
 {
 	namespace detail
@@ -39,7 +40,7 @@ namespace gfx
 
 			return false;
 		}
-	} // namespace internal
+	} // namespace detail
 
 	namespace
 	{
@@ -264,6 +265,25 @@ namespace gfx
 			return device;
 		}
 
+		VkCommandPool create_command_pool(Device* device) {
+			detail::QueueFamilyIndices indices;
+			if (!find_queue_families(device->physicalDevice, device->surface, indices)) {
+				fprintf(stderr, "failed to find required queue families!");
+			}
+
+			VkCommandPoolCreateInfo poolInfo{
+				.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+				.pNext = nullptr,
+				.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+				.queueFamilyIndex = indices.graphicsFamily
+			};
+
+			VkCommandPool commandPool;
+			VkResult result = vkCreateCommandPool(device->device, &poolInfo, nullptr, &commandPool);
+			VK_ASSERT(result);
+			return commandPool;
+		}
+
 	} // namespace
 
 	DeviceInit create_device(const DeviceCreateParams& params) {
@@ -340,12 +360,17 @@ namespace gfx
 		RenderTarget* renderTarget = create_render_target(pDevice);
 		pDevice->renderTarget = renderTarget;
 
+		VkCommandPool commandPool = create_command_pool(pDevice);
+		pDevice->commandPool = commandPool;
+
 		return DeviceInit{
 			.device = pDevice
 		};
 	}
 
 	void destroy_device(Device* device) {
+		vkDestroyCommandPool(device->device, device->commandPool, nullptr);
+
 		destroy_render_target(device, device->renderTarget);
 		destroy_render_pass(device, device->renderPass);
 		destroy_swapchain(device, device->swapchain);

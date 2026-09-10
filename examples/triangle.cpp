@@ -31,8 +31,12 @@ int main() {
 
 	while (poll_window_events(window)) {
 		gfx::SwapchainFrame* frame = gfx::aquire(device);
-		// gfx::begin_render_pass();
-		// gfx::end_render_pass()
+		gfx::CommandBuffer* commands = gfx::begin_commands(device);
+		gfx::begin_render_pass(device, commands);
+		gfx::bind_pipeline(pipeline, commands);
+		gfx::draw(commands, {}, 3);
+		gfx::end_render_pass(commands);
+		gfx::end_commands(commands);
 	}
 
 	gfx::destroy_pipeline(device, pipeline);

@@ -5,6 +5,7 @@
 namespace gfx
 {
 	struct Device;
+	struct CommandBuffer;
 
 	struct VertexLayout {
 	    std::vector<VkVertexInputBindingDescription> bindings;
@@ -27,7 +28,7 @@ namespace gfx
 	};
 
 	Pipeline* create_graphics_pipeline(Device* device, const PipelineParams& params);
-	void bind_pipeline(Pipeline* pipeline); // TODO: add commands
+	void bind_pipeline(Pipeline* pipeline, CommandBuffer* commands);
 
 	void destroy_pipeline(Device* device, Pipeline* pipeline);
 } // namespace gfx
