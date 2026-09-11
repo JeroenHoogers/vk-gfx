@@ -1,6 +1,7 @@
 #pragma once
 #include <vulkan/vulkan.h>
 #include <cstdint>
+#include <vector>
 
 namespace gfx
 {
@@ -14,7 +15,7 @@ namespace gfx
 	};
 
 	namespace detail {
-		VkCommandBuffer create_command_buffer(Device* device);
+		std::vector<VkCommandBuffer> create_command_buffers(Device* device, uint32_t count = 1);
 	}
 
 
@@ -26,6 +27,6 @@ namespace gfx
 	void submit(Device* device, CommandBuffer* commands); // TODO:
 
 	// TODO: allow for multiple command buffers
-	void submit_and_present(Device* device, const CommandBuffer* commands, Fence* inflightFence, Semaphore* waitSemaphore, Semaphore* signalSemaphore);
+	void submit_and_present(Device* device, const CommandBuffer* commands);
 
 } // namespace gfx

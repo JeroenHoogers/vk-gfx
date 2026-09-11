@@ -29,29 +29,18 @@ int main() {
 		.fragment_shader = load_shader("shaders/triangle.frag.spv"),
 	});
 
-	gfx::Semaphore imageAvailableSemaphore = gfx::create_semaphore(device);
-	gfx::Semaphore renderFinishedSemaphore = gfx::create_semaphore(device);
-	gfx::Fence inFlightFence = gfx::create_fence(device);
-
 	while (poll_window_events(window)) {
-		gfx::wait_for_fence(device, &inFlightFence);
-
-		const gfx::SwapchainFrame frame = gfx::aquire(device, &imageAvailableSemaphore);
-		gfx::reset_fence(device, &inFlightFence);
+		const gfx::SwapchainFrame frame = gfx::aquire(device);
 		gfx::CommandBuffer* commands = gfx::begin_commands(device);
 		gfx::begin_render_pass(device, commands, { .colors = { .renderView = frame.imageView, .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR }});
 		gfx::bind_pipeline(device, pipeline, commands);
 		gfx::draw(commands, {}, 3);
 		gfx::end_render_pass(commands);
 		gfx::end_commands(commands);
-		gfx::submit_and_present(device, commands, &inFlightFence, &imageAvailableSemaphore, &renderFinishedSemaphore);
+		gfx::submit_and_present(device, commands);
 	}
 
 	gfx::wait_idle(device);
-
-	gfx::destroy_semaphore(device, &imageAvailableSemaphore);
-	gfx::destroy_semaphore(device, &renderFinishedSemaphore);
-	gfx::destroy_fence(device, &inFlightFence);
 
 	gfx::destroy_pipeline(device, pipeline);
 	gfx::destroy_device(device);

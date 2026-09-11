@@ -7,9 +7,9 @@ namespace gfx
 {
 	namespace
 	{
-		void present(Device* device, Semaphore* signalSemaphore)
+		void present(Device* device, VkSemaphore signalSemaphore)
 		{
-			VkSemaphore signalSemaphores[] = {signalSemaphore->semaphore};
+			VkSemaphore signalSemaphores[] = {signalSemaphore};
 			VkSwapchainKHR swapChains[] = {device->swapchain->swapchain};
 
 			VkPresentInfoKHR presentInfo{
@@ -36,25 +36,26 @@ namespace gfx
 
 	namespace detail
 	{
-		VkCommandBuffer create_command_buffer(Device* device)
+		std::vector<VkCommandBuffer> create_command_buffers(Device* device, uint32_t count)
 		{
 			VkCommandBufferAllocateInfo allocInfo{
 				.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
 				.pNext = nullptr,
 				.commandPool = device->commandPool,
 				.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-				.commandBufferCount = 1
+				.commandBufferCount = count
 			};
 
-			VkCommandBuffer commandBuffer;
-			VkResult result = vkAllocateCommandBuffers(device->device, &allocInfo, &commandBuffer);
+			std::vector<VkCommandBuffer> commandBuffers(count);
+			VkResult result = vkAllocateCommandBuffers(device->device, &allocInfo, commandBuffers.data());
 			VK_ASSERT(result);
-			return commandBuffer;
+			return commandBuffers;
 		}
 	} // namespace detail
 
 	CommandBuffer* begin_commands(Device* device)
 	{
+		CommandBuffer* commandBuffer = device->frames[device->currentFrame].commands;
 		VkCommandBufferBeginInfo beginInfo{
 			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
 			.pNext = nullptr,
@@ -62,15 +63,11 @@ namespace gfx
 			.pInheritanceInfo = nullptr
 		};
 
-		vkResetCommandBuffer(device->commandBuffer, 0);
+		vkResetCommandBuffer(commandBuffer->commandBuffer, 0);
 
-		vkBeginCommandBuffer(device->commandBuffer, &beginInfo);
+		vkBeginCommandBuffer(commandBuffer->commandBuffer, &beginInfo);
 
-		CommandBuffer* pCommandBuffer = new CommandBuffer{
-			.commandBuffer = device->commandBuffer
-		};
-
-		return pCommandBuffer;
+		return commandBuffer;
 	};
 
 	void end_commands(CommandBuffer* commands)
@@ -79,10 +76,14 @@ namespace gfx
 		VK_ASSERT(result);
 	}
 
-	void submit_and_present(Device* device, const CommandBuffer* commands, Fence* inflightFence, Semaphore* waitSemaphore, Semaphore* signalSemaphore)
+	void submit_and_present(Device* device, const CommandBuffer* commands)
 	{
-		VkSemaphore waitSemaphores[] = {waitSemaphore->semaphore};
-		VkSemaphore signalSemaphores[] = {signalSemaphore->semaphore};
+		Frame& frame = device->frames[device->currentFrame];
+
+		uint32_t imageIndex = device->swapchain->imageIndex;
+		VkSemaphore signalSemaphore = device->swapchain->images[imageIndex].renderFinished;
+		VkSemaphore signalSemaphores[] = { signalSemaphore };
+		VkSemaphore waitSemaphores[] = {frame.imageAvailable.semaphore};
 
 		VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
@@ -98,10 +99,12 @@ namespace gfx
 			.pSignalSemaphores = signalSemaphores
 		};
 
-		VkResult result = vkQueueSubmit(device->graphicsQueue, 1, &submitInfo, inflightFence->fence);
+		VkResult result = vkQueueSubmit(device->graphicsQueue, 1, &submitInfo, frame.fence.fence);
 		VK_ASSERT(result);
 
 		present(device, signalSemaphore);
+
+		device->currentFrame = (device->currentFrame + 1) % static_cast<uint32_t>(device->frames.size());
 	}
 
 	void draw(CommandBuffer* commands, void* mesh, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)

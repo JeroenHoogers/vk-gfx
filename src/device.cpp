@@ -3,6 +3,7 @@
 #include "gfx/render_pass.h"
 #include "gfx/render_target.h"
 #include "gfx/swapchain.h"
+#include "gfx/sync.h"
 
 #include <cstdint>
 #include <cstring>
@@ -376,8 +377,15 @@ namespace gfx
 		VkCommandPool commandPool = create_command_pool(pDevice);
 		pDevice->commandPool = commandPool;
 
-		VkCommandBuffer commandBuffer = detail::create_command_buffer(pDevice);
-		pDevice->commandBuffer = commandBuffer;
+		std::vector<VkCommandBuffer> commandBuffers = detail::create_command_buffers(pDevice, params.framesInFlight);
+		pDevice->frames.resize(params.framesInFlight);
+		for (uint32_t i = 0; i < params.framesInFlight; i++) {
+			pDevice->frames[i] = Frame{
+				.commands = new CommandBuffer{.commandBuffer = commandBuffers[i]},
+				.fence = create_fence(pDevice),
+				.imageAvailable = create_semaphore(pDevice)
+			};
+		}
 
 		return DeviceInit{
 			.device = pDevice
@@ -391,6 +399,11 @@ namespace gfx
 
 	void destroy_device(Device* device)
 	{
+		for (uint32_t i = 0; i < device->frames.size(); i++) {
+			destroy_semaphore(device, &device->frames[i].imageAvailable);
+			destroy_fence(device, &device->frames[i].fence);
+		}
+
 		vkDestroyCommandPool(device->device, device->commandPool, nullptr);
 
 		destroy_render_target(device, device->renderTarget);

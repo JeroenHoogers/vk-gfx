@@ -1,7 +1,7 @@
 #include "gfx/swapchain.h"
 #include "gfx/device.h"
-#include "gfx/sync.h"
 #include "gfx/render_target.h"
+#include "gfx/sync.h"
 #include <algorithm>
 #include <limits>
 
@@ -9,7 +9,8 @@ namespace gfx
 {
 	namespace detail
 	{
-		SwapChainSupportDetails query_swapchain_support(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) {
+		SwapChainSupportDetails query_swapchain_support(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
+		{
 			SwapChainSupportDetails details{};
 
 			// capabilities
@@ -36,7 +37,8 @@ namespace gfx
 			return details;
 		}
 
-		VkPresentModeKHR choose_swap_present_mode(const std::vector<VkPresentModeKHR>& availableModes) {
+		VkPresentModeKHR choose_swap_present_mode(const std::vector<VkPresentModeKHR>& availableModes)
+		{
 			for (const auto& mode : availableModes) {
 				if (mode == VK_PRESENT_MODE_MAILBOX_KHR) {
 					return mode;
@@ -46,7 +48,8 @@ namespace gfx
 			return VK_PRESENT_MODE_FIFO_KHR;
 		}
 
-		VkExtent2D choose_swap_extent(const VkSurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height) {
+		VkExtent2D choose_swap_extent(const VkSurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height)
+		{
 			if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
 				return capabilities.currentExtent;
 			} else {
@@ -62,7 +65,8 @@ namespace gfx
 			}
 		}
 
-		VkSurfaceFormatKHR choose_swap_surface_format(const std::vector<VkSurfaceFormatKHR>& availableFormats, VkFormat desiredFormat) {
+		VkSurfaceFormatKHR choose_swap_surface_format(const std::vector<VkSurfaceFormatKHR>& availableFormats, VkFormat desiredFormat)
+		{
 			for (const auto& availableFormat : availableFormats) {
 				if (availableFormat.format == desiredFormat && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
 					return availableFormat;
@@ -72,7 +76,8 @@ namespace gfx
 			return availableFormats[0];
 		}
 
-		std::vector<VkImageView> create_swap_image_views(Device* device, const std::vector<VkImage>& images, VkFormat imageFormat) {
+		std::vector<VkImageView> create_swap_image_views(Device* device, const std::vector<VkImage>& images, VkFormat imageFormat)
+		{
 			std::vector<VkImageView> imageViews(images.size());
 
 			for (size_t i = 0; i < images.size(); i++) {
@@ -100,7 +105,8 @@ namespace gfx
 
 	} // namespace detail
 
-	Swapchain* create_swapchain(Device* device, VkFormat desiredFormat) {
+	Swapchain* create_swapchain(Device* device, VkFormat desiredFormat)
+	{
 		auto swapchainSupport = detail::query_swapchain_support(device->physicalDevice, device->surface);
 		VkPresentModeKHR presentMode = detail::choose_swap_present_mode(swapchainSupport.presentModes);
 		uint32_t width = 0, height = 0;
@@ -162,11 +168,12 @@ namespace gfx
 
 		std::vector<VkImageView> swapchainImageViews = detail::create_swap_image_views(device, swapchainImages, surfaceFormat.format);
 
-		std::vector<SwapchainFrame> frames(imageCount);
-		for (std::uint32_t i = 0; i < frames.size(); i++) {
-			frames[i] = {
+		std::vector<SwapchainFrame> images(imageCount);
+		for (std::uint32_t i = 0; i < images.size(); i++) {
+			images[i] = {
 				.image = swapchainImages[i],
-				.imageView = swapchainImageViews[i]
+				.imageView = swapchainImageViews[i],
+				.renderFinished = create_semaphore(device).semaphore
 			};
 		}
 
@@ -174,13 +181,14 @@ namespace gfx
 			.swapchain = swapchain,
 			.extent = extent,
 			.format = surfaceFormat.format,
-			.frames = std::move(frames)
+			.images = std::move(images)
 		};
 
 		return pSwapchain;
 	}
 
-	void recreate_swapchain(Device* device, Swapchain* swapchain) {
+	void recreate_swapchain(Device* device, Swapchain* swapchain)
+	{
 		VkFormat format = swapchain->format;
 		vkDeviceWaitIdle(device->device);
 
@@ -191,8 +199,10 @@ namespace gfx
 		device->renderTarget = create_render_target(device);
 	}
 
-	void destroy_swapchain(Device* device, Swapchain* swapchain) {
-		for (auto& frame : swapchain->frames) {
+	void destroy_swapchain(Device* device, Swapchain* swapchain)
+	{
+		for (auto& frame : swapchain->images) {
+			vkDestroySemaphore(device->device, frame.renderFinished, nullptr);
 			vkDestroyImageView(device->device, frame.imageView, nullptr);
 		}
 
@@ -202,16 +212,23 @@ namespace gfx
 		swapchain = nullptr;
 	}
 
-	SwapchainFrame aquire(Device* device, Semaphore* semaphore) {
-	    VkResult result = vkAcquireNextImageKHR(device->device, device->swapchain->swapchain, UINT64_MAX, semaphore->semaphore, VK_NULL_HANDLE, &device->swapchain->imageIndex);
+	SwapchainFrame aquire(Device* device)
+	{
+		const Frame& frame = device->frames[device->currentFrame];
+
+		vkWaitForFences(device->device, 1, &frame.fence.fence, VK_TRUE, UINT64_MAX);
+		VkResult result = vkAcquireNextImageKHR(device->device, device->swapchain->swapchain, UINT64_MAX, frame.imageAvailable.semaphore, VK_NULL_HANDLE, &device->swapchain->imageIndex);
+
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			recreate_swapchain(device, device->swapchain);
 			return {};
 		}
-		if(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+		if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
 			std::fprintf(stderr, "Vulkan error aquiring next image: %d\n", static_cast<int>(result));
 		}
 
-		return device->swapchain->frames[device->swapchain->imageIndex];
+		vkResetFences(device->device, 1, &frame.fence.fence);
+
+		return device->swapchain->images[device->swapchain->imageIndex];
 	}
 } // namespace gfx

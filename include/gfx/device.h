@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <vulkan/vulkan.h>
+#include "sync.h"
 
 namespace gfx
 {
@@ -34,6 +35,13 @@ namespace gfx
 	struct Pipeline;
 	struct RenderPass;
 	struct RenderTarget;
+	struct CommandBuffer;
+
+	struct Frame {
+		CommandBuffer* commands;
+		Fence fence;
+		Semaphore imageAvailable;
+	};
 
 	struct Device
 	{
@@ -45,7 +53,8 @@ namespace gfx
 		VkQueue graphicsQueue = VK_NULL_HANDLE;
 		VkQueue presentQueue = VK_NULL_HANDLE;
 		VkCommandPool commandPool = VK_NULL_HANDLE;
-		VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+		std::vector<Frame> frames = {};
+		uint32_t currentFrame = 0;
 		WindowCallbacks* window;
 		Swapchain* swapchain = nullptr;
 		RenderPass* renderPass = nullptr;
@@ -61,6 +70,7 @@ namespace gfx
 		VkFormat swapchainFormat = VK_FORMAT_UNDEFINED; // TODO: move vulkan out of public API?
 		WindowCallbacks* window = nullptr;
 		bool enableValidation = false;
+		uint32_t framesInFlight = 2;
 	};
 
 	struct DeviceInit

@@ -8,7 +8,7 @@ namespace gfx
 	namespace
 	{
 		std::vector<VkFramebuffer> create_framebuffers(Device* device, VkExtent2D extent) {
-			const auto& swapchainFrames = device->swapchain->frames;
+			const auto& swapchainFrames = device->swapchain->images;
 			std::vector<VkFramebuffer> framebuffers(swapchainFrames.size());
 			for (size_t i = 0; i < swapchainFrames.size(); i++) {
 				VkImageView attachments[] = {
