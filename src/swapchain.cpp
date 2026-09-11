@@ -1,5 +1,6 @@
 #include "gfx/swapchain.h"
 #include "gfx/device.h"
+#include "gfx/sync.h"
 #include <algorithm>
 #include <limits>
 
@@ -187,7 +188,8 @@ namespace gfx
 		swapchain = nullptr;
 	}
 
-	SwapchainFrame* aquire(Device* device) {
-		return {};
+	SwapchainFrame aquire(Device* device, Semaphore* semaphore) {
+	    vkAcquireNextImageKHR(device->device, device->swapchain->swapchain, UINT64_MAX, semaphore->semaphore, VK_NULL_HANDLE, &device->swapchain->imageIndex);
+		return device->swapchain->frames[device->swapchain->imageIndex];
 	}
 } // namespace gfx

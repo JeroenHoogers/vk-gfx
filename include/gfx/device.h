@@ -68,6 +68,8 @@ namespace gfx
 
 	DeviceInit create_device(const DeviceCreateParams& init);
 
+	void wait_idle(Device* device);
+
 	void destroy_device(Device* device);
 } // namespace gfx
 

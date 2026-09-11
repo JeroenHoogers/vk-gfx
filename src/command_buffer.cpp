@@ -1,6 +1,7 @@
 #include "gfx/command_buffer.h"
 #include "gfx/device.h"
 #include "gfx/swapchain.h"
+#include "gfx/sync.h"
 
 namespace gfx
 {
@@ -20,6 +21,26 @@ namespace gfx
 			VK_ASSERT(result);
 			return commandBuffer;
 		}
+
+		void present(Device* device, Semaphore* signalSemaphore) {
+			VkSemaphore signalSemaphores[] = {signalSemaphore->semaphore};
+			VkSwapchainKHR swapChains[] = {device->swapchain->swapchain};
+
+			VkPresentInfoKHR presentInfo{
+				.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+				.pNext = nullptr,
+				.waitSemaphoreCount = 1,
+				.pWaitSemaphores = signalSemaphores,
+				.swapchainCount = 1,
+				.pSwapchains = swapChains,
+				.pImageIndices = &device->swapchain->imageIndex,
+				.pResults = nullptr
+			};
+
+			VkResult result = vkQueuePresentKHR(device->presentQueue, &presentInfo);
+			VK_ASSERT(result);
+		}
+
 	} // namespace
 
 	CommandBuffer* begin_commands(Device* device) {
@@ -32,22 +53,9 @@ namespace gfx
 			.pInheritanceInfo = nullptr
 		};
 
+		vkResetCommandBuffer(commandBuffer, 0); // TODO: do we need this?
+
 		vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-		// TODO: does this belong here?
-		VkViewport viewport{};
-		viewport.x = 0.0f;
-		viewport.y = 0.0f;
-		viewport.width = static_cast<float>(device->swapchain->extent.width);
-		viewport.height = static_cast<float>(device->swapchain->extent.height);
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-		VkRect2D scissor{};
-		scissor.offset = {0, 0};
-		scissor.extent = device->swapchain->extent;
-		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 		CommandBuffer* pCommandBuffer = new CommandBuffer{
 			.commandBuffer = commandBuffer
@@ -59,6 +67,30 @@ namespace gfx
 	void end_commands(CommandBuffer* commands) {
 		VkResult result = vkEndCommandBuffer(commands->commandBuffer);
 		VK_ASSERT(result);
+	}
+
+	void submit_and_present(Device* device, const CommandBuffer* commands, Fence* inflightFence, Semaphore* waitSemaphore, Semaphore* signalSemaphore) {
+		VkSemaphore waitSemaphores[] = {waitSemaphore->semaphore};
+		VkSemaphore signalSemaphores[] = {signalSemaphore->semaphore};
+
+		VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+
+		VkSubmitInfo submitInfo{
+			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+			.pNext = nullptr,
+			.waitSemaphoreCount = 1,
+			.pWaitSemaphores = waitSemaphores,
+			.pWaitDstStageMask = waitStages,
+			.commandBufferCount = 1,
+			.pCommandBuffers = &commands->commandBuffer,
+			.signalSemaphoreCount = 1,
+			.pSignalSemaphores = signalSemaphores
+		};
+
+		VkResult result = vkQueueSubmit(device->graphicsQueue, 1, &submitInfo, inflightFence->fence);
+		VK_ASSERT(result);
+
+		present(device, signalSemaphore);
 	}
 
 	void draw(CommandBuffer* commands, void* mesh, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) {

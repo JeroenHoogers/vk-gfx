@@ -1,8 +1,8 @@
 #include "gfx/render_pass.h"
-#include "gfx/device.h"
-#include "gfx/swapchain.h"
-#include "gfx/render_target.h"
 #include "gfx/command_buffer.h"
+#include "gfx/device.h"
+#include "gfx/render_target.h"
+#include "gfx/swapchain.h"
 
 namespace gfx
 {
@@ -29,12 +29,27 @@ namespace gfx
 		subpass.colorAttachmentCount = 1;
 		subpass.pColorAttachments = &colorAttachmentRef;
 
-		VkRenderPassCreateInfo renderPassInfo{};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		renderPassInfo.attachmentCount = 1;
-		renderPassInfo.pAttachments = &colorAttachment;
-		renderPassInfo.subpassCount = 1;
-		renderPassInfo.pSubpasses = &subpass;
+		VkSubpassDependency dependency{
+			.srcSubpass = VK_SUBPASS_EXTERNAL,
+			.dstSubpass = 0,
+			.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+			.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+			.srcAccessMask = 0,
+			.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+			.dependencyFlags = 0
+		};
+
+		VkRenderPassCreateInfo renderPassInfo{
+			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = 0,
+			.attachmentCount = 1,
+			.pAttachments = &colorAttachment,
+			.subpassCount = 1,
+			.pSubpasses = &subpass,
+			.dependencyCount = 1,
+			.pDependencies = &dependency
+		};
 
 		VkRenderPass renderPass;
 
@@ -48,20 +63,19 @@ namespace gfx
 		return pRenderPass;
 	}
 
-	void begin_render_pass(Device* device, CommandBuffer* commands) {
-		VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+	void begin_render_pass(Device* device, CommandBuffer* commands, const RenderPassDesc& desc) {
 
 		VkRenderPassBeginInfo renderPassInfo{
 			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 			.pNext = nullptr,
 			.renderPass = device->renderPass->renderPass,
-			.framebuffer = device->renderTarget->framebuffers[0],
+			.framebuffer = device->renderTarget->framebuffers[device->swapchain->imageIndex],
 			.renderArea = {
 				.offset = {0, 0},
 				.extent = device->swapchain->extent
 			},
 			.clearValueCount = 1,
-			.pClearValues = &clearColor
+			.pClearValues = &desc.colors.clearColor
 		};
 
 		vkCmdBeginRenderPass(commands->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);

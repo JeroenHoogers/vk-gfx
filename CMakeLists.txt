@@ -43,6 +43,7 @@ set(SRC_LIB
     ${SOURCE_DIR}/device.cpp
     ${SOURCE_DIR}/swapchain.cpp
     ${SOURCE_DIR}/pipeline.cpp
+    ${SOURCE_DIR}/sync.cpp
     ${SOURCE_DIR}/command_buffer.cpp
     ${SOURCE_DIR}/render_pass.cpp
     ${SOURCE_DIR}/render_target.cpp

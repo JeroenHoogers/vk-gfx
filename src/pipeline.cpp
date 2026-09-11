@@ -243,8 +243,23 @@ namespace gfx
 		return pPipeline;
 	}
 
-	void bind_pipeline(Pipeline* pipeline, CommandBuffer* commands) {
+	void bind_pipeline(Device* device, Pipeline* pipeline, CommandBuffer* commands) {
 		vkCmdBindPipeline(commands->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->pipeline);
+
+		// TODO: does this belong here?
+		VkViewport viewport{};
+		viewport.x = 0.0f;
+		viewport.y = 0.0f;
+		viewport.width = static_cast<float>(device->swapchain->extent.width);
+		viewport.height = static_cast<float>(device->swapchain->extent.height);
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+		vkCmdSetViewport(commands->commandBuffer, 0, 1, &viewport);
+
+		VkRect2D scissor{};
+		scissor.offset = {0, 0};
+		scissor.extent = device->swapchain->extent;
+		vkCmdSetScissor(commands->commandBuffer, 0, 1, &scissor);
 	}
 
 	void destroy_pipeline(Device* device, Pipeline* pipeline) {

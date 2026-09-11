@@ -368,6 +368,10 @@ namespace gfx
 		};
 	}
 
+	void wait_idle(Device* device) {
+		vkDeviceWaitIdle(device->device);
+	}
+
 	void destroy_device(Device* device) {
 		vkDestroyCommandPool(device->device, device->commandPool, nullptr);
 

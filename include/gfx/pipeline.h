@@ -28,7 +28,7 @@ namespace gfx
 	};
 
 	Pipeline* create_graphics_pipeline(Device* device, const PipelineParams& params);
-	void bind_pipeline(Pipeline* pipeline, CommandBuffer* commands);
+	void bind_pipeline(Device* device, Pipeline* pipeline, CommandBuffer* commands);
 
 	void destroy_pipeline(Device* device, Pipeline* pipeline);
 } // namespace gfx

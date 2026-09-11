@@ -5,6 +5,7 @@
 namespace gfx
 {
 	struct Device;
+	struct Semaphore;
 
 	struct SwapchainFrame
 	{
@@ -17,6 +18,7 @@ namespace gfx
 		VkSwapchainKHR swapchain;
 		VkExtent2D extent;
 		VkFormat format;
+		uint32_t imageIndex = 0;
 		std::vector<SwapchainFrame> frames;
 	};
 
@@ -40,6 +42,6 @@ namespace gfx
 
 	[[nodiscard]] Swapchain* create_swapchain(Device* device, VkFormat swapchainFormat);
 	void destroy_swapchain(Device* device, Swapchain* swapchain);
-	[[nodiscard]] SwapchainFrame* aquire(Device* device);
+	[[nodiscard]] SwapchainFrame aquire(Device* device, Semaphore* semaphore);
 
 } // namespace gfx
