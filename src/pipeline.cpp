@@ -1,14 +1,15 @@
 #include "gfx/pipeline.h"
+#include "gfx/command_buffer.h"
 #include "gfx/device.h"
 #include "gfx/render_pass.h"
 #include "gfx/swapchain.h"
-#include "gfx/command_buffer.h"
 
 namespace gfx
 {
 	namespace detail
 	{
-		VkShaderModule create_shader_module(Device* device, const std::vector<char>& shader) {
+		VkShaderModule create_shader_module(Device* device, const std::vector<char>& shader)
+		{
 			VkShaderModuleCreateInfo createInfo{
 				.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
 				.pNext = nullptr,
@@ -24,7 +25,8 @@ namespace gfx
 		}
 	} // namespace detail
 
-	Pipeline* create_graphics_pipeline(Device* device, const PipelineParams& params) {
+	Pipeline* create_graphics_pipeline(Device* device, const PipelineParams& params)
+	{
 
 		VkShaderModule vertShaderModule = detail::create_shader_module(device, params.vertex_shader);
 		VkShaderModule fragShaderModule = detail::create_shader_module(device, params.fragment_shader);
@@ -243,7 +245,8 @@ namespace gfx
 		return pPipeline;
 	}
 
-	void bind_pipeline(Device* device, Pipeline* pipeline, CommandBuffer* commands) {
+	void bind_pipeline(Device* device, Pipeline* pipeline, CommandBuffer* commands)
+	{
 		vkCmdBindPipeline(commands->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->pipeline);
 
 		// TODO: does this belong here?
@@ -262,7 +265,8 @@ namespace gfx
 		vkCmdSetScissor(commands->commandBuffer, 0, 1, &scissor);
 	}
 
-	void destroy_pipeline(Device* device, Pipeline* pipeline) {
+	void destroy_pipeline(Device* device, Pipeline* pipeline)
+	{
 		vkDestroyPipeline(device->device, pipeline->pipeline, nullptr);
 		vkDestroyPipelineLayout(device->device, pipeline->pipelineLayout, nullptr);
 

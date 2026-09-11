@@ -6,7 +6,8 @@
 
 namespace gfx
 {
-	RenderPass* create_render_pass(Device* device) {
+	RenderPass* create_render_pass(Device* device)
+	{
 		VkAttachmentDescription colorAttachment{
 			.flags = 0,
 			.format = device->swapchain->format,
@@ -63,8 +64,8 @@ namespace gfx
 		return pRenderPass;
 	}
 
-	void begin_render_pass(Device* device, CommandBuffer* commands, const RenderPassDesc& desc) {
-
+	void begin_render_pass(Device* device, CommandBuffer* commands, const RenderPassDesc& desc)
+	{
 		VkRenderPassBeginInfo renderPassInfo{
 			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 			.pNext = nullptr,
@@ -81,11 +82,13 @@ namespace gfx
 		vkCmdBeginRenderPass(commands->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 	}
 
-	void end_render_pass(CommandBuffer* commands) {
+	void end_render_pass(CommandBuffer* commands)
+	{
 		vkCmdEndRenderPass(commands->commandBuffer);
 	}
 
-	void destroy_render_pass(Device* device, RenderPass* renderPass) {
+	void destroy_render_pass(Device* device, RenderPass* renderPass)
+	{
 		vkDestroyRenderPass(device->device, renderPass->renderPass, nullptr);
 	}
 } // namespace gfx

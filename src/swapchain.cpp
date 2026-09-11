@@ -208,7 +208,9 @@ namespace gfx
 			recreate_swapchain(device, device->swapchain);
 			return {};
 		}
-		VK_ASSERT(result);
+		if(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+			std::fprintf(stderr, "Vulkan error aquiring next image: %d\n", static_cast<int>(result));
+		}
 
 		return device->swapchain->frames[device->swapchain->imageIndex];
 	}

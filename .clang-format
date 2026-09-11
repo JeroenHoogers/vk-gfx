@@ -9,7 +9,7 @@ BraceWrapping:
   AfterNamespace: true
   AfterClass: true
   AfterStruct: true
-  AfterFunction: false
+  AfterFunction: true
   AfterControlStatement: false
 
 NamespaceIndentation: All

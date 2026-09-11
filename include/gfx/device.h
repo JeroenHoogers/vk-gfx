@@ -45,6 +45,7 @@ namespace gfx
 		VkQueue graphicsQueue = VK_NULL_HANDLE;
 		VkQueue presentQueue = VK_NULL_HANDLE;
 		VkCommandPool commandPool = VK_NULL_HANDLE;
+		VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
 		WindowCallbacks* window;
 		Swapchain* swapchain = nullptr;
 		RenderPass* renderPass = nullptr;

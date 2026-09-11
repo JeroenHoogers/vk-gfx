@@ -7,22 +7,8 @@ namespace gfx
 {
 	namespace
 	{
-		VkCommandBuffer create_command_buffer(Device* device) {
-			VkCommandBufferAllocateInfo allocInfo{
-				.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-				.pNext = nullptr,
-				.commandPool = device->commandPool,
-				.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-				.commandBufferCount = 1
-			};
-
-			VkCommandBuffer commandBuffer;
-			VkResult result = vkAllocateCommandBuffers(device->device, &allocInfo, &commandBuffer);
-			VK_ASSERT(result);
-			return commandBuffer;
-		}
-
-		void present(Device* device, Semaphore* signalSemaphore) {
+		void present(Device* device, Semaphore* signalSemaphore)
+		{
 			VkSemaphore signalSemaphores[] = {signalSemaphore->semaphore};
 			VkSwapchainKHR swapChains[] = {device->swapchain->swapchain};
 
@@ -48,9 +34,27 @@ namespace gfx
 
 	} // namespace
 
-	CommandBuffer* begin_commands(Device* device) {
-		VkCommandBuffer commandBuffer = create_command_buffer(device);
+	namespace detail
+	{
+		VkCommandBuffer create_command_buffer(Device* device)
+		{
+			VkCommandBufferAllocateInfo allocInfo{
+				.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+				.pNext = nullptr,
+				.commandPool = device->commandPool,
+				.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+				.commandBufferCount = 1
+			};
 
+			VkCommandBuffer commandBuffer;
+			VkResult result = vkAllocateCommandBuffers(device->device, &allocInfo, &commandBuffer);
+			VK_ASSERT(result);
+			return commandBuffer;
+		}
+	} // namespace detail
+
+	CommandBuffer* begin_commands(Device* device)
+	{
 		VkCommandBufferBeginInfo beginInfo{
 			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
 			.pNext = nullptr,
@@ -58,23 +62,25 @@ namespace gfx
 			.pInheritanceInfo = nullptr
 		};
 
-		vkResetCommandBuffer(commandBuffer, 0); // TODO: do we need this?
+		vkResetCommandBuffer(device->commandBuffer, 0);
 
-		vkBeginCommandBuffer(commandBuffer, &beginInfo);
+		vkBeginCommandBuffer(device->commandBuffer, &beginInfo);
 
 		CommandBuffer* pCommandBuffer = new CommandBuffer{
-			.commandBuffer = commandBuffer
+			.commandBuffer = device->commandBuffer
 		};
 
 		return pCommandBuffer;
 	};
 
-	void end_commands(CommandBuffer* commands) {
+	void end_commands(CommandBuffer* commands)
+	{
 		VkResult result = vkEndCommandBuffer(commands->commandBuffer);
 		VK_ASSERT(result);
 	}
 
-	void submit_and_present(Device* device, const CommandBuffer* commands, Fence* inflightFence, Semaphore* waitSemaphore, Semaphore* signalSemaphore) {
+	void submit_and_present(Device* device, const CommandBuffer* commands, Fence* inflightFence, Semaphore* waitSemaphore, Semaphore* signalSemaphore)
+	{
 		VkSemaphore waitSemaphores[] = {waitSemaphore->semaphore};
 		VkSemaphore signalSemaphores[] = {signalSemaphore->semaphore};
 
@@ -98,7 +104,8 @@ namespace gfx
 		present(device, signalSemaphore);
 	}
 
-	void draw(CommandBuffer* commands, void* mesh, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) {
+	void draw(CommandBuffer* commands, void* mesh, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+	{
 		// TODO: bind mesh
 		vkCmdDraw(commands->commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
 	}

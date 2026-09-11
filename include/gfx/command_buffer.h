@@ -13,6 +13,11 @@ namespace gfx
 		VkCommandBuffer commandBuffer;
 	};
 
+	namespace detail {
+		VkCommandBuffer create_command_buffer(Device* device);
+	}
+
+
 	[[nodiscard]] CommandBuffer* begin_commands(Device* device);
 	void end_commands(CommandBuffer* commands);
 

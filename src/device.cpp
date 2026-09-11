@@ -1,4 +1,5 @@
 #include "gfx/device.h"
+#include "gfx/command_buffer.h"
 #include "gfx/render_pass.h"
 #include "gfx/render_target.h"
 #include "gfx/swapchain.h"
@@ -12,7 +13,8 @@ namespace gfx
 {
 	namespace detail
 	{
-		bool find_queue_families(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, QueueFamilyIndices& indices) {
+		bool find_queue_families(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, QueueFamilyIndices& indices)
+		{
 			vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &indices.queueFamilyCount, nullptr);
 
 			std::vector<VkQueueFamilyProperties> queueFamilies(indices.queueFamilyCount);
@@ -45,12 +47,14 @@ namespace gfx
 	namespace
 	{
 		// TODO: allow user callback instead
-		VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback([[maybe_unused]] VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* callbackData, [[maybe_unused]] void* userData) {
+		VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback([[maybe_unused]] VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* callbackData, [[maybe_unused]] void* userData)
+		{
 			std::printf("validation layer: %s\n", callbackData->pMessage);
 			return VK_FALSE;
 		}
 
-		VkDebugUtilsMessengerEXT create_debug_utils_messenger_ext(VkInstance instance, const VkAllocationCallbacks* allocator) {
+		VkDebugUtilsMessengerEXT create_debug_utils_messenger_ext(VkInstance instance, const VkAllocationCallbacks* allocator)
+		{
 			VkDebugUtilsMessengerCreateInfoEXT createInfo{
 				.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
 				.pNext = nullptr,
@@ -82,14 +86,16 @@ namespace gfx
 			return debugMessenger;
 		}
 
-		void destroy_debug_utils_messenger_ext(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* allocator) {
+		void destroy_debug_utils_messenger_ext(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* allocator)
+		{
 			auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
 			if (func != nullptr) {
 				func(instance, debugMessenger, allocator);
 			}
 		}
 
-		VkInstance create_instance(const std::string& appName, const std::vector<const char*>& extensions, const std::vector<const char*>& layers) {
+		VkInstance create_instance(const std::string& appName, const std::vector<const char*>& extensions, const std::vector<const char*>& layers)
+		{
 			VkApplicationInfo appInfo{
 				.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
 				.pNext = nullptr,
@@ -120,7 +126,8 @@ namespace gfx
 			return instance;
 		}
 
-		bool check_layer_support(std::vector<const char*> layers) {
+		bool check_layer_support(std::vector<const char*> layers)
+		{
 			std::uint32_t layerCount;
 			vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
@@ -146,7 +153,8 @@ namespace gfx
 			return true;
 		}
 
-		bool is_device_suitable(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, const std::vector<const char*>& extensions) {
+		bool is_device_suitable(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, const std::vector<const char*>& extensions)
+		{
 			detail::QueueFamilyIndices indices;
 
 			// check queue families
@@ -181,7 +189,8 @@ namespace gfx
 			return has_queue_families && has_extensions && swapchain_adequate;
 		}
 
-		VkPhysicalDevice pick_physical_device(VkInstance instance, VkSurfaceKHR surface, const std::vector<const char*>& extensions) {
+		VkPhysicalDevice pick_physical_device(VkInstance instance, VkSurfaceKHR surface, const std::vector<const char*>& extensions)
+		{
 			std::uint32_t deviceCount = 0;
 			vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
@@ -207,7 +216,8 @@ namespace gfx
 			abort();
 		}
 
-		VkDevice create_logical_device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, const std::vector<const char*>& extensions, VkQueue& graphicsQueue, VkQueue& presentQueue) {
+		VkDevice create_logical_device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, const std::vector<const char*>& extensions, VkQueue& graphicsQueue, VkQueue& presentQueue)
+		{
 			detail::QueueFamilyIndices indices;
 			if (!find_queue_families(physicalDevice, surface, indices)) {
 				fprintf(stderr, "failed to find required queue families!");
@@ -265,7 +275,8 @@ namespace gfx
 			return device;
 		}
 
-		VkCommandPool create_command_pool(Device* device) {
+		VkCommandPool create_command_pool(Device* device)
+		{
 			detail::QueueFamilyIndices indices;
 			if (!find_queue_families(device->physicalDevice, device->surface, indices)) {
 				fprintf(stderr, "failed to find required queue families!");
@@ -286,7 +297,8 @@ namespace gfx
 
 	} // namespace
 
-	DeviceInit create_device(const DeviceCreateParams& params) {
+	DeviceInit create_device(const DeviceCreateParams& params)
+	{
 		constexpr const char* validationLayers = "VK_LAYER_KHRONOS_validation";
 		std::vector<const char*> deviceExtensions = params.deviceExtensions;
 		std::vector<const char*> extensions = params.extensions;
@@ -364,16 +376,21 @@ namespace gfx
 		VkCommandPool commandPool = create_command_pool(pDevice);
 		pDevice->commandPool = commandPool;
 
+		VkCommandBuffer commandBuffer = detail::create_command_buffer(pDevice);
+		pDevice->commandBuffer = commandBuffer;
+
 		return DeviceInit{
 			.device = pDevice
 		};
 	}
 
-	void wait_idle(Device* device) {
+	void wait_idle(Device* device)
+	{
 		vkDeviceWaitIdle(device->device);
 	}
 
-	void destroy_device(Device* device) {
+	void destroy_device(Device* device)
+	{
 		vkDestroyCommandPool(device->device, device->commandPool, nullptr);
 
 		destroy_render_target(device, device->renderTarget);
