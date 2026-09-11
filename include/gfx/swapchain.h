@@ -41,6 +41,7 @@ namespace gfx
 
 
 	[[nodiscard]] Swapchain* create_swapchain(Device* device, VkFormat swapchainFormat);
+	void recreate_swapchain(Device* device, Swapchain* swapchain);
 	void destroy_swapchain(Device* device, Swapchain* swapchain);
 	[[nodiscard]] SwapchainFrame aquire(Device* device, Semaphore* semaphore);
 

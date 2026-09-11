@@ -348,7 +348,8 @@ namespace gfx
 			.surface = surface,
 			.debugMessenger = debugMessenger,
 			.graphicsQueue = graphicsQueue,
-			.presentQueue = presentQueue
+			.presentQueue = presentQueue,
+			.window = params.window
 		};
 
 		Swapchain* swapchain = create_swapchain(pDevice, params.swapchainFormat);

@@ -1,6 +1,7 @@
 #include "gfx/swapchain.h"
 #include "gfx/device.h"
 #include "gfx/sync.h"
+#include "gfx/render_target.h"
 #include <algorithm>
 #include <limits>
 
@@ -102,7 +103,9 @@ namespace gfx
 	Swapchain* create_swapchain(Device* device, VkFormat desiredFormat) {
 		auto swapchainSupport = detail::query_swapchain_support(device->physicalDevice, device->surface);
 		VkPresentModeKHR presentMode = detail::choose_swap_present_mode(swapchainSupport.presentModes);
-		VkExtent2D extent = detail::choose_swap_extent(swapchainSupport.capabilities, 0, 0); // TODO: get width / height
+		uint32_t width = 0, height = 0;
+		device->window->get_framebuffer_size(&width, &height, device->window->user_data);
+		VkExtent2D extent = detail::choose_swap_extent(swapchainSupport.capabilities, width, height);
 		VkSurfaceFormatKHR surfaceFormat = detail::choose_swap_surface_format(swapchainSupport.formats, desiredFormat);
 
 		printf("extent %d, %d\n", extent.width, extent.height);
@@ -177,6 +180,17 @@ namespace gfx
 		return pSwapchain;
 	}
 
+	void recreate_swapchain(Device* device, Swapchain* swapchain) {
+		VkFormat format = swapchain->format;
+		vkDeviceWaitIdle(device->device);
+
+		destroy_render_target(device, device->renderTarget);
+		destroy_swapchain(device, swapchain);
+
+		device->swapchain = create_swapchain(device, format);
+		device->renderTarget = create_render_target(device);
+	}
+
 	void destroy_swapchain(Device* device, Swapchain* swapchain) {
 		for (auto& frame : swapchain->frames) {
 			vkDestroyImageView(device->device, frame.imageView, nullptr);
@@ -189,7 +203,13 @@ namespace gfx
 	}
 
 	SwapchainFrame aquire(Device* device, Semaphore* semaphore) {
-	    vkAcquireNextImageKHR(device->device, device->swapchain->swapchain, UINT64_MAX, semaphore->semaphore, VK_NULL_HANDLE, &device->swapchain->imageIndex);
+	    VkResult result = vkAcquireNextImageKHR(device->device, device->swapchain->swapchain, UINT64_MAX, semaphore->semaphore, VK_NULL_HANDLE, &device->swapchain->imageIndex);
+		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+			recreate_swapchain(device, device->swapchain);
+			return {};
+		}
+		VK_ASSERT(result);
+
 		return device->swapchain->frames[device->swapchain->imageIndex];
 	}
 } // namespace gfx
