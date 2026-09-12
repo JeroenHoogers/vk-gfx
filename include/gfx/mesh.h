@@ -29,22 +29,18 @@ namespace gfx
 	struct Mesh {
 		Buffer* vertexBuffer = nullptr;
 		Buffer* indexBuffer = nullptr;
+		VkIndexType indexType = VK_INDEX_TYPE_UINT16;
 	};
 
-	struct VertexData {
+	struct BufferData {
 		const void* data = nullptr;
 		uint64_t size = 0;
 		uint32_t stride = 0;
 	};
 
-	struct IndexData {
-		const uint32_t* data = nullptr;
-		size_t size = 0;
-	};
-
 	struct MeshData {
-		VertexData vertices = {};
-		IndexData indices = {};
+		BufferData vertices = {};
+		BufferData indices = {};
 	};
 
 	Mesh create_mesh(Device* device, const MeshData& meshData);

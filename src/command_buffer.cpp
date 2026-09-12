@@ -140,4 +140,15 @@ namespace gfx
 
 		vkCmdDraw(commands->commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
 	}
+
+	void draw_indexed(CommandBuffer* commands, Mesh* mesh, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
+	{
+		// bind mesh
+		VkBuffer vertexBuffers[] = {mesh->vertexBuffer->buffer};
+		VkDeviceSize offsets[] = {0};
+		vkCmdBindVertexBuffers(commands->commandBuffer, 0, 1, vertexBuffers, offsets);
+
+		vkCmdBindIndexBuffer(commands->commandBuffer, mesh->indexBuffer->buffer, 0, mesh->indexType);
+		vkCmdDrawIndexed(commands->commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+	}
 } // namespace gfx

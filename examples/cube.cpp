@@ -10,9 +10,14 @@ int main()
 	constexpr bool enableValidationLayers = true;
 
 	const std::vector<Vertex> vertices = {
-	    {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-	    {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-	    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+		{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+		{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+		{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+	};
+
+	const std::vector<uint16_t> indices = {
+		0, 1, 2, 2, 3, 0
 	};
 
 	gfx::VertexLayout vertexLayout = gfx::create_vertex_layout({{
@@ -45,6 +50,11 @@ int main()
 			.data = vertices.data(),
 			.size = sizeof(Vertex) * vertices.size(),
 			.stride = sizeof(Vertex)
+		},
+		.indices {
+			.data = indices.data(),
+			.size = sizeof(uint16_t) * indices.size(),
+			.stride = sizeof(uint16_t)
 		}
 	});
 
@@ -53,7 +63,7 @@ int main()
 		gfx::CommandBuffer* commands = gfx::begin_commands(device);
 		gfx::begin_render_pass(device, commands, {.colors = {.renderView = frame.imageView, .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR}});
 		gfx::bind_pipeline(device, pipeline, commands);
-		gfx::draw(commands, &cube, vertices.size());
+		gfx::draw_indexed(commands, &cube, indices.size());
 		gfx::end_render_pass(commands);
 		gfx::end_commands(commands);
 		gfx::submit_and_present(device, commands);
