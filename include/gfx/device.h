@@ -53,6 +53,7 @@ namespace gfx
 		VkQueue graphicsQueue = VK_NULL_HANDLE;
 		VkQueue presentQueue = VK_NULL_HANDLE;
 		VkCommandPool commandPool = VK_NULL_HANDLE;
+		VkCommandPool transientPool = VK_NULL_HANDLE;
 		std::vector<Frame> frames = {};
 		uint32_t currentFrame = 0;
 		WindowCallbacks* window;

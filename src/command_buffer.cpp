@@ -38,12 +38,28 @@ namespace gfx
 
 	namespace detail
 	{
-		std::vector<VkCommandBuffer> create_command_buffers(Device* device, uint32_t count)
+		VkCommandBuffer create_command_buffer(Device* device, VkCommandPool pool)
 		{
 			VkCommandBufferAllocateInfo allocInfo{
 				.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
 				.pNext = nullptr,
-				.commandPool = device->commandPool,
+				.commandPool = pool,
+				.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+				.commandBufferCount = 1
+			};
+
+			VkCommandBuffer commandBuffer;
+			VkResult result = vkAllocateCommandBuffers(device->device, &allocInfo, &commandBuffer);
+			VK_ASSERT(result);
+			return commandBuffer;
+		}
+
+		std::vector<VkCommandBuffer> create_command_buffers(Device* device, VkCommandPool pool, uint32_t count)
+		{
+			VkCommandBufferAllocateInfo allocInfo{
+				.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+				.pNext = nullptr,
+				.commandPool = pool,
 				.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
 				.commandBufferCount = count
 			};
@@ -53,21 +69,25 @@ namespace gfx
 			VK_ASSERT(result);
 			return commandBuffers;
 		}
+
+		void begin_commands(VkCommandBuffer commandBuffer){
+			VkCommandBufferBeginInfo beginInfo{
+				.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+				.pNext = nullptr,
+				.flags = 0,
+				.pInheritanceInfo = nullptr
+			};
+
+			vkBeginCommandBuffer(commandBuffer, &beginInfo);
+		}
+
 	} // namespace detail
 
 	CommandBuffer* begin_commands(Device* device)
 	{
 		CommandBuffer* commandBuffer = device->frames[device->currentFrame].commands;
-		VkCommandBufferBeginInfo beginInfo{
-			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-			.pNext = nullptr,
-			.flags = 0,
-			.pInheritanceInfo = nullptr
-		};
-
 		vkResetCommandBuffer(commandBuffer->commandBuffer, 0);
-
-		vkBeginCommandBuffer(commandBuffer->commandBuffer, &beginInfo);
+		detail::begin_commands(commandBuffer->commandBuffer);
 
 		return commandBuffer;
 	};

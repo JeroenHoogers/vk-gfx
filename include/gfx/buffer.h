@@ -1,5 +1,5 @@
 #pragma once
-#include "vulkan/vulkan.h"
+#include <vulkan/vulkan.h>
 
 namespace gfx {
 	struct Device;
@@ -16,10 +16,13 @@ namespace gfx {
 		uint64_t size;
 		// uint64_t count;
 		VkBufferUsageFlags usage;
+		VkMemoryPropertyFlags properties;
 		VkSharingMode sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	};
 
 	Buffer* create_buffer(Device* device, const BufferDesc& params);
+
+	void copy_buffer(Device* device, Buffer* src, Buffer* dst);
 
 	void destroy_buffer(Device* device, Buffer* buffer);
 }

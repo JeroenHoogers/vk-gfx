@@ -7,22 +7,31 @@ namespace gfx
 {
 	namespace
 	{
-		// TODO: make internal?
 		Buffer* create_vertex_buffer(Device* device, const VertexData& vertexData)
 		{
-			Buffer* buffer = create_buffer(device, {
+			Buffer* staging = create_buffer(device, {
 				.size = vertexData.size,
-				.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-				.sharingMode = VK_SHARING_MODE_EXCLUSIVE
+				.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+				.properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 			});
 
 			void* data;
-			VkResult result = vkMapMemory(device->device, buffer->memory, 0, buffer->size, 0, &data);
+			VkResult result = vkMapMemory(device->device, staging->memory, 0, staging->size, 0, &data);
 			VK_ASSERT(result);
-			memcpy(data, vertexData.data, static_cast<size_t>(buffer->size));
-			vkUnmapMemory(device->device, buffer->memory);
+			memcpy(data, vertexData.data, static_cast<size_t>(staging->size));
+			vkUnmapMemory(device->device, staging->memory);
 
-			return buffer;
+			Buffer* vertexBuffer = create_buffer(device, {
+				.size = vertexData.size,
+				.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+				.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+			});
+
+			copy_buffer(device, staging, vertexBuffer);
+
+			destroy_buffer(device, staging);
+
+			return vertexBuffer;
 		}
 
 	} // namespace

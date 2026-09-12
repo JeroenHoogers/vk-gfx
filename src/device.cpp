@@ -276,7 +276,7 @@ namespace gfx
 			return device;
 		}
 
-		VkCommandPool create_command_pool(Device* device)
+		VkCommandPool create_command_pool(Device* device, VkCommandPoolCreateFlags flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)
 		{
 			detail::QueueFamilyIndices indices;
 			if (!find_queue_families(device->physicalDevice, device->surface, indices)) {
@@ -286,7 +286,7 @@ namespace gfx
 			VkCommandPoolCreateInfo poolInfo{
 				.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 				.pNext = nullptr,
-				.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+				.flags = flags,
 				.queueFamilyIndex = indices.graphicsFamily
 			};
 
@@ -377,7 +377,10 @@ namespace gfx
 		VkCommandPool commandPool = create_command_pool(pDevice);
 		pDevice->commandPool = commandPool;
 
-		std::vector<VkCommandBuffer> commandBuffers = detail::create_command_buffers(pDevice, params.framesInFlight);
+		VkCommandPool transientPool = create_command_pool(pDevice, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+		pDevice->transientPool = transientPool;
+
+		std::vector<VkCommandBuffer> commandBuffers = detail::create_command_buffers(pDevice, commandPool, params.framesInFlight);
 		pDevice->frames.resize(params.framesInFlight);
 		for (uint32_t i = 0; i < params.framesInFlight; i++) {
 			pDevice->frames[i] = Frame{
@@ -404,6 +407,7 @@ namespace gfx
 			destroy_fence(device, &device->frames[i].fence);
 		}
 
+		vkDestroyCommandPool(device->device, device->transientPool, nullptr);
 		vkDestroyCommandPool(device->device, device->commandPool, nullptr);
 
 		destroy_render_target(device, device->renderTarget);
