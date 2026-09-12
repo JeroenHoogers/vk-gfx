@@ -31,8 +31,9 @@ int main() {
 
 	while (poll_window_events(window)) {
 		const gfx::SwapchainFrame frame = gfx::aquire(device);
+		(void)frame;
 		gfx::CommandBuffer* commands = gfx::begin_commands(device);
-		gfx::begin_render_pass(device, commands, { .colors = { .renderView = frame.imageView, .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR }});
+		gfx::begin_render_pass(device, commands);
 		gfx::bind_pipeline(device, pipeline, commands);
 		gfx::draw(commands, {}, 3);
 		gfx::end_render_pass(commands);

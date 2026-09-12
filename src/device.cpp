@@ -4,6 +4,7 @@
 #include "gfx/render_target.h"
 #include "gfx/swapchain.h"
 #include "gfx/sync.h"
+#include "gfx/descriptor_set.h"
 
 #include <cstdint>
 #include <cstring>
@@ -390,6 +391,9 @@ namespace gfx
 			};
 		}
 
+		VkDescriptorPool descriptorPool = create_descriptor_pool(pDevice);
+		pDevice->descriptorPool = descriptorPool;
+
 		return DeviceInit{
 			.device = pDevice
 		};
@@ -402,6 +406,8 @@ namespace gfx
 
 	void destroy_device(Device* device)
 	{
+		vkDestroyDescriptorPool(device->device, device->descriptorPool, nullptr);
+
 		for (uint32_t i = 0; i < device->frames.size(); i++) {
 			destroy_semaphore(device, &device->frames[i].imageAvailable);
 			destroy_fence(device, &device->frames[i].fence);

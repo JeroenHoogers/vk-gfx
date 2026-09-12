@@ -51,6 +51,8 @@ set(SRC_LIB
     ${SOURCE_DIR}/render_pass.cpp
     ${SOURCE_DIR}/render_target.cpp
     ${SOURCE_DIR}/mesh.cpp
+    ${SOURCE_DIR}/descriptor_set.cpp
+    ${SOURCE_DIR}/uniform_buffer.cpp
 )
 
 set(SRC_EXAMPLES

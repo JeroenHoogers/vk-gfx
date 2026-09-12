@@ -54,12 +54,13 @@ namespace gfx
 		VkQueue presentQueue = VK_NULL_HANDLE;
 		VkCommandPool commandPool = VK_NULL_HANDLE;
 		VkCommandPool transientPool = VK_NULL_HANDLE;
+		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
 		std::vector<Frame> frames = {};
 		uint32_t currentFrame = 0;
 		WindowCallbacks* window;
 		Swapchain* swapchain = nullptr;
 		RenderPass* renderPass = nullptr;
-		RenderTarget* renderTarget = nullptr;
+		RenderTarget* renderTarget = nullptr; // TODO: do we need this?
 	};
 
 	struct DeviceCreateParams

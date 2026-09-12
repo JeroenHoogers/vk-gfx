@@ -4,6 +4,7 @@
 #include "gfx/render_pass.h"
 #include "gfx/swapchain.h"
 #include "gfx/mesh.h"
+#include "gfx/uniform_buffer.h"
 
 namespace gfx
 {
@@ -165,6 +166,7 @@ namespace gfx
 			.polygonMode = VK_POLYGON_MODE_FILL,
 			.cullMode = VK_CULL_MODE_BACK_BIT,
 			.frontFace = VK_FRONT_FACE_CLOCKWISE,
+			// .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
 			.depthBiasEnable = VK_FALSE,
 			.depthBiasConstantFactor = 0.0f,
 			.depthBiasClamp = 0.0f,
@@ -217,12 +219,17 @@ namespace gfx
 			.blendConstants{0.0f, 0.0f, 0.0f, 0.0f}
 		};
 
+		std::vector<VkDescriptorSetLayout> setLayouts(params.uniform_buffers.size());
+		for (const auto& uniformBuffer : params.uniform_buffers) {
+			setLayouts.push_back(uniformBuffer->descriptorSetLayout);
+		}
+
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 			.pNext = nullptr,
 			.flags = 0,
-			.setLayoutCount = 0,
-			.pSetLayouts = nullptr,
+			.setLayoutCount = static_cast<uint32_t>(setLayouts.size()),
+			.pSetLayouts = setLayouts.data(),
 			.pushConstantRangeCount = 0,
 			.pPushConstantRanges = nullptr
 		};
@@ -259,7 +266,8 @@ namespace gfx
 
 		Pipeline* pPipeline = new Pipeline{
 			.pipeline = graphicsPipeline,
-			.pipelineLayout = pipelineLayout
+			.pipelineLayout = pipelineLayout,
+			.bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS
 		};
 
 		// cleanup shader modules
@@ -275,7 +283,7 @@ namespace gfx
 
 	void bind_pipeline(Device* device, Pipeline* pipeline, CommandBuffer* commands)
 	{
-		vkCmdBindPipeline(commands->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->pipeline);
+		vkCmdBindPipeline(commands->commandBuffer, pipeline->bindPoint, pipeline->pipeline);
 
 		// TODO: does this belong here?
 		VkViewport viewport{};
