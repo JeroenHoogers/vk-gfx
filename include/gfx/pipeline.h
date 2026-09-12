@@ -6,19 +6,15 @@ namespace gfx
 {
 	struct Device;
 	struct CommandBuffer;
-
-	struct VertexLayout {
-	    std::vector<VkVertexInputBindingDescription> bindings;
-	    std::vector<VkVertexInputAttributeDescription> attributes;
-	};
+	struct VertexLayout;
 
 	struct PipelineParams
 	{
 		std::vector<char> vertex_shader = {};
 		std::vector<char> fragment_shader = {};
 		std::vector<char> geometry_shader = {};
+		VertexLayout* vertex_layout = nullptr;
 		// TODO: allow customization
-		VertexLayout vertex_layout = {};
 	};
 
 	struct Pipeline

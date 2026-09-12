@@ -2,6 +2,8 @@
 #include "gfx/device.h"
 #include "gfx/swapchain.h"
 #include "gfx/sync.h"
+#include "gfx/mesh.h"
+#include "gfx/buffer.h"
 
 namespace gfx
 {
@@ -107,9 +109,15 @@ namespace gfx
 		device->currentFrame = (device->currentFrame + 1) % static_cast<uint32_t>(device->frames.size());
 	}
 
-	void draw(CommandBuffer* commands, void* mesh, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+	void draw(CommandBuffer* commands, Mesh* mesh, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
 	{
-		// TODO: bind mesh
+		// bind mesh
+		if (mesh != nullptr) {
+			VkBuffer vertexBuffers[] = {mesh->vertexBuffer->buffer};
+			VkDeviceSize offsets[] = {0};
+			vkCmdBindVertexBuffers(commands->commandBuffer, 0, 1, vertexBuffers, offsets);
+		}
+
 		vkCmdDraw(commands->commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
 	}
 } // namespace gfx

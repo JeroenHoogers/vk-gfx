@@ -8,6 +8,7 @@ namespace gfx
 	struct Device;
 	struct Fence;
 	struct Semaphore;
+	struct Mesh;
 
 	struct CommandBuffer
 	{
@@ -22,7 +23,7 @@ namespace gfx
 	[[nodiscard]] CommandBuffer* begin_commands(Device* device);
 	void end_commands(CommandBuffer* commands);
 
-	void draw(CommandBuffer* commands, void* mesh, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0);
+	void draw(CommandBuffer* commands, Mesh* mesh, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0);
 
 	void submit(Device* device, CommandBuffer* commands); // TODO:
 

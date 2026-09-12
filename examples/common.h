@@ -2,6 +2,12 @@
 #include <vector>
 #include <string>
 #include <fstream>
+#include <glm/glm.hpp>
+
+struct Vertex {
+	glm::vec2 pos;
+	glm::vec3 color;
+};
 
 inline const std::vector<char> load_shader(const std::string& filename) {
 	std::ifstream file(filename, std::ios::ate | std::ios::binary);

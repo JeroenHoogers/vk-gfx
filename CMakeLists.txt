@@ -5,6 +5,8 @@ project(vk-gfx
   LANGUAGES C CXX
 )
 
+option(BUILD_EXAMPLES "Build examples" ON)
+
 # export compile commands for IDE
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
@@ -41,12 +43,14 @@ set(ASSETS_DIR assets)
 
 set(SRC_LIB
     ${SOURCE_DIR}/device.cpp
+    ${SOURCE_DIR}/buffer.cpp
     ${SOURCE_DIR}/swapchain.cpp
     ${SOURCE_DIR}/pipeline.cpp
     ${SOURCE_DIR}/sync.cpp
     ${SOURCE_DIR}/command_buffer.cpp
     ${SOURCE_DIR}/render_pass.cpp
     ${SOURCE_DIR}/render_target.cpp
+    ${SOURCE_DIR}/mesh.cpp
 )
 
 set(SRC_EXAMPLES
@@ -65,46 +69,55 @@ target_include_directories(vk-gfx
 )
 
 # Example executable
-find_package(glfw3 3.3 REQUIRED)
+if(BUILD_EXAMPLES)
+  find_package(glfw3 3.3 REQUIRED)
+  find_package(glm REQUIRED)
 
-set (CMAKE_CXX_STANDARD 20)
+  set (CMAKE_CXX_STANDARD 20)
 
+  set(SHADER_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders")
+  set(SHADER_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders")
 
+  set(SRC_SHADERS
+    ${SHADER_SRC_DIR}/triangle.vert
+    ${SHADER_SRC_DIR}/triangle.frag
+    ${SHADER_SRC_DIR}/shader.vert
+    ${SHADER_SRC_DIR}/shader.frag
+  )
 
-set(SHADER_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders")
-set(SHADER_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders")
+  set(COMPILED_SHADERS)
 
-set(SRC_SHADERS
-  ${SHADER_SRC_DIR}/triangle.vert
-  ${SHADER_SRC_DIR}/triangle.frag
-)
-
-set(COMPILED_SHADERS)
-
-foreach(SHADER IN LISTS SRC_SHADERS)
+  foreach(SHADER IN LISTS SRC_SHADERS)
     get_filename_component(SHADER_NAME "${SHADER}" NAME)
     set(OUTPUT "${SHADER_BINARY_DIR}/${SHADER_NAME}.spv")
 
     add_custom_command(
-        OUTPUT "${OUTPUT}"
-        COMMAND ${CMAKE_COMMAND} -E make_directory
-                "${SHADER_BINARY_DIR}"
-        COMMAND glslc
-                ${SHADER}
-                -o "${OUTPUT}"
-        DEPENDS "${SHADER}"
-        COMMENT "Compiling Vulkan shader ${SHADER_NAME}.."
-        VERBATIM
-    )
+          OUTPUT "${OUTPUT}"
+          COMMAND ${CMAKE_COMMAND} -E make_directory
+                  "${SHADER_BINARY_DIR}"
+          COMMAND glslc
+                  ${SHADER}
+                  -o "${OUTPUT}"
+          DEPENDS "${SHADER}"
+          COMMENT "Compiling Vulkan shader ${SHADER_NAME}..."
+          VERBATIM
+      )
 
     list(APPEND COMPILED_SHADERS "${OUTPUT}")
-endforeach()
+  endforeach()
 
-add_custom_target(compile_shaders ALL
-    DEPENDS ${COMPILED_SHADERS}
-)
+  add_custom_target(compile_shaders ALL
+      DEPENDS ${COMPILED_SHADERS}
+  )
 
-include_directories(${INCLUDE_DIR})
-add_executable(triangle-example ${SRC_EXAMPLES} ${EXAMPLES_DIR}/triangle.cpp)
-target_link_libraries(triangle-example PRIVATE vk-gfx ${LIBRARIES} glfw)
-add_dependencies(triangle-example compile_shaders)
+  set(EXAMPLE_LIBS ${LIBRARIES} glfw glm::glm)
+
+  include_directories(${INCLUDE_DIR})
+  add_executable(triangle-example ${SRC_EXAMPLES} ${EXAMPLES_DIR}/triangle.cpp)
+  target_link_libraries(triangle-example PRIVATE vk-gfx ${EXAMPLE_LIBS})
+  add_dependencies(triangle-example compile_shaders)
+
+  add_executable(cube-example ${SRC_EXAMPLES} ${EXAMPLES_DIR}/cube.cpp)
+  target_link_libraries(cube-example PRIVATE vk-gfx ${EXAMPLE_LIBS})
+  add_dependencies(cube-example compile_shaders)
+endif(BUILD_EXAMPLES)

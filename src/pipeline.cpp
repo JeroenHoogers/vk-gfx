@@ -3,6 +3,7 @@
 #include "gfx/device.h"
 #include "gfx/render_pass.h"
 #include "gfx/swapchain.h"
+#include "gfx/mesh.h"
 
 namespace gfx
 {
@@ -27,7 +28,6 @@ namespace gfx
 
 	Pipeline* create_graphics_pipeline(Device* device, const PipelineParams& params)
 	{
-
 		VkShaderModule vertShaderModule = detail::create_shader_module(device, params.vertex_shader);
 		VkShaderModule fragShaderModule = detail::create_shader_module(device, params.fragment_shader);
 		VkShaderModule geomShaderModule = VK_NULL_HANDLE;
@@ -103,6 +103,34 @@ namespace gfx
 			.vertexAttributeDescriptionCount = 0,
 			.pVertexAttributeDescriptions = nullptr // Optional
 		};
+
+		std::vector<VkVertexInputBindingDescription> bindings{};
+		std::vector<VkVertexInputAttributeDescription> attributes{};
+		if (params.vertex_layout != nullptr) {
+			bindings.resize(params.vertex_layout->bindings.size());
+			for (uint32_t i = 0; i < bindings.size(); i++) {
+				const auto& binding = params.vertex_layout->bindings[i];
+				bindings[i] = {
+					.binding = i,
+					.stride = binding.stride,
+					.inputRate = binding.rate
+				};
+
+				for (uint32_t j = 0; j < binding.attributes.size(); j++) {
+					attributes.push_back({
+						.location = j,
+						.binding = i,
+						.format = binding.attributes[j].format,
+						.offset = binding.attributes[j].offset
+					});
+				}
+			}
+
+			vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindings.size());
+			vertexInputInfo.pVertexBindingDescriptions = bindings.data();
+			vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributes.size());
+			vertexInputInfo.pVertexAttributeDescriptions = attributes.data();
+		}
 
 		// Input Assembly
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly{
