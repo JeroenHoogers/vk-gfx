@@ -73,7 +73,8 @@ int main()
 		.vertex_shader = load_shader("shaders/shader.vert.spv"),
 		.fragment_shader = load_shader("shaders/shader.frag.spv"),
 		.vertex_layout = &vertexLayout,
-		.uniform_buffers = {ubo}
+		.uniform_buffers = {ubo},
+		.rasterizer = { .front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE }
 	});
 
 	gfx::Mesh cube = gfx::create_mesh(device, {
@@ -96,6 +97,7 @@ int main()
 		gfx::CommandBuffer* commands = gfx::begin_commands(device);
 		gfx::begin_render_pass(device, commands); // TODO: fix
 		gfx::bind_pipeline(device, pipeline, commands);
+		gfx::bind_uniform_buffer(device, pipeline, commands, ubo);
 		gfx::draw_indexed(commands, &cube, indices.size());
 		gfx::end_render_pass(commands);
 		gfx::end_commands(commands);

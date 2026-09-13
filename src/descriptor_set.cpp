@@ -60,19 +60,18 @@ namespace gfx
 		return descriptorPool;
 	}
 
-	std::vector<VkDescriptorSet> create_descriptor_sets(Device* device, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout)
+	std::vector<VkDescriptorSet> create_descriptor_sets(Device* device, uint32_t count, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout)
 	{
-		uint32_t frameCount = device->frames.size();
-		std::vector<VkDescriptorSetLayout> layouts(frameCount, descriptorSetLayout);
+		std::vector<VkDescriptorSetLayout> layouts(count, descriptorSetLayout);
 		VkDescriptorSetAllocateInfo allocInfo{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
 			.pNext = nullptr,
 			.descriptorPool = descriptorPool,
-			.descriptorSetCount = static_cast<uint32_t>(frameCount),
+			.descriptorSetCount = static_cast<uint32_t>(count),
 			.pSetLayouts = layouts.data()
 		};
 
-		std::vector<VkDescriptorSet> descriptorSets(frameCount);
+		std::vector<VkDescriptorSet> descriptorSets(count);
 		VkResult result = vkAllocateDescriptorSets(device->device, &allocInfo, descriptorSets.data());
 		VK_ASSERT(result);
 		return descriptorSets;

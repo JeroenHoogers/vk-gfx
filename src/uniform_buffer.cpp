@@ -18,7 +18,7 @@ namespace gfx
 			.properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 		};
 
-		std::vector<VkDescriptorSet> descriptorSets = create_descriptor_sets(device, device->descriptorPool, descriptorSetLayout);
+		std::vector<VkDescriptorSet> descriptorSets = create_descriptor_sets(device, frameCount, device->descriptorPool, descriptorSetLayout);
 
 		UniformBuffer* uniformBuffer = new UniformBuffer{
 			.descriptorSetLayout = descriptorSetLayout,

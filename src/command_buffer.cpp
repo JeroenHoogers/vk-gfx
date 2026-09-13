@@ -4,6 +4,7 @@
 #include "gfx/sync.h"
 #include "gfx/mesh.h"
 #include "gfx/buffer.h"
+#include "gfx/uniform_buffer.h"
 
 namespace gfx
 {

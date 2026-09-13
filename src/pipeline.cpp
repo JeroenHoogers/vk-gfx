@@ -1,9 +1,9 @@
 #include "gfx/pipeline.h"
 #include "gfx/command_buffer.h"
 #include "gfx/device.h"
+#include "gfx/mesh.h"
 #include "gfx/render_pass.h"
 #include "gfx/swapchain.h"
-#include "gfx/mesh.h"
 #include "gfx/uniform_buffer.h"
 
 namespace gfx
@@ -95,16 +95,6 @@ namespace gfx
 		};
 
 		// Vertex Input
-		VkPipelineVertexInputStateCreateInfo vertexInputInfo{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-			.pNext = nullptr,
-			.flags = 0,
-			.vertexBindingDescriptionCount = 0,
-			.pVertexBindingDescriptions = nullptr, // Optional
-			.vertexAttributeDescriptionCount = 0,
-			.pVertexAttributeDescriptions = nullptr // Optional
-		};
-
 		std::vector<VkVertexInputBindingDescription> bindings{};
 		std::vector<VkVertexInputAttributeDescription> attributes{};
 		if (params.vertex_layout != nullptr) {
@@ -118,20 +108,20 @@ namespace gfx
 				};
 
 				for (uint32_t j = 0; j < binding.attributes.size(); j++) {
-					attributes.push_back({
-						.location = j,
-						.binding = i,
-						.format = binding.attributes[j].format,
-						.offset = binding.attributes[j].offset
-					});
+					attributes.push_back({.location = j, .binding = i, .format = binding.attributes[j].format, .offset = binding.attributes[j].offset});
 				}
 			}
-
-			vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindings.size());
-			vertexInputInfo.pVertexBindingDescriptions = bindings.data();
-			vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributes.size());
-			vertexInputInfo.pVertexAttributeDescriptions = attributes.data();
 		}
+
+		VkPipelineVertexInputStateCreateInfo vertexInputInfo{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = 0,
+			.vertexBindingDescriptionCount = static_cast<uint32_t>(bindings.size()),
+			.pVertexBindingDescriptions = bindings.data(),
+			.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributes.size()),
+			.pVertexAttributeDescriptions = attributes.data()
+		};
 
 		// Input Assembly
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly{
@@ -163,10 +153,9 @@ namespace gfx
 			.flags = 0,
 			.depthClampEnable = VK_FALSE,
 			.rasterizerDiscardEnable = VK_FALSE,
-			.polygonMode = VK_POLYGON_MODE_FILL,
-			.cullMode = VK_CULL_MODE_BACK_BIT,
-			.frontFace = VK_FRONT_FACE_CLOCKWISE,
-			// .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+			.polygonMode = params.rasterizer.polygon_mode,
+			.cullMode = params.rasterizer.cull_mode,
+			.frontFace = params.rasterizer.front_face,
 			.depthBiasEnable = VK_FALSE,
 			.depthBiasConstantFactor = 0.0f,
 			.depthBiasClamp = 0.0f,
@@ -220,8 +209,8 @@ namespace gfx
 		};
 
 		std::vector<VkDescriptorSetLayout> setLayouts(params.uniform_buffers.size());
-		for (const auto& uniformBuffer : params.uniform_buffers) {
-			setLayouts.push_back(uniformBuffer->descriptorSetLayout);
+		for (uint32_t i = 0; i < params.uniform_buffers.size(); i++) {
+			setLayouts[i] = params.uniform_buffers[i]->descriptorSetLayout;
 		}
 
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{

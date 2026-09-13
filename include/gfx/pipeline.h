@@ -9,6 +9,12 @@ namespace gfx
 	struct VertexLayout;
 	struct UniformBuffer;
 
+	struct RasterizerParams {
+		VkPolygonMode polygon_mode = VK_POLYGON_MODE_FILL;
+		VkCullModeFlags cull_mode = VK_CULL_MODE_BACK_BIT;
+		VkFrontFace front_face = VK_FRONT_FACE_CLOCKWISE;
+	};
+
 	struct PipelineParams
 	{
 		std::vector<char> vertex_shader = {};
@@ -16,6 +22,7 @@ namespace gfx
 		std::vector<char> geometry_shader = {};
 		VertexLayout* vertex_layout = nullptr;
 		std::vector<UniformBuffer*> uniform_buffers = {};
+		RasterizerParams rasterizer = {};
 		// TODO: allow customization
 	};
 
