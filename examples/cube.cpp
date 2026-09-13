@@ -59,6 +59,7 @@ int main()
 	gfx::Device* device = deviceInit.device;
 	gfx::Image* texture = load_image(device, "../assets/textures/texture.jpg");
 
+	glfwSetWindowUserPointer(window.window, device);
 	gfx::UniformBuffer* ubo = gfx::create_uniform_buffer(device, {
 		.size = sizeof(UniformBufferObject),
 		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT

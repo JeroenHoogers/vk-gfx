@@ -188,7 +188,10 @@ namespace gfx
 				swapchain_adequate = !supportDetails.formats.empty() && !supportDetails.presentModes.empty();
 			}
 
-			return has_queue_families && has_extensions && swapchain_adequate;
+		    VkPhysicalDeviceFeatures supportedFeatures;
+		    vkGetPhysicalDeviceFeatures(physicalDevice, &supportedFeatures);
+
+			return has_queue_families && has_extensions && swapchain_adequate && supportedFeatures.samplerAnisotropy;
 		}
 
 		VkPhysicalDevice pick_physical_device(VkInstance instance, VkSurfaceKHR surface, const std::vector<const char*>& extensions)

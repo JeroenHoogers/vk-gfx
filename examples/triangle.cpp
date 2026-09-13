@@ -20,6 +20,8 @@ int main() {
 	});
 
 	gfx::Device* device = deviceInit.device;
+	glfwSetWindowUserPointer(window.window, device);
+
 	// if () { // TODO: error handling
 		// gfx::destroy_device(device);
 		// close_window(window);

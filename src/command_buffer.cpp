@@ -27,7 +27,8 @@ namespace gfx
 			};
 
 			VkResult result = vkQueuePresentKHR(device->presentQueue, &presentInfo);
-			if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+			if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || device->swapchain->resized) {
+				device->swapchain->resized = false;
 				recreate_swapchain(device, device->swapchain);
 				return;
 			} else {

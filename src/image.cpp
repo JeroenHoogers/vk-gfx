@@ -82,7 +82,67 @@ namespace gfx
 
 			detail::end_one_time_commands(device, commandBuffer);
 		}
+
+		VkSampler create_texture_sampler(Device* device)
+		{
+			VkPhysicalDeviceProperties properties{};
+			vkGetPhysicalDeviceProperties(device->physicalDevice, &properties);
+
+			VkSamplerCreateInfo samplerInfo{
+				.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+				.pNext = nullptr,
+				.flags = 0,
+				.magFilter = VK_FILTER_LINEAR,
+				.minFilter = VK_FILTER_LINEAR,
+				.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+				.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+				.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+				.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+				.mipLodBias = 0,
+				.anisotropyEnable = VK_TRUE,
+				.maxAnisotropy = properties.limits.maxSamplerAnisotropy,
+				.compareEnable = VK_FALSE,
+				.compareOp = VK_COMPARE_OP_ALWAYS,
+				.minLod = 0.0f,
+				.maxLod = 0.0f,
+				.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+				.unnormalizedCoordinates = VK_FALSE
+			};
+
+			VkSampler sampler;
+			VkResult result = vkCreateSampler(device->device, &samplerInfo, nullptr, &sampler);
+			VK_ASSERT(result);
+			return sampler;
+		}
 	} // namespace
+	namespace detail
+	{
+		VkImageView create_image_view(Device* device, VkImage image, VkFormat format)
+		{
+			VkImageViewCreateInfo viewInfo{
+				.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+				.pNext = nullptr,
+				.flags = 0,
+				.image = image,
+				.viewType = VK_IMAGE_VIEW_TYPE_2D,
+				.format = format,
+				.components = {
+					.r = VK_COMPONENT_SWIZZLE_IDENTITY,
+					.g = VK_COMPONENT_SWIZZLE_IDENTITY,
+					.b = VK_COMPONENT_SWIZZLE_IDENTITY,
+					.a = VK_COMPONENT_SWIZZLE_IDENTITY
+				},
+				.subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1}
+
+			};
+
+			VkImageView imageView;
+			VkResult result = vkCreateImageView(device->device, &viewInfo, nullptr, &imageView);
+			VK_ASSERT(result);
+			return imageView;
+		}
+
+	} // namespace detail
 
 	Image* create_image(Device* device, void* pixels, const ImageDesc& params)
 	{
@@ -137,14 +197,21 @@ namespace gfx
 
 		destroy_buffer(device, staging);
 
+		VkImageView imageView = detail::create_image_view(device, image, VK_FORMAT_R8G8B8A8_SRGB);
+		VkSampler sampler = create_texture_sampler(device);
+
 		return new Image{
 			.image = image,
+			.imageView = imageView,
+			.sampler = sampler,
 			.memory = imageMemory
 		};
 	}
 
 	void destroy_image(Device* device, Image* image)
 	{
+		vkDestroySampler(device->device, image->sampler, nullptr);
+		vkDestroyImageView(device->device, image->imageView, nullptr);
 		vkDestroyImage(device->device, image->image, nullptr);
 		vkFreeMemory(device->device, image->memory, nullptr);
 		delete image;

@@ -17,6 +17,7 @@ namespace gfx
 
 	struct Swapchain
 	{
+		bool resized = false;
 		VkSwapchainKHR swapchain;
 		VkExtent2D extent;
 		VkFormat format;

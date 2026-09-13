@@ -2,11 +2,18 @@
 
 #include <vulkan/vulkan.h>
 
-namespace gfx {
+namespace gfx
+{
 	struct Buffer;
 	struct Device;
 
-	struct ImageDesc {
+	namespace detail
+	{
+		VkImageView create_image_view(Device* device, VkImage image, VkFormat format);
+	}
+
+	struct ImageDesc
+	{
 		uint64_t size;
 		VkFormat format = VK_FORMAT_R8G8B8A8_SRGB;
 		VkExtent3D extent;
@@ -16,11 +23,14 @@ namespace gfx {
 		VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL;
 	};
 
-	struct Image {
+	struct Image
+	{
 		VkImage image;
+		VkImageView imageView;
+		VkSampler sampler;
 		VkDeviceMemory memory;
 	};
 
 	Image* create_image(Device* device, void* pixels, const ImageDesc& params);
 	void destroy_image(Device* device, Image* image);
-}
+} // namespace gfx

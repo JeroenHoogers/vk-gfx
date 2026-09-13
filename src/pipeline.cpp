@@ -275,18 +275,20 @@ namespace gfx
 		vkCmdBindPipeline(commands->commandBuffer, pipeline->bindPoint, pipeline->pipeline);
 
 		// TODO: does this belong here?
-		VkViewport viewport{};
-		viewport.x = 0.0f;
-		viewport.y = 0.0f;
-		viewport.width = static_cast<float>(device->swapchain->extent.width);
-		viewport.height = static_cast<float>(device->swapchain->extent.height);
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
+		VkViewport viewport{
+			.x = 0.0f,
+			.y = 0.0f,
+			.width = static_cast<float>(device->swapchain->extent.width),
+			.height = static_cast<float>(device->swapchain->extent.height),
+			.minDepth = 0.0f,
+			.maxDepth = 1.0f
+		};
 		vkCmdSetViewport(commands->commandBuffer, 0, 1, &viewport);
 
-		VkRect2D scissor{};
-		scissor.offset = {0, 0};
-		scissor.extent = device->swapchain->extent;
+		VkRect2D scissor{
+			.offset = {0, 0},
+			.extent = device->swapchain->extent
+		};
 		vkCmdSetScissor(commands->commandBuffer, 0, 1, &scissor);
 	}
 

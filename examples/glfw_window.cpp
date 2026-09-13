@@ -45,8 +45,10 @@ static void glfw_get_framebuffer_size(uint32_t* width, uint32_t* height, void* d
 	*height = static_cast<uint32_t>(h);
 };
 
-static void glfw_resize_callback(GLFWwindow*, int width, int height) {
+static void glfw_resize_callback(GLFWwindow* window, int width, int height) {
 	std::printf("GLFW resized %d, %d\n", width, height);
+	gfx::Device* device = reinterpret_cast<gfx::Device*>(glfwGetWindowUserPointer(window));
+	device->swapchain->resized = true;
 };
 
 Window create_window(std::uint32_t width, std::uint32_t height, const std::string& title) {
