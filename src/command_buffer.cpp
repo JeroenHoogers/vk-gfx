@@ -1,9 +1,9 @@
 #include "gfx/command_buffer.h"
+#include "gfx/buffer.h"
 #include "gfx/device.h"
+#include "gfx/mesh.h"
 #include "gfx/swapchain.h"
 #include "gfx/sync.h"
-#include "gfx/mesh.h"
-#include "gfx/buffer.h"
 #include "gfx/uniform_buffer.h"
 
 namespace gfx
@@ -71,7 +71,8 @@ namespace gfx
 			return commandBuffers;
 		}
 
-		void begin_commands(VkCommandBuffer commandBuffer){
+		void begin_commands(VkCommandBuffer commandBuffer, VkCommandBufferUsageFlags flags)
+		{
 			VkCommandBufferBeginInfo beginInfo{
 				.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
 				.pNext = nullptr,
@@ -80,6 +81,30 @@ namespace gfx
 			};
 
 			vkBeginCommandBuffer(commandBuffer, &beginInfo);
+		}
+
+		VkCommandBuffer begin_one_time_commands(Device* device)
+		{
+			VkCommandBuffer commandBuffer = create_command_buffer(device, device->transientPool);
+			begin_commands(commandBuffer, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+			return commandBuffer;
+		}
+
+		void end_one_time_commands(Device* device, VkCommandBuffer commandBuffer)
+		{
+			vkEndCommandBuffer(commandBuffer);
+
+			VkSubmitInfo submitInfo{};
+			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+			submitInfo.commandBufferCount = 1;
+			submitInfo.pCommandBuffers = &commandBuffer;
+
+			// TODO: create transferqueue?
+			vkQueueSubmit(device->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+			vkQueueWaitIdle(device->graphicsQueue);
+
+			vkFreeCommandBuffers(device->device, device->transientPool, 1, &commandBuffer);
 		}
 
 	} // namespace detail
@@ -105,7 +130,7 @@ namespace gfx
 
 		uint32_t imageIndex = device->swapchain->imageIndex;
 		VkSemaphore signalSemaphore = device->swapchain->images[imageIndex].renderFinished;
-		VkSemaphore signalSemaphores[] = { signalSemaphore };
+		VkSemaphore signalSemaphores[] = {signalSemaphore};
 		VkSemaphore waitSemaphores[] = {frame.imageAvailable.semaphore};
 
 		VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};

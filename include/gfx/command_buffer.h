@@ -16,9 +16,12 @@ namespace gfx
 	};
 
 	namespace detail {
-		VkCommandBuffer create_command_buffer(Device* device, VkCommandPool pool);
+		[[nodiscard]] VkCommandBuffer create_command_buffer(Device* device, VkCommandPool pool);
 		std::vector<VkCommandBuffer> create_command_buffers(Device* device, VkCommandPool pool, uint32_t count = 1);
-		void begin_commands(VkCommandBuffer commands);
+		void begin_commands(VkCommandBuffer commands, VkCommandBufferUsageFlags flags = 0);
+
+		VkCommandBuffer begin_one_time_commands(Device* device);
+		void end_one_time_commands(Device* device, VkCommandBuffer commandBuffer);
 	}
 
 	[[nodiscard]] CommandBuffer* begin_commands(Device* device);

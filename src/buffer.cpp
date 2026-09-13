@@ -4,7 +4,7 @@
 
 namespace gfx
 {
-	namespace
+	namespace detail
 	{
 		uint32_t find_memory_type(Device* device, uint32_t typeFilter, VkMemoryPropertyFlags properties)
 		{
@@ -45,7 +45,7 @@ namespace gfx
 			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 			.pNext = nullptr,
 			.allocationSize = memRequirements.size,
-			.memoryTypeIndex = find_memory_type(device, memRequirements.memoryTypeBits, params.properties),
+			.memoryTypeIndex = detail::find_memory_type(device, memRequirements.memoryTypeBits, params.properties),
 		};
 
 		VkDeviceMemory deviceMemory;
@@ -60,7 +60,7 @@ namespace gfx
 
 	void copy_buffer(Device* device, Buffer* src, Buffer* dst)
 	{
-		VkCommandBuffer commands = detail::create_command_buffer(device, device->transientPool);
+		VkCommandBuffer commands = detail::begin_one_time_commands(device);
 
 		VkBufferCopy copyRegion{
 			.srcOffset = 0,
@@ -68,19 +68,8 @@ namespace gfx
 			.size = src->size
 		};
 
-		detail::begin_commands(commands);
 		vkCmdCopyBuffer(commands, src->buffer, dst->buffer, 1, &copyRegion);
-		vkEndCommandBuffer(commands);
-		VkSubmitInfo submitInfo{};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &commands;
-
-		// TODO: create transferqueue?
-		vkQueueSubmit(device->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-		vkQueueWaitIdle(device->graphicsQueue);
-
-		vkFreeCommandBuffers(device->device, device->transientPool, 1, &commands);
+		detail::end_one_time_commands(device, commands);
 	}
 
 	void destroy_buffer(Device* device, Buffer* buffer)

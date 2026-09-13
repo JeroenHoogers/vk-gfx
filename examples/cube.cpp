@@ -51,13 +51,13 @@ int main()
 		}
 	}});
 
-
 	std::string appName = "textured cube example";
 	Window window = create_window(width, height, appName);
 
 	gfx::DeviceInit deviceInit = gfx::create_device({.appname = appName, .extensions = {}, .swapchainFormat = VK_FORMAT_B8G8R8A8_SRGB, .window = &window.callbacks, .enableValidation = enableValidationLayers});
 
 	gfx::Device* device = deviceInit.device;
+	gfx::Image* texture = load_image(device, "../assets/textures/texture.jpg");
 
 	gfx::UniformBuffer* ubo = gfx::create_uniform_buffer(device, {
 		.size = sizeof(UniformBufferObject),
@@ -110,6 +110,7 @@ int main()
 
 	gfx::destroy_pipeline(device, pipeline);
 	gfx::destroy_uniform_buffer(device, ubo);
+	gfx::destroy_image(device, texture);
 	gfx::destroy_device(device);
 	close_window(window);
 

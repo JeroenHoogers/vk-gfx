@@ -4,6 +4,10 @@
 namespace gfx {
 	struct Device;
 
+	namespace detail {
+		uint32_t find_memory_type(Device* device, uint32_t typeFilter, VkMemoryPropertyFlags properties);
+	}
+
 	struct Buffer {
 		VkBuffer buffer;
 		VkDeviceMemory memory;

@@ -51,6 +51,7 @@ set(SRC_LIB
     ${SOURCE_DIR}/render_pass.cpp
     ${SOURCE_DIR}/render_target.cpp
     ${SOURCE_DIR}/mesh.cpp
+    ${SOURCE_DIR}/image.cpp
     ${SOURCE_DIR}/descriptor_set.cpp
     ${SOURCE_DIR}/uniform_buffer.cpp
 )
@@ -114,7 +115,7 @@ if(BUILD_EXAMPLES)
 
   set(EXAMPLE_LIBS ${LIBRARIES} glfw glm::glm)
 
-  include_directories(${INCLUDE_DIR})
+  include_directories(${INCLUDE_DIR} ${EXAMPLES_DIR}/thirdparty)
   add_executable(triangle-example ${SRC_EXAMPLES} ${EXAMPLES_DIR}/triangle.cpp)
   target_link_libraries(triangle-example PRIVATE vk-gfx ${EXAMPLE_LIBS})
   add_dependencies(triangle-example compile_shaders)
