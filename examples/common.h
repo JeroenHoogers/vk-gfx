@@ -14,6 +14,7 @@
 struct Vertex {
 	glm::vec2 pos;
 	glm::vec3 color;
+	glm::vec2 uv;
 };
 
 struct UniformBufferObject {

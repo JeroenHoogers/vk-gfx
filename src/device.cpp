@@ -1,10 +1,10 @@
 #include "gfx/device.h"
 #include "gfx/command_buffer.h"
+#include "gfx/descriptor_set.h"
 #include "gfx/render_pass.h"
 #include "gfx/render_target.h"
 #include "gfx/swapchain.h"
 #include "gfx/sync.h"
-#include "gfx/descriptor_set.h"
 
 #include <cstdint>
 #include <cstring>
@@ -188,9 +188,12 @@ namespace gfx
 				swapchain_adequate = !supportDetails.formats.empty() && !supportDetails.presentModes.empty();
 			}
 
-		    VkPhysicalDeviceFeatures supportedFeatures;
-		    vkGetPhysicalDeviceFeatures(physicalDevice, &supportedFeatures);
+			// VkPhysicalDeviceProperties properties;
+			// vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+			// properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
 
+			VkPhysicalDeviceFeatures supportedFeatures;
+			vkGetPhysicalDeviceFeatures(physicalDevice, &supportedFeatures);
 			return has_queue_families && has_extensions && swapchain_adequate && supportedFeatures.samplerAnisotropy;
 		}
 
@@ -389,7 +392,7 @@ namespace gfx
 		for (uint32_t i = 0; i < params.framesInFlight; i++) {
 			pDevice->frames[i] = Frame{
 				.commands = new CommandBuffer{.commandBuffer = commandBuffers[i]},
-				.fence = create_fence(pDevice),
+				.inFlightFence = create_fence(pDevice),
 				.imageAvailable = create_semaphore(pDevice)
 			};
 		}
@@ -413,7 +416,7 @@ namespace gfx
 
 		for (uint32_t i = 0; i < device->frames.size(); i++) {
 			destroy_semaphore(device, &device->frames[i].imageAvailable);
-			destroy_fence(device, &device->frames[i].fence);
+			destroy_fence(device, &device->frames[i].inFlightFence);
 		}
 
 		vkDestroyCommandPool(device->device, device->transientPool, nullptr);

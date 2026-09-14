@@ -39,7 +39,7 @@ namespace gfx
 
 	struct Frame {
 		CommandBuffer* commands;
-		Fence fence;
+		Fence inFlightFence;
 		Semaphore imageAvailable;
 	};
 

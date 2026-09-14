@@ -1,8 +1,8 @@
 #include "gfx/uniform_buffer.h"
 #include "gfx/buffer.h"
+#include "gfx/command_buffer.h"
 #include "gfx/descriptor_set.h"
 #include "gfx/device.h"
-#include "gfx/command_buffer.h"
 #include <assert.h>
 
 namespace gfx
@@ -10,7 +10,10 @@ namespace gfx
 	UniformBuffer* create_uniform_buffer(Device* device, const UniformBufferDesc& params)
 	{
 		uint32_t frameCount = device->frames.size();
-		VkDescriptorSetLayout descriptorSetLayout = detail::create_descriptor_set_layout(device, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+		VkDescriptorSetLayout descriptorSetLayout = detail::create_descriptor_set_layout(device, {
+			detail::DescriptorSetLayoutBinding{.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .stageFlags = VK_SHADER_STAGE_VERTEX_BIT},
+			detail::DescriptorSetLayoutBinding{.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT}
+		});
 
 		BufferDesc bufferDesc{
 			.size = params.size,
@@ -36,7 +39,7 @@ namespace gfx
 			VkDescriptorBufferInfo bufferInfo{
 				.buffer = uniformBuffer->buffers[i]->buffer,
 				.offset = 0,
-				.range = sizeof(params.size)
+				.range = params.size
 			};
 
 			VkWriteDescriptorSet descriptorWrite{
@@ -58,7 +61,8 @@ namespace gfx
 		return uniformBuffer;
 	}
 
-	void bind_uniform_buffer(Device* device, Pipeline* pipeline, CommandBuffer* commands, UniformBuffer* uniformBuffer){
+	void bind_uniform_buffer(Device* device, Pipeline* pipeline, CommandBuffer* commands, UniformBuffer* uniformBuffer)
+	{
 		detail::bind_descriptor_set(commands, pipeline, uniformBuffer->descriptorSets[device->currentFrame]);
 	}
 

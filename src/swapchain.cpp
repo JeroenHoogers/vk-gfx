@@ -200,7 +200,7 @@ namespace gfx
 	{
 		const Frame& frame = device->frames[device->currentFrame];
 
-		vkWaitForFences(device->device, 1, &frame.fence.fence, VK_TRUE, UINT64_MAX);
+		vkWaitForFences(device->device, 1, &frame.inFlightFence.fence, VK_TRUE, UINT64_MAX);
 		VkResult result = vkAcquireNextImageKHR(device->device, device->swapchain->swapchain, UINT64_MAX, frame.imageAvailable.semaphore, VK_NULL_HANDLE, &device->swapchain->imageIndex);
 
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
@@ -211,7 +211,7 @@ namespace gfx
 			std::fprintf(stderr, "Vulkan error aquiring next image: %d\n", static_cast<int>(result));
 		}
 
-		vkResetFences(device->device, 1, &frame.fence.fence);
+		vkResetFences(device->device, 1, &frame.inFlightFence.fence);
 
 		return device->swapchain->images[device->swapchain->imageIndex];
 	}

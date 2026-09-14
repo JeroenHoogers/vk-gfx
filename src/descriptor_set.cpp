@@ -1,32 +1,38 @@
 #include "gfx/descriptor_set.h"
+#include "gfx/command_buffer.h"
 #include "gfx/device.h"
 #include "gfx/pipeline.h"
-#include "gfx/command_buffer.h"
+#include <array>
 
 namespace gfx
 {
 	namespace detail
 	{
-		void bind_descriptor_set(CommandBuffer* commandBuffer, Pipeline* pipeline, VkDescriptorSet descriptorSet) {
+		void bind_descriptor_set(CommandBuffer* commandBuffer, Pipeline* pipeline, VkDescriptorSet descriptorSet)
+		{
 			vkCmdBindDescriptorSets(commandBuffer->commandBuffer, pipeline->bindPoint, pipeline->pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 		}
 
-		VkDescriptorSetLayout create_descriptor_set_layout(Device* device, VkDescriptorType type, VkShaderStageFlags stageFlags)
+		VkDescriptorSetLayout create_descriptor_set_layout(Device* device, const std::vector<DescriptorSetLayoutBinding>& layoutBindings)
 		{
-			VkDescriptorSetLayoutBinding layoutBinding{
-				.binding = 0,
-				.descriptorType = type,
-				.descriptorCount = 1,
-				.stageFlags = stageFlags,
-				.pImmutableSamplers = nullptr
-			};
+			std::vector<VkDescriptorSetLayoutBinding> bindings(layoutBindings.size());
+
+			for (uint32_t i = 0; i < layoutBindings.size(); i++) {
+				bindings[i] = VkDescriptorSetLayoutBinding{
+					.binding = i,
+					.descriptorType = layoutBindings[i].type,
+					.descriptorCount = 1,
+					.stageFlags = layoutBindings[i].stageFlags,
+					.pImmutableSamplers = nullptr
+				};
+			}
 
 			VkDescriptorSetLayoutCreateInfo layoutInfo{
 				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
 				.pNext = nullptr,
 				.flags = 0,
-				.bindingCount = 1,
-				.pBindings = &layoutBinding,
+				.bindingCount = static_cast<uint32_t>(bindings.size()),
+				.pBindings = bindings.data()
 			};
 
 			VkDescriptorSetLayout descriptorSetLayout;
@@ -35,13 +41,14 @@ namespace gfx
 
 			return descriptorSetLayout;
 		}
-	}
+	} // namespace detail
 
 	VkDescriptorPool create_descriptor_pool(Device* device)
 	{
-		VkDescriptorPoolSize poolSize{
-			.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			.descriptorCount = static_cast<uint32_t>(device->frames.size())
+		// TODO: expose poolsizes as an argument
+		std::array<VkDescriptorPoolSize, 2> poolSizes{
+			VkDescriptorPoolSize{.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = static_cast<uint32_t>(device->frames.size())},
+			VkDescriptorPoolSize{.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = static_cast<uint32_t>(device->frames.size())}
 		};
 
 		VkDescriptorPoolCreateInfo poolInfo{
@@ -49,8 +56,8 @@ namespace gfx
 			.pNext = nullptr,
 			.flags = 0,
 			.maxSets = static_cast<uint32_t>(device->frames.size()),
-			.poolSizeCount = 1,
-			.pPoolSizes = &poolSize
+			.poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
+			.pPoolSizes = poolSizes.data()
 		};
 
 		VkDescriptorPool descriptorPool;

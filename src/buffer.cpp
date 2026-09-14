@@ -1,6 +1,7 @@
 #include "gfx/buffer.h"
 #include "gfx/device.h"
 #include "gfx/command_buffer.h"
+#include <iostream>
 
 namespace gfx
 {
@@ -11,7 +12,8 @@ namespace gfx
 			VkPhysicalDeviceMemoryProperties memProperties;
 			vkGetPhysicalDeviceMemoryProperties(device->physicalDevice, &memProperties);
 			for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-				if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+				auto flags = memProperties.memoryTypes[i].propertyFlags;
+				if ((typeFilter & (1 << i)) && (flags & properties) == properties) {
 					return i;
 				}
 			}

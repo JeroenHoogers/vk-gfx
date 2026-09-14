@@ -148,7 +148,7 @@ namespace gfx
 			.pSignalSemaphores = signalSemaphores
 		};
 
-		VkResult result = vkQueueSubmit(device->graphicsQueue, 1, &submitInfo, frame.fence.fence);
+		VkResult result = vkQueueSubmit(device->graphicsQueue, 1, &submitInfo, frame.inFlightFence.fence);
 		VK_ASSERT(result);
 
 		present(device, signalSemaphore);
