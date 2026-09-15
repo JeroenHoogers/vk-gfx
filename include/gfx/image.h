@@ -31,6 +31,11 @@ namespace gfx
 		VkDeviceMemory memory;
 	};
 
+
+	struct Sampler {
+	// TODO:
+	};
+
 	Image* create_image(Device* device, void* pixels, const ImageDesc& params);
 	void destroy_image(Device* device, Image* image);
 } // namespace gfx

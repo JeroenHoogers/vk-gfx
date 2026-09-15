@@ -5,6 +5,7 @@
 #include "gfx/render_pass.h"
 #include "gfx/swapchain.h"
 #include "gfx/uniform_buffer.h"
+#include "gfx/descriptor_set.h"
 
 namespace gfx
 {
@@ -208,9 +209,9 @@ namespace gfx
 			.blendConstants{0.0f, 0.0f, 0.0f, 0.0f}
 		};
 
-		std::vector<VkDescriptorSetLayout> setLayouts(params.uniform_buffers.size());
-		for (uint32_t i = 0; i < params.uniform_buffers.size(); i++) {
-			setLayouts[i] = params.uniform_buffers[i]->descriptorSetLayout;
+		std::vector<VkDescriptorSetLayout> setLayouts(params.resource_set_layouts.size());
+		for (uint32_t i = 0; i < params.resource_set_layouts.size(); i++) {
+			setLayouts[i] = params.resource_set_layouts[i]->descriptorSetLayout;
 		}
 
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{

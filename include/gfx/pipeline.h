@@ -8,6 +8,8 @@ namespace gfx
 	struct CommandBuffer;
 	struct VertexLayout;
 	struct UniformBuffer;
+	struct ResourceSet;
+	struct ResourceSetLayout;
 
 	struct RasterizerParams {
 		VkPolygonMode polygon_mode = VK_POLYGON_MODE_FILL;
@@ -21,9 +23,9 @@ namespace gfx
 		std::vector<char> fragment_shader = {};
 		std::vector<char> geometry_shader = {};
 		VertexLayout* vertex_layout = nullptr;
-		std::vector<UniformBuffer*> uniform_buffers = {};
+		std::vector<ResourceSetLayout*> resource_set_layouts = {};
 		RasterizerParams rasterizer = {};
-		// TODO: allow customization
+		// TODO: allow more customization
 	};
 
 	struct Pipeline

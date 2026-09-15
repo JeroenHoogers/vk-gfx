@@ -59,24 +59,36 @@ int main()
 	gfx::DeviceInit deviceInit = gfx::create_device({.appname = appName, .extensions = {}, .swapchainFormat = VK_FORMAT_B8G8R8A8_SRGB, .window = &window.callbacks, .enableValidation = enableValidationLayers});
 
 	gfx::Device* device = deviceInit.device;
-	gfx::Image* texture = load_image(device, "../assets/textures/texture.jpg");
-
-	glfwSetWindowUserPointer(window.window, device);
-	gfx::UniformBuffer* ubo = gfx::create_uniform_buffer(device, {
-		.size = sizeof(UniformBufferObject),
-		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT
-	});
-
 	// if () { // TODO: error handling
 	// gfx::destroy_device(device);
 	// close_window(window);
 	// }
+	glfwSetWindowUserPointer(window.window, device);
+
+	gfx::Image* texture = load_image(device, "../assets/textures/texture.jpg");
+	gfx::UniformBuffer* ubo = gfx::create_uniform_buffer(device, sizeof(UniformBufferObject));
+
+	gfx::ResourceSetLayout* uboResourceLayout = gfx::create_resource_set_layout(device, {
+		gfx::ResourceDesc{ .type = gfx::ResourceType::UniformBuffer, .stages = VK_SHADER_STAGE_VERTEX_BIT}
+	});
+
+	gfx::ResourceSetLayout* materialResourceLayout = gfx::create_resource_set_layout(device, {
+		gfx::ResourceDesc{ .type = gfx::ResourceType::CombinedImageSampler, .stages = VK_SHADER_STAGE_FRAGMENT_BIT}
+	});
+
+	std::vector<gfx::ResourceSet*> uboResources = gfx::create_resource_sets(device, uboResourceLayout, {gfx::Resource{
+		.type = gfx::ResourceType::UniformBuffer, .uniformBuffer = ubo
+	}}, device->frames.size());
+
+	gfx::ResourceSet* materialResourceSet = gfx::create_resource_set(device, materialResourceLayout, {gfx::Resource{
+		.type = gfx::ResourceType::CombinedImageSampler, .image = texture
+	}});
 
 	gfx::Pipeline* pipeline = gfx::create_graphics_pipeline(device, {
 		.vertex_shader = load_shader("shaders/shader.vert.spv"),
 		.fragment_shader = load_shader("shaders/shader.frag.spv"),
 		.vertex_layout = &vertexLayout,
-		.uniform_buffers = {ubo},
+		.resource_set_layouts = { uboResourceLayout, materialResourceLayout }, // allow create directly in pipeline?
 		.rasterizer = { .front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE }
 	});
 
@@ -100,7 +112,9 @@ int main()
 		gfx::CommandBuffer* commands = gfx::begin_commands(device);
 		gfx::begin_render_pass(device, commands); // TODO: fix
 		gfx::bind_pipeline(device, pipeline, commands);
-		gfx::bind_uniform_buffer(device, pipeline, commands, ubo);
+		// TODO: create helper to bind more than 1 set at once?
+		gfx::bind_resource_set(commands, pipeline, 0, uboResources[device->currentFrame]); // TODO: get from aquire instead
+		gfx::bind_resource_set(commands, pipeline, 1, materialResourceSet);
 		gfx::draw_indexed(commands, &cube, indices.size());
 		gfx::end_render_pass(commands);
 		gfx::end_commands(commands);
@@ -112,6 +126,7 @@ int main()
 	gfx::destroy_mesh(device, &cube);
 
 	gfx::destroy_pipeline(device, pipeline);
+	gfx::destroy_resource_set_layouts(device, {uboResourceLayout, materialResourceLayout});
 	gfx::destroy_uniform_buffer(device, ubo);
 	gfx::destroy_image(device, texture);
 	gfx::destroy_device(device);
