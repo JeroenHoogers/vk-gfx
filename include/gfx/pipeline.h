@@ -25,6 +25,7 @@ namespace gfx
 		VertexLayout* vertex_layout = nullptr;
 		std::vector<ResourceSetLayout*> resource_set_layouts = {};
 		RasterizerParams rasterizer = {};
+		// TODO: add color & depth formats?
 		// TODO: allow more customization
 	};
 

@@ -1,11 +1,11 @@
 #include "gfx/pipeline.h"
 #include "gfx/command_buffer.h"
+#include "gfx/descriptor_set.h"
 #include "gfx/device.h"
 #include "gfx/mesh.h"
 #include "gfx/render_pass.h"
 #include "gfx/swapchain.h"
 #include "gfx/uniform_buffer.h"
-#include "gfx/descriptor_set.h"
 
 namespace gfx
 {
@@ -189,6 +189,21 @@ namespace gfx
 			.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
 		};
 
+		VkPipelineDepthStencilStateCreateInfo depthStencil{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = 0,
+			.depthTestEnable = VK_TRUE,
+			.depthWriteEnable = VK_TRUE,
+			.depthCompareOp = VK_COMPARE_OP_LESS,
+			.depthBoundsTestEnable = VK_FALSE,
+			.stencilTestEnable = VK_FALSE,
+			.front = {},
+			.back = {},
+			.minDepthBounds = 0.0f,
+			.maxDepthBounds = 1.0f
+		};
+
 		// ENABLED BLENDING:
 		// colorBlendAttachment.blendEnable = VK_TRUE;
 		// colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
@@ -240,7 +255,7 @@ namespace gfx
 			.pViewportState = &viewportState,
 			.pRasterizationState = &rasterizer,
 			.pMultisampleState = &multisampling,
-			.pDepthStencilState = nullptr,
+			.pDepthStencilState = &depthStencil,
 			.pColorBlendState = &colorBlending,
 			.pDynamicState = &dynamicState,
 			.layout = pipelineLayout,

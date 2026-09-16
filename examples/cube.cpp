@@ -115,13 +115,12 @@ int main()
 
 	while (poll_window_events(window)) {
 		const gfx::SwapchainFrame frame = gfx::aquire(device);
-		(void)frame;
 		updateUniformBuffer(device, ubo);
 		gfx::CommandBuffer* commands = gfx::begin_commands(device);
 		gfx::begin_render_pass(device, commands);
 		gfx::bind_pipeline(device, pipeline, commands);
 		// TODO: create helper to bind more than 1 set at once?
-		gfx::bind_resource_set(commands, pipeline, 0, uboResources[device->currentFrame]); // TODO: get from aquire instead
+		gfx::bind_resource_set(commands, pipeline, 0, uboResources[frame.index]); // TODO: get from aquire instead
 		gfx::bind_resource_set(commands, pipeline, 1, materialResourceSet);
 		gfx::draw_indexed(commands, &cube, indices.size());
 		gfx::end_render_pass(commands);

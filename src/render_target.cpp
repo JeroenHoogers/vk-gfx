@@ -11,8 +11,8 @@ namespace gfx
 			const auto& swapchainFrames = device->swapchain->images;
 			std::vector<VkFramebuffer> framebuffers(swapchainFrames.size());
 			for (size_t i = 0; i < swapchainFrames.size(); i++) {
-				VkImageView attachments[] = {
-					swapchainFrames[i].imageView
+				std::vector<VkImageView> attachments = {
+					swapchainFrames[i].imageView,
 				};
 
 				VkFramebufferCreateInfo framebufferInfo{
@@ -20,8 +20,8 @@ namespace gfx
 					.pNext = nullptr,
 					.flags = 0,
 					.renderPass = device->renderPass->renderPass,
-					.attachmentCount = 1,
-					.pAttachments = attachments,
+					.attachmentCount = static_cast<uint32_t>(attachments.size()),
+					.pAttachments = attachments.data(),
 					.width = extent.width,
 					.height = extent.height,
 					.layers = 1

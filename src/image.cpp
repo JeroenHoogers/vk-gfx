@@ -117,6 +117,46 @@ namespace gfx
 	} // namespace
 	namespace detail
 	{
+		VkImage create_image(Device* device, const ImageDesc& params, VkDeviceMemory& imageMemory)
+		{
+			VkImageCreateInfo imageInfo{
+				.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+				.pNext = nullptr,
+				.flags = 0,
+				.imageType = VK_IMAGE_TYPE_2D,
+				.format = params.format,
+				.extent = params.extent,
+				.mipLevels = params.mipLevels,
+				.arrayLayers = 1,
+				.samples = VK_SAMPLE_COUNT_1_BIT,
+				.tiling = params.tiling,
+				.usage = params.usage,
+				.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+				.queueFamilyIndexCount = 0,
+				.pQueueFamilyIndices = nullptr,
+				.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+			};
+
+			VkImage image;
+			VkResult result = vkCreateImage(device->device, &imageInfo, nullptr, &image);
+			VK_ASSERT(result);
+
+			VkMemoryRequirements memRequirements;
+			vkGetImageMemoryRequirements(device->device, image, &memRequirements);
+
+			VkMemoryAllocateInfo allocInfo{
+				.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+				.pNext = nullptr,
+				.allocationSize = memRequirements.size,
+				.memoryTypeIndex = detail::find_memory_type(device, memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+			};
+
+			result = vkAllocateMemory(device->device, &allocInfo, nullptr, &imageMemory);
+			VK_ASSERT(result);
+
+			return image;
+		}
+
 		VkImageView create_image_view(Device* device, VkImage image, VkFormat format)
 		{
 			VkImageViewCreateInfo viewInfo{
@@ -153,40 +193,8 @@ namespace gfx
 		memcpy(data, pixels, static_cast<size_t>(params.size));
 		vkUnmapMemory(device->device, staging->memory);
 
-		VkImageCreateInfo imageInfo{
-			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-			.pNext = nullptr,
-			.flags = 0,
-			.imageType = VK_IMAGE_TYPE_2D,
-			.format = params.format,
-			.extent = params.extent,
-			.mipLevels = params.mipLevels,
-			.arrayLayers = 1,
-			.samples = VK_SAMPLE_COUNT_1_BIT,
-			.tiling = params.tiling,
-			.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | params.usage,
-			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-			.queueFamilyIndexCount = 0,
-			.pQueueFamilyIndices = nullptr,
-			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-		};
-
-		VkImage image;
-		VkResult result = vkCreateImage(device->device, &imageInfo, nullptr, &image);
-		VK_ASSERT(result);
-
-		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(device->device, image, &memRequirements);
-
-		VkMemoryAllocateInfo allocInfo{
-			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-			.pNext = nullptr,
-			.allocationSize = memRequirements.size,
-			.memoryTypeIndex = detail::find_memory_type(device, memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-		};
-
 		VkDeviceMemory imageMemory;
-		result = vkAllocateMemory(device->device, &allocInfo, nullptr, &imageMemory);
+		VkImage image = detail::create_image(device, params, imageMemory);
 
 		vkBindImageMemory(device->device, image, imageMemory, 0);
 

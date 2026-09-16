@@ -152,7 +152,7 @@ namespace gfx
 
 		std::vector<VkImageView> swapchainImageViews = detail::create_swap_image_views(device, swapchainImages, surfaceFormat.format);
 
-		std::vector<SwapchainFrame> images(imageCount);
+		std::vector<SwapchainImage> images(imageCount);
 		for (std::uint32_t i = 0; i < images.size(); i++) {
 			images[i] = {
 				.image = swapchainImages[i],
@@ -213,6 +213,12 @@ namespace gfx
 
 		vkResetFences(device->device, 1, &frame.inFlightFence.fence);
 
-		return device->swapchain->images[device->swapchain->imageIndex];
+		SwapchainFrame swapchainFrame {
+			.image = device->swapchain->images[device->swapchain->imageIndex],
+			.index = device->currentFrame,
+			.swapImageIndex = device->swapchain->imageIndex
+		};
+
+		return swapchainFrame;
 	}
 } // namespace gfx

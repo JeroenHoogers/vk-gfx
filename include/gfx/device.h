@@ -39,6 +39,8 @@ namespace gfx
 
 	struct Frame {
 		CommandBuffer* commands;
+		VkImage depthImage = VK_NULL_HANDLE;
+		VkImageView depthImageView = VK_NULL_HANDLE;
 		Fence inFlightFence;
 		Semaphore imageAvailable;
 	};

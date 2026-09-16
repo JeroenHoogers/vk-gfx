@@ -7,12 +7,19 @@ namespace gfx
 	struct Device;
 	struct Semaphore;
 
-	struct SwapchainFrame
-	{
+	struct SwapchainImage {
 		VkImage image;
 		VkImageView imageView;
 
 		VkSemaphore renderFinished;
+	};
+
+	struct SwapchainFrame
+	{
+		SwapchainImage image;
+		// CommandBuffer* commandBuffer; // TODO: could be added here
+		uint32_t index = 0;
+		uint32_t swapImageIndex = 0;
 	};
 
 	struct Swapchain
@@ -22,7 +29,7 @@ namespace gfx
 		VkExtent2D extent;
 		VkFormat format;
 		uint32_t imageIndex = 0;
-		std::vector<SwapchainFrame> images;
+		std::vector<SwapchainImage> images;
 	};
 
 	namespace detail

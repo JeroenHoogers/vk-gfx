@@ -14,21 +14,37 @@ namespace gfx
 	struct ColorAttachment
 	{
 		VkImageView renderView = VK_NULL_HANDLE;
+		VkFormat format = VK_FORMAT_B8G8R8A8_SRGB;
 		VkAttachmentLoadOp loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		VkAttachmentStoreOp storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
 	};
 
+	struct DepthAttachment
+	{
+		VkImageView renderView = VK_NULL_HANDLE;
+		VkFormat format = VK_FORMAT_D32_SFLOAT_S8_UINT;
+		VkAttachmentLoadOp loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		VkAttachmentStoreOp storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		VkClearValue clearColor = {{{1.0f, 0.0f}}};
+	};
+
 	struct RenderPassDesc
 	{
 		ColorAttachment colors = {}; // TODO: allow more than one
-		// DepthAttachment depth = {};
+		DepthAttachment depth = {};
 		// StencilAttachment stencil = {};
 	};
 
-	[[nodiscard]] RenderPass* create_render_pass(Device* device);
+	struct RenderPassInfo
+	{
+		VkImageView color;
+		// std::vector<VkClearColorValue> clearValues;
+	};
 
-	void begin_render_pass(Device* device, CommandBuffer* commands, const RenderPassDesc& desc = {});
+	[[nodiscard]] RenderPass* create_render_pass(Device* device, const RenderPassDesc& desc = {});
+
+	void begin_render_pass(Device* device, CommandBuffer* commands);
 	void end_render_pass(CommandBuffer* commands);
 	void destroy_render_pass(Device* device, RenderPass* renderPass);
 } // namespace gfx
