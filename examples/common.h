@@ -3,7 +3,7 @@
 #include <string>
 #include <fstream>
 #define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -12,7 +12,7 @@
 #include <vk_gfx.h>
 
 struct Vertex {
-	glm::vec2 pos;
+	glm::vec3 pos;
 	glm::vec3 color;
 	glm::vec2 uv;
 };

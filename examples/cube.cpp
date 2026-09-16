@@ -34,20 +34,26 @@ int main()
 	constexpr bool enableValidationLayers = true;
 
 	const std::vector<Vertex> vertices = {
-		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-		{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-		{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-		{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
+		{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+		{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+		{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+		{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
+
+		{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+		{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+		{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+		{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
 	};
 
 	const std::vector<uint16_t> indices = {
-		0, 1, 2, 2, 3, 0
+		0, 1, 2, 2, 3, 0,
+		4, 5, 6, 6, 7, 4
 	};
 
 	gfx::VertexLayout vertexLayout = gfx::create_vertex_layout({{
 		.stride = sizeof(Vertex),
 		.attributes = {
-			{.format = VK_FORMAT_R32G32_SFLOAT, .offset = offsetof(Vertex, pos)},
+			{.format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, pos)},
 			{.format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, color)},
 			{.format = VK_FORMAT_R32G32_SFLOAT, .offset = offsetof(Vertex, uv)},
 		}
@@ -59,6 +65,8 @@ int main()
 	gfx::DeviceInit deviceInit = gfx::create_device({.appname = appName, .extensions = {}, .swapchainFormat = VK_FORMAT_B8G8R8A8_SRGB, .window = &window.callbacks, .enableValidation = enableValidationLayers});
 
 	gfx::Device* device = deviceInit.device;
+
+	printf("frames in flight %lu\n", device->frames.size());
 	// if () { // TODO: error handling
 	// gfx::destroy_device(device);
 	// close_window(window);
@@ -110,7 +118,7 @@ int main()
 		(void)frame;
 		updateUniformBuffer(device, ubo);
 		gfx::CommandBuffer* commands = gfx::begin_commands(device);
-		gfx::begin_render_pass(device, commands); // TODO: fix
+		gfx::begin_render_pass(device, commands);
 		gfx::bind_pipeline(device, pipeline, commands);
 		// TODO: create helper to bind more than 1 set at once?
 		gfx::bind_resource_set(commands, pipeline, 0, uboResources[device->currentFrame]); // TODO: get from aquire instead

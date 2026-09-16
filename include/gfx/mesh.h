@@ -35,7 +35,7 @@ namespace gfx
 	struct BufferData {
 		const void* data = nullptr;
 		uint64_t size = 0;
-		uint32_t stride = 0;
+		uint32_t stride = 0; // TODO: we might be able to remove this
 	};
 
 	struct MeshData {
