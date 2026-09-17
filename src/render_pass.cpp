@@ -39,7 +39,7 @@ namespace gfx
 		};
 
 		VkAttachmentReference depthAttachmentRef{
-			.attachment = 0,
+			.attachment = 1,
 			.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
 		};
 
@@ -47,7 +47,7 @@ namespace gfx
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS; // TODO: support compute
 		subpass.colorAttachmentCount = 1;
 		subpass.pColorAttachments = &colorAttachmentRef;
-		// subpass.pDepthStencilAttachment = &depthAttachmentRef;
+		subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
 		VkSubpassDependency dependency{
 			.srcSubpass = VK_SUBPASS_EXTERNAL,
@@ -59,8 +59,8 @@ namespace gfx
 			.dependencyFlags = 0
 		};
 
-		std::array<VkAttachmentDescription, 1> attachments = {colorAttachment};
-		// std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthStencilAttachment};
+		// std::array<VkAttachmentDescription, 1> attachments = {colorAttachment};
+		std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthStencilAttachment};
 
 		VkRenderPassCreateInfo renderPassInfo{
 			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
@@ -86,7 +86,7 @@ namespace gfx
 		return pRenderPass;
 	}
 
-	void begin_render_pass(Device* device, CommandBuffer* commands)
+	void begin_render_pass(Device* device, CommandBuffer* commands, const SwapchainFrame* frame)
 	{
 		// TODO: provide these?
 		std::vector<VkClearValue> clearValues{
@@ -98,7 +98,7 @@ namespace gfx
 			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 			.pNext = nullptr,
 			.renderPass = device->renderPass->renderPass,
-			.framebuffer = device->renderTarget->framebuffers[device->swapchain->imageIndex],
+			.framebuffer = frame->frameBuffer,
 			.renderArea = {
 				.offset = {0, 0},
 				.extent = device->swapchain->extent

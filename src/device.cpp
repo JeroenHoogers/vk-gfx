@@ -1,11 +1,11 @@
 #include "gfx/device.h"
 #include "gfx/command_buffer.h"
 #include "gfx/descriptor_set.h"
+#include "gfx/image.h"
 #include "gfx/render_pass.h"
 #include "gfx/render_target.h"
 #include "gfx/swapchain.h"
 #include "gfx/sync.h"
-#include "gfx/image.h"
 
 #include <cstdint>
 #include <cstring>
@@ -379,9 +379,6 @@ namespace gfx
 		RenderPass* renderPass = create_render_pass(pDevice);
 		pDevice->renderPass = renderPass;
 
-		RenderTarget* renderTarget = create_render_target(pDevice);
-		pDevice->renderTarget = renderTarget;
-
 		VkCommandPool commandPool = create_command_pool(pDevice);
 		pDevice->commandPool = commandPool;
 
@@ -391,25 +388,16 @@ namespace gfx
 		std::vector<VkCommandBuffer> commandBuffers = detail::create_command_buffers(pDevice, commandPool, params.framesInFlight);
 		pDevice->frames.resize(params.framesInFlight);
 		for (uint32_t i = 0; i < params.framesInFlight; i++) {
-
-// 			VkImage depthImage = detail::create_image(pDevice, ImageDesc{
-// 				.extent = VkExtent3D{ .width = swapchain->extent.width, .height = swapchain->extent.height, .depth = 1 },
-// 				.format = VK_FORMAT_D32_SFLOAT_S8_UINT,
-// 				.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-// 				.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-// 				.tiling = VK_IMAGE_TILING_OPTIMAL,
-// .
-// 			});
-// 			VkImageView depthImageView = detail::create_image_view(pDevice, depthImage, VK_FORMAT_D32_SFLOAT_S8_UINT);
-
 			pDevice->frames[i] = Frame{
 				.commands = new CommandBuffer{.commandBuffer = commandBuffers[i]},
-				// .depthImage = depthImage,
-				// .depthImageView = depthImageView,
+				.depthImage = nullptr,
 				.inFlightFence = create_fence(pDevice),
 				.imageAvailable = create_semaphore(pDevice)
 			};
 		}
+
+		RenderTarget* renderTarget = create_render_target(pDevice, renderPass);
+		pDevice->renderTarget = renderTarget;
 
 		VkDescriptorPool descriptorPool = create_descriptor_pool(pDevice);
 		pDevice->descriptorPool = descriptorPool;

@@ -17,6 +17,8 @@ namespace gfx
 	struct SwapchainFrame
 	{
 		SwapchainImage image;
+		VkFramebuffer frameBuffer;
+		VkExtent2D extent;
 		// CommandBuffer* commandBuffer; // TODO: could be added here
 		uint32_t index = 0;
 		uint32_t swapImageIndex = 0;
@@ -52,6 +54,6 @@ namespace gfx
 	[[nodiscard]] Swapchain* create_swapchain(Device* device, VkFormat swapchainFormat);
 	void recreate_swapchain(Device* device, Swapchain* swapchain);
 	void destroy_swapchain(Device* device, Swapchain* swapchain);
-	[[nodiscard]] SwapchainFrame aquire(Device* device);
+	[[nodiscard]] SwapchainFrame acquire(Device* device);
 
 } // namespace gfx

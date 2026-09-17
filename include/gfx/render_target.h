@@ -6,9 +6,15 @@ namespace gfx
 {
 	struct Device;
 	struct RenderPass;
+	struct Image;
+
+	namespace detail {
+		Image* create_depth_resources(Device* device);
+	}
 
 	struct RenderTarget
 	{
+		// RenderPass* renderPass;
 		// TODO: add depth?
 		// std::vector<VkImage> depthImages;
 		// std::vector<VkImageView> depthViews;
@@ -16,6 +22,6 @@ namespace gfx
 	    // RenderPass* renderPass; // weak reference?
 	};
 
-	RenderTarget* create_render_target(Device* device);
+	RenderTarget* create_render_target(Device* device, RenderPass* renderPass);
 	void destroy_render_target(Device* device, RenderTarget* renderTarget);
 } // namespace gfx

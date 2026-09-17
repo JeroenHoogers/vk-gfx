@@ -9,12 +9,12 @@ namespace gfx
 	struct CommandBuffer;
 	struct Pipeline;
 	struct UniformBuffer;
-	struct Image;
+	struct Texture;
 
 	namespace detail
 	{
 		VkDescriptorBufferInfo get_uniform_buffer_descriptor_info(UniformBuffer* uniformBuffer);
-		VkDescriptorImageInfo get_texture_sampler_descriptor_info(Image* image);
+		VkDescriptorImageInfo get_texture_sampler_descriptor_info(Texture* image);
 
 		void bind_descriptor_set(CommandBuffer* commandBuffer, Pipeline* pipeline, VkDescriptorSet descriptorSet);
 		VkDescriptorSetLayout create_descriptor_set_layout(Device* device, const std::vector<VkDescriptorSetLayoutBinding>& layoutBindings);
@@ -48,7 +48,7 @@ namespace gfx
 		ResourceType type;
 		union {
 			void* ptr;
-			Image* image;
+			Texture* texture;
 			UniformBuffer* uniformBuffer;
 			// TODO: add more (Sampler, StorageBuffer etc.)
 		};

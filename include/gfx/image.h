@@ -9,34 +9,42 @@ namespace gfx
 
 	struct ImageDesc
 	{
-		uint64_t size;
 		VkFormat format = VK_FORMAT_R8G8B8A8_SRGB;
 		VkExtent3D extent;
 		uint32_t mipLevels = 1;
 		VkImageUsageFlags usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 		VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL;
+		VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT;
 	};
 
 	namespace detail
 	{
 		VkImage create_image(Device* device, const ImageDesc& params, VkDeviceMemory& imageMemory);
-		VkImageView create_image_view(Device* device, VkImage image, VkFormat format);
-	}
+		VkImageView create_image_view(Device* device, VkImage image, VkFormat format, VkImageAspectFlags aspect);
+		void transition_image_layout(Device* device, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
 
+		// TODO: extract upload function for CPU -> GPU transfer of pixel data
+	}
 	struct Image
 	{
 		VkImage image;
 		VkImageView imageView;
-		VkSampler sampler;
 		VkDeviceMemory memory;
 	};
 
+	// struct Sampler {
+	// 	VkSampler sampler;
+	// };
 
-	struct Sampler {
-	// TODO:
+	struct Texture {
+		Image* image;
+		VkSampler sampler;
 	};
 
-	Image* create_image(Device* device, void* pixels, const ImageDesc& params);
+	Image* create_image(Device* device, const ImageDesc& params);
+	Image* create_image(Device* device, void* pixels, uint64_t size, const ImageDesc& params);
+	Texture* create_texture(Device* device, void* pixels, uint64_t size, const ImageDesc& params);
 	void destroy_image(Device* device, Image* image);
+	void destroy_texture(Device* device, Texture* texture);
 } // namespace gfx

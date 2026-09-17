@@ -23,7 +23,7 @@ struct UniformBufferObject {
 	glm::mat4 proj;
 };
 
-inline gfx::Image* load_image(gfx::Device* device, const std::string& filename) {
+inline gfx::Texture* load_image(gfx::Device* device, const std::string& filename) {
 	int texWidth, texHeight, texChannels;
 	stbi_uc* pixels = stbi_load(filename.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 	uint32_t imageSize = texWidth * texHeight * 4;
@@ -32,8 +32,7 @@ inline gfx::Image* load_image(gfx::Device* device, const std::string& filename) 
 		throw std::runtime_error("failed to load texture image!");
 	}
 
-	gfx::Image* image = gfx::create_image(device, pixels, {
-		.size = imageSize,
+	gfx::Texture* texture = gfx::create_texture(device, pixels, imageSize, {
 		.format = VK_FORMAT_R8G8B8A8_SRGB,
 		.extent = {
 			.width = static_cast<uint32_t>(texWidth),
@@ -44,7 +43,7 @@ inline gfx::Image* load_image(gfx::Device* device, const std::string& filename) 
 
 	stbi_image_free(pixels);
 
-	return image;
+	return texture;
 }
 
 inline const std::vector<char> load_shader(const std::string& filename) {

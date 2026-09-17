@@ -6,12 +6,7 @@
 #include <cstring>
 #include <glm/gtc/matrix_transform.hpp>
 
-void updateUniformBuffer(gfx::Device* device, gfx::UniformBuffer* uniformBuffer) {
-	// TODO: pass from frame?
-	uint32_t imageIndex = device->currentFrame;
-	uint32_t width = device->swapchain->extent.width;
-	uint32_t height = device->swapchain->extent.height;
-
+void updateUniformBuffer(gfx::UniformBuffer* uniformBuffer, const gfx::SwapchainFrame& frame) {
     static auto startTime = std::chrono::high_resolution_clock::now();
 
     auto currentTime = std::chrono::high_resolution_clock::now();
@@ -20,11 +15,11 @@ void updateUniformBuffer(gfx::Device* device, gfx::UniformBuffer* uniformBuffer)
 	UniformBufferObject ubo{
 		.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
 		.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
-		.proj = glm::perspective(glm::radians(45.0f), width / (float)height, 0.1f, 10.0f)
+		.proj = glm::perspective(glm::radians(45.0f), frame.extent.width / (float)frame.extent.height, 0.1f, 10.0f)
 	};
 	ubo.proj[1][1] *= -1;
 
-	memcpy(uniformBuffer->mappedMemory[imageIndex], &ubo, sizeof(ubo));
+	memcpy(uniformBuffer->mappedMemory[frame.index], &ubo, sizeof(ubo));
 }
 
 int main()
@@ -46,8 +41,8 @@ int main()
 	};
 
 	const std::vector<uint16_t> indices = {
-		0, 1, 2, 2, 3, 0,
-		4, 5, 6, 6, 7, 4
+	    0, 1, 2, 2, 3, 0,
+	    4, 5, 6, 6, 7, 4
 	};
 
 	gfx::VertexLayout vertexLayout = gfx::create_vertex_layout({{
@@ -73,7 +68,7 @@ int main()
 	// }
 	glfwSetWindowUserPointer(window.window, device);
 
-	gfx::Image* texture = load_image(device, "../assets/textures/texture.jpg");
+	gfx::Texture* texture = load_image(device, "../assets/textures/texture.jpg");
 	gfx::UniformBuffer* ubo = gfx::create_uniform_buffer(device, sizeof(UniformBufferObject));
 
 	gfx::ResourceSetLayout* uboResourceLayout = gfx::create_resource_set_layout(device, {
@@ -89,7 +84,7 @@ int main()
 	}}, device->frames.size());
 
 	gfx::ResourceSet* materialResourceSet = gfx::create_resource_set(device, materialResourceLayout, {gfx::Resource{
-		.type = gfx::ResourceType::CombinedImageSampler, .image = texture
+		.type = gfx::ResourceType::CombinedImageSampler, .texture = texture
 	}});
 
 	gfx::Pipeline* pipeline = gfx::create_graphics_pipeline(device, {
@@ -114,13 +109,13 @@ int main()
 	});
 
 	while (poll_window_events(window)) {
-		const gfx::SwapchainFrame frame = gfx::aquire(device);
-		updateUniformBuffer(device, ubo);
+		const gfx::SwapchainFrame frame = gfx::acquire(device);
+		updateUniformBuffer(ubo, frame);
 		gfx::CommandBuffer* commands = gfx::begin_commands(device);
-		gfx::begin_render_pass(device, commands);
+		gfx::begin_render_pass(device, commands, &frame);
 		gfx::bind_pipeline(device, pipeline, commands);
 		// TODO: create helper to bind more than 1 set at once?
-		gfx::bind_resource_set(commands, pipeline, 0, uboResources[frame.index]); // TODO: get from aquire instead
+		gfx::bind_resource_set(commands, pipeline, 0, uboResources[frame.index]);
 		gfx::bind_resource_set(commands, pipeline, 1, materialResourceSet);
 		gfx::draw_indexed(commands, &cube, indices.size());
 		gfx::end_render_pass(commands);
@@ -135,7 +130,7 @@ int main()
 	gfx::destroy_pipeline(device, pipeline);
 	gfx::destroy_resource_set_layouts(device, {uboResourceLayout, materialResourceLayout});
 	gfx::destroy_uniform_buffer(device, ubo);
-	gfx::destroy_image(device, texture);
+	gfx::destroy_texture(device, texture);
 	gfx::destroy_device(device);
 	close_window(window);
 

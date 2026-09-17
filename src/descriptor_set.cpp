@@ -59,11 +59,11 @@ namespace gfx
 			};
 		}
 
-		VkDescriptorImageInfo get_texture_sampler_descriptor_info(Image* image)
+		VkDescriptorImageInfo get_texture_sampler_descriptor_info(Texture* texture)
 		{
 			return VkDescriptorImageInfo{
-				.sampler = image->sampler,
-				.imageView = image->imageView,
+				.sampler = texture->sampler,
+				.imageView = texture->image->imageView,
 				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 			};
 		}
@@ -186,7 +186,7 @@ namespace gfx
 					writes[j].pBufferInfo = &bufferInfo;
 					break;
 				case ResourceType::CombinedImageSampler:
-					imageInfo = detail::get_texture_sampler_descriptor_info(resources[j].image);
+					imageInfo = detail::get_texture_sampler_descriptor_info(resources[j].texture);
 					writes[j].pImageInfo = &imageInfo;
 					break;
 				}

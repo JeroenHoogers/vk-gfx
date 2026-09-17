@@ -30,59 +30,6 @@ namespace gfx
 			detail::end_one_time_commands(device, commandBuffer);
 		}
 
-		void transition_image_layout(Device* device, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
-		{
-			VkCommandBuffer commandBuffer = detail::begin_one_time_commands(device);
-
-			VkImageMemoryBarrier barrier{
-				.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-				.pNext = nullptr,
-				.srcAccessMask = 0,
-				.dstAccessMask = 0,
-				.oldLayout = oldLayout,
-				.newLayout = newLayout,
-				.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-				.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-				.image = image,
-				.subresourceRange = {
-					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-					.baseMipLevel = 0,
-					.levelCount = 1,
-					.baseArrayLayer = 0,
-					.layerCount = 1
-				},
-			};
-
-			VkPipelineStageFlags srcStage;
-			VkPipelineStageFlags dstStage;
-
-			if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
-				barrier.srcAccessMask = 0;
-				barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-				srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-				dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-			} else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
-				barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-				barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-				srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-				dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-			} else {
-				fprintf(stderr, "Unsupported layout transition!");
-				std::abort();
-			}
-
-			vkCmdPipelineBarrier(
-				commandBuffer,
-				srcStage, dstStage,
-				0,
-				0, nullptr,
-				0, nullptr,
-				1, &barrier
-			);
-
-			detail::end_one_time_commands(device, commandBuffer);
-		}
-
 		VkSampler create_texture_sampler(Device* device)
 		{
 			VkPhysicalDeviceProperties properties{};
@@ -113,6 +60,11 @@ namespace gfx
 			VkResult result = vkCreateSampler(device->device, &samplerInfo, nullptr, &sampler);
 			VK_ASSERT(result);
 			return sampler;
+		}
+
+		bool has_stencil_component(VkFormat format)
+		{
+			return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 		}
 	} // namespace
 	namespace detail
@@ -154,10 +106,13 @@ namespace gfx
 			result = vkAllocateMemory(device->device, &allocInfo, nullptr, &imageMemory);
 			VK_ASSERT(result);
 
+			result = vkBindImageMemory(device->device, image, imageMemory, 0);
+			VK_ASSERT(result);
+
 			return image;
 		}
 
-		VkImageView create_image_view(Device* device, VkImage image, VkFormat format)
+		VkImageView create_image_view(Device* device, VkImage image, VkFormat format, VkImageAspectFlags aspect)
 		{
 			VkImageViewCreateInfo viewInfo{
 				.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -172,8 +127,7 @@ namespace gfx
 					.b = VK_COMPONENT_SWIZZLE_IDENTITY,
 					.a = VK_COMPONENT_SWIZZLE_IDENTITY
 				},
-				.subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1}
-
+				.subresourceRange = {.aspectMask = aspect, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1}
 			};
 
 			VkImageView imageView;
@@ -182,43 +136,133 @@ namespace gfx
 			return imageView;
 		}
 
+		void transition_image_layout(Device* device, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
+		{
+			VkCommandBuffer commandBuffer = detail::begin_one_time_commands(device);
+
+			VkImageMemoryBarrier barrier{
+				.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+				.pNext = nullptr,
+				.srcAccessMask = 0,
+				.dstAccessMask = 0,
+				.oldLayout = oldLayout,
+				.newLayout = newLayout,
+				.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+				.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+				.image = image,
+				.subresourceRange = {
+					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+					.baseMipLevel = 0,
+					.levelCount = 1,
+					.baseArrayLayer = 0,
+					.layerCount = 1
+				},
+			};
+
+			VkPipelineStageFlags srcStage;
+			VkPipelineStageFlags dstStage;
+
+			if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+				barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+				if (has_stencil_component(format)) {
+					barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+				}
+			}
+
+			if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+				barrier.srcAccessMask = 0;
+				barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+				dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			} else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+				barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+				srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+				dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			} else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+				barrier.srcAccessMask = 0;
+				barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+				srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+				dstStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+			} else {
+				fprintf(stderr, "Unsupported layout transition!");
+				std::abort();
+			}
+
+			vkCmdPipelineBarrier(
+				commandBuffer,
+				srcStage, dstStage,
+				0,
+				0, nullptr,
+				0, nullptr,
+				1, &barrier
+			);
+
+			detail::end_one_time_commands(device, commandBuffer);
+		}
 	} // namespace detail
 
-	Image* create_image(Device* device, void* pixels, const ImageDesc& params)
+	Image* create_image(Device* device, const ImageDesc& params)
 	{
-		Buffer* staging = create_buffer(device, {.size = params.size, .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT, .properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT});
+		VkDeviceMemory imageMemory;
+		VkImage image = detail::create_image(device, params, imageMemory);
+		VkImageView imageView = detail::create_image_view(device, image, params.format, params.aspect);
+
+		return new Image{
+			.image = image,
+			.imageView = imageView,
+			.memory = imageMemory
+		};
+	}
+
+	Image* create_image(Device* device, void* pixels, uint64_t size, const ImageDesc& params)
+	{
+		Buffer* staging = create_buffer(device, {.size = size, .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT, .properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT});
 
 		void* data;
-		vkMapMemory(device->device, staging->memory, 0, params.size, 0, &data);
-		memcpy(data, pixels, static_cast<size_t>(params.size));
+		vkMapMemory(device->device, staging->memory, 0, size, 0, &data);
+		memcpy(data, pixels, static_cast<size_t>(size));
 		vkUnmapMemory(device->device, staging->memory);
 
 		VkDeviceMemory imageMemory;
 		VkImage image = detail::create_image(device, params, imageMemory);
 
-		vkBindImageMemory(device->device, image, imageMemory, 0);
-
 		// TODO OPTIMIZE THIS: put these all into a single command buffer and flush
-		transition_image_layout(device, image, params.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		detail::transition_image_layout(device, image, params.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 		copy_buffer_to_image(device, staging->buffer, image, params.extent.width, params.extent.height);
-		transition_image_layout(device, image, params.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		detail::transition_image_layout(device, image, params.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		destroy_buffer(device, staging);
 
-		VkImageView imageView = detail::create_image_view(device, image, VK_FORMAT_R8G8B8A8_SRGB);
-		VkSampler sampler = create_texture_sampler(device);
+		VkImageView imageView = detail::create_image_view(device, image, params.format, params.aspect);
+		// VkSampler sampler = create_texture_sampler(device);
 
 		return new Image{
 			.image = image,
 			.imageView = imageView,
-			.sampler = sampler,
 			.memory = imageMemory
 		};
 	}
 
+	Texture* create_texture(Device* device, void* pixels, uint64_t size, const ImageDesc& params)
+	{
+		Image* image = create_image(device, pixels, size, params);
+		VkSampler sampler = create_texture_sampler(device);
+
+		return new Texture{
+			.image = image,
+			.sampler = sampler
+		};
+	}
+
+	void destroy_texture(Device* device, Texture* texture)
+	{
+		vkDestroySampler(device->device, texture->sampler, nullptr);
+		destroy_image(device, texture->image);
+	}
+
 	void destroy_image(Device* device, Image* image)
 	{
-		vkDestroySampler(device->device, image->sampler, nullptr);
 		vkDestroyImageView(device->device, image->imageView, nullptr);
 		vkDestroyImage(device->device, image->image, nullptr);
 		vkFreeMemory(device->device, image->memory, nullptr);

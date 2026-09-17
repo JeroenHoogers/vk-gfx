@@ -82,7 +82,7 @@ namespace gfx
 			std::vector<VkImageView> imageViews(images.size());
 
 			for (size_t i = 0; i < images.size(); i++) {
-				imageViews[i] = create_image_view(device, images[i], imageFormat);
+				imageViews[i] = create_image_view(device, images[i], imageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 			}
 			return imageViews;
 		}
@@ -180,7 +180,7 @@ namespace gfx
 		destroy_swapchain(device, swapchain);
 
 		device->swapchain = create_swapchain(device, format);
-		device->renderTarget = create_render_target(device);
+		device->renderTarget = create_render_target(device, device->renderPass);
 	}
 
 	void destroy_swapchain(Device* device, Swapchain* swapchain)
@@ -196,7 +196,7 @@ namespace gfx
 		swapchain = nullptr;
 	}
 
-	SwapchainFrame aquire(Device* device)
+	SwapchainFrame acquire(Device* device)
 	{
 		const Frame& frame = device->frames[device->currentFrame];
 
@@ -215,8 +215,10 @@ namespace gfx
 
 		SwapchainFrame swapchainFrame {
 			.image = device->swapchain->images[device->swapchain->imageIndex],
+			.frameBuffer = device->renderTarget->framebuffers[device->swapchain->imageIndex],
+			.extent = device->swapchain->extent,
 			.index = device->currentFrame,
-			.swapImageIndex = device->swapchain->imageIndex
+			.swapImageIndex = device->swapchain->imageIndex,
 		};
 
 		return swapchainFrame;
