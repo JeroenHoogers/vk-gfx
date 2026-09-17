@@ -2,6 +2,7 @@
 #include "gfx/pipeline.h"
 #include "gfx/swapchain.h"
 #include "gfx/sync.h"
+#include "gfx/buffer.h"
 #include "gfx/command_buffer.h"
 #include "gfx/render_pass.h"
 #include "gfx/uniform_buffer.h"

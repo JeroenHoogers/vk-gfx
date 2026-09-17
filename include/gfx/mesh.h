@@ -26,19 +26,24 @@ namespace gfx
 		std::vector<VertexBinding> bindings;
 	};
 
-	struct Mesh {
+	struct Mesh
+	{
 		Buffer* vertexBuffer = nullptr;
 		Buffer* indexBuffer = nullptr;
+		uint32_t indexCount = 0;
+		uint32_t vertexCount = 0;
 		VkIndexType indexType = VK_INDEX_TYPE_UINT16;
 	};
 
-	struct BufferData {
+	struct BufferData
+	{
 		const void* data = nullptr;
 		uint64_t size = 0;
 		uint32_t stride = 0; // TODO: we might be able to remove this
 	};
 
-	struct MeshData {
+	struct MeshData
+	{
 		BufferData vertices = {};
 		BufferData indices = {};
 	};

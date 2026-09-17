@@ -49,7 +49,19 @@ namespace gfx
 			}
 		}
 
-		return Mesh{.vertexBuffer = vertexBuffer, .indexBuffer = indexBuffer, .indexType = indexType};
+		uint32_t vertexCount = meshData.vertices.size / meshData.vertices.stride;
+		uint32_t indexCount = 0;
+		if (meshData.indices.size > 0) {
+			indexCount = meshData.indices.size / meshData.indices.stride;
+		}
+
+		return Mesh{
+			.vertexBuffer = vertexBuffer,
+			.indexBuffer = indexBuffer,
+			.indexCount = indexCount,
+			.vertexCount = vertexCount,
+			.indexType = indexType
+		};
 	}
 
 	void destroy_mesh(Device* device, Mesh* mesh)
