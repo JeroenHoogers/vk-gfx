@@ -1,11 +1,16 @@
 #pragma once
 
+#include <vector>
 #include <vulkan/vulkan.h>
+#include "sync.h"
 
 namespace gfx
 {
 	struct Device;
 	struct Swapchain;
+	struct RenderTarget;
+	struct CommandBuffer;
+	struct Image;
 
 	struct WindowCallbacks {
 		// used to query window specific instance extensions
@@ -31,10 +36,20 @@ namespace gfx
 		void* user_data;
 	};
 
+	struct Frame {
+		CommandBuffer* commands;
+		Image* depthImage = nullptr;
+		Fence inFlightFence;
+		Semaphore imageAvailable;
+	};
+
 	struct Window {
 		WindowCallbacks* callbacks;
 		VkSurfaceKHR surface;
 		Swapchain* swapchain = nullptr;
+		RenderTarget* renderTarget = nullptr;
+		std::vector<Frame> frames = {};
+		uint32_t currentFrame = 0;
 	};
 
 	namespace detail {

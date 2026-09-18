@@ -4,6 +4,7 @@
 
 namespace gfx {
 	struct Device;
+	struct Window;
 	struct Buffer;
 	struct Pipeline;
 	struct CommandBuffer;

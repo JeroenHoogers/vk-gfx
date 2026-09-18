@@ -124,8 +124,4 @@ if(BUILD_EXAMPLES)
   add_executable(cube-example ${SRC_EXAMPLES} ${EXAMPLES_DIR}/cube.cpp)
   target_link_libraries(cube-example PRIVATE vk-gfx ${EXAMPLE_LIBS})
   add_dependencies(cube-example compile_shaders)
-
-  add_executable(scene-example ${SRC_EXAMPLES} ${EXAMPLES_DIR}/scene.cpp)
-  target_link_libraries(scene-example PRIVATE vk-gfx ${EXAMPLE_LIBS})
-  add_dependencies(scene-example compile_shaders)
 endif(BUILD_EXAMPLES)

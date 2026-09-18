@@ -9,7 +9,7 @@ namespace gfx
 {
 	UniformBuffer* create_uniform_buffer(Device* device, uint32_t size)
 	{
-		uint32_t frameCount = device->frames.size();
+		uint32_t count = device->framesInFlight;
 
 		BufferDesc bufferDesc{
 			.size = size,
@@ -18,11 +18,11 @@ namespace gfx
 		};
 
 		UniformBuffer* uniformBuffer = new UniformBuffer{
-			.mappedMemory = std::vector<void*>(frameCount),
-			.buffers = std::vector<Buffer*>(frameCount),
+			.mappedMemory = std::vector<void*>(count),
+			.buffers = std::vector<Buffer*>(count),
 		};
 
-		for (size_t i = 0; i < frameCount; i++) {
+		for (size_t i = 0; i < count; i++) {
 			uniformBuffer->buffers[i] = create_buffer(device, bufferDesc);
 
 			VkResult result = vkMapMemory(device->device, uniformBuffer->buffers[i]->memory, 0, uniformBuffer->buffers[i]->size, 0, &uniformBuffer->mappedMemory[i]);

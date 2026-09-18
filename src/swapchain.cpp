@@ -168,18 +168,16 @@ namespace gfx
 		return pSwapchain;
 	}
 
-	void recreate_swapchain(Device* device, Swapchain* swapchain)
+	void recreate_swapchain(Device* device, Window* window)
 	{
-		VkFormat format = swapchain->format;
+		VkFormat format = window->swapchain->format;
 		vkDeviceWaitIdle(device->device);
 
-		destroy_render_target(device, device->renderTarget);
-		destroy_swapchain(device, swapchain);
-
-		Window* window = device->window; // TODO: fix, don't pass window from device
+		destroy_render_target(device, window->renderTarget);
+		destroy_swapchain(device, window->swapchain);
 
 		window->swapchain = create_swapchain(device, window, format);
-		device->renderTarget = create_render_target(device, window->swapchain, device->renderPass);
+		window->renderTarget = create_render_target(device, window, device->renderPass);
 	}
 
 	void destroy_swapchain(Device* device, Swapchain* swapchain)
@@ -198,16 +196,16 @@ namespace gfx
 	{
 		// if no window specified use main window
 		if(window == nullptr) {
-			window = device->window;
+			window = device->windows[0];
 		}
 
-		const Frame& frame = device->frames[device->currentFrame];
+		const Frame& frame = window->frames[window->currentFrame];
 
 		vkWaitForFences(device->device, 1, &frame.inFlightFence.fence, VK_TRUE, UINT64_MAX);
 		VkResult result = vkAcquireNextImageKHR(device->device, window->swapchain->swapchain, UINT64_MAX, frame.imageAvailable.semaphore, VK_NULL_HANDLE, &window->swapchain->imageIndex);
 
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-			recreate_swapchain(device, window->swapchain);
+			recreate_swapchain(device, window);
 			return {};
 		}
 		if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
@@ -240,9 +238,9 @@ namespace gfx
 			.image = window->swapchain->images[window->swapchain->imageIndex],
 			.window = window,
 			.dynamicState = dynamicState,
-			.frameBuffer = device->renderTarget->framebuffers[window->swapchain->imageIndex],
+			.frameBuffer = window->renderTarget->framebuffers[window->swapchain->imageIndex],
 			.extent = window->swapchain->extent,
-			.index = device->currentFrame,
+			.index = window->currentFrame,
 			.swapImageIndex = window->swapchain->imageIndex,
 		};
 

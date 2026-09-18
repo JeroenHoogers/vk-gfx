@@ -326,14 +326,14 @@ namespace gfx
 
 		// TODO: move to window.h
 		// add window instance extensions
-		if (params.windowCallbacks) {
+		if (params.windows.size() > 0) {
 			std::uint32_t windowExtensionCount = 0;
-			VkResult result = params.windowCallbacks->get_required_instance_extensions(&windowExtensionCount, nullptr, nullptr);
+			VkResult result = params.windows[0]->get_required_instance_extensions(&windowExtensionCount, nullptr, nullptr);
 			VK_ASSERT(result);
 
 			// TODO: extend params vector and write into the offset?
 			std::vector<const char*> windowExtensions(windowExtensionCount);
-			result = params.windowCallbacks->get_required_instance_extensions(&windowExtensionCount, windowExtensions.data(), nullptr);
+			result = params.windows[0]->get_required_instance_extensions(&windowExtensionCount, windowExtensions.data(), nullptr);
 			VK_ASSERT(result);
 
 			for (std::uint32_t i = 0; i < windowExtensionCount; i++) {
@@ -343,16 +343,20 @@ namespace gfx
 		}
 
 		VkInstance instance = create_instance(params.appname, extensions, layers);
-		Window* window = detail::create_window(instance, params.windowCallbacks);
+
+		std::vector<Window*> windows(params.windows.size());
+		for(uint32_t i = 0; i < params.windows.size(); i++) {
+			windows[i] = detail::create_window(instance, params.windows[i]);
+		}
 
 		// always add swapchain extension
 		deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
-		VkPhysicalDevice physicalDevice = pick_physical_device(instance, window->surface, deviceExtensions);
+		VkPhysicalDevice physicalDevice = pick_physical_device(instance, windows[0]->surface, deviceExtensions);
 
 		Queue graphicsQueue = {};
 		Queue presentQueue = {};
-		VkDevice device = create_logical_device(physicalDevice, window->surface, deviceExtensions, graphicsQueue, presentQueue);
+		VkDevice device = create_logical_device(physicalDevice, windows[0]->surface, deviceExtensions, graphicsQueue, presentQueue);
 
 		VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
 		if (params.enableValidation) {
@@ -365,12 +369,12 @@ namespace gfx
 			.device = device,
 			.debugMessenger = debugMessenger,
 			.graphicsQueue = graphicsQueue,
-			.presentQueue = presentQueue,
-			.window = window
+			.presentQueue = presentQueue
 		};
 
-		Swapchain* swapchain = create_swapchain(pDevice, window, params.swapchainFormat);
-		window->swapchain = swapchain;
+		for(uint32_t i = 0; i < windows.size(); i++) {
+			windows[i]->swapchain = create_swapchain(pDevice, windows[i], params.swapchainFormat);
+		}
 
 		RenderPass* renderPass = create_render_pass(pDevice);
 		pDevice->renderPass = renderPass;
@@ -381,19 +385,22 @@ namespace gfx
 		VkCommandPool transientPool = create_command_pool(pDevice, graphicsQueue.familyIndex, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 		pDevice->transientPool = transientPool;
 
-		std::vector<VkCommandBuffer> commandBuffers = detail::create_command_buffers(pDevice, commandPool, params.framesInFlight);
-		pDevice->frames.resize(params.framesInFlight);
-		for (uint32_t i = 0; i < params.framesInFlight; i++) {
-			pDevice->frames[i] = Frame{
-				.commands = new CommandBuffer{.commandBuffer = commandBuffers[i]},
-				.depthImage = nullptr,
-				.inFlightFence = create_fence(pDevice),
-				.imageAvailable = create_semaphore(pDevice)
-			};
-		}
+		for(Window* window : windows) {
+			std::vector<VkCommandBuffer> commandBuffers = detail::create_command_buffers(pDevice, commandPool, params.framesInFlight);
+			window->frames.resize(params.framesInFlight);
+			for (uint32_t i = 0; i < params.framesInFlight; i++) {
+				window->frames[i] = Frame{
+					.commands = new CommandBuffer{.commandBuffer = commandBuffers[i]},
+					.depthImage = nullptr,
+					.inFlightFence = create_fence(pDevice),
+					.imageAvailable = create_semaphore(pDevice)
+				};
+			}
 
-		RenderTarget* renderTarget = create_render_target(pDevice, swapchain, renderPass);
-		pDevice->renderTarget = renderTarget;
+			RenderTarget* renderTarget = create_render_target(pDevice, window, renderPass);
+			window->renderTarget = renderTarget;
+		}
+		pDevice->windows = windows;
 
 		VkDescriptorPool descriptorPool = create_descriptor_pool(pDevice);
 		pDevice->descriptorPool = descriptorPool;
@@ -412,17 +419,21 @@ namespace gfx
 	{
 		vkDestroyDescriptorPool(device->device, device->descriptorPool, nullptr);
 
-		for (uint32_t i = 0; i < device->frames.size(); i++) {
-			destroy_semaphore(device, &device->frames[i].imageAvailable);
-			destroy_fence(device, &device->frames[i].inFlightFence);
+		for (uint32_t i = 0; i < device->windows.size(); i++) {
+			for (uint32_t j = 0; j < device->windows[i]->frames.size(); j++) {
+				destroy_semaphore(device, &device->windows[i]->frames[j].imageAvailable);
+				destroy_fence(device, &device->windows[i]->frames[j].inFlightFence);
+			}
+			destroy_render_target(device, device->windows[i]->renderTarget);
 		}
 
 		vkDestroyCommandPool(device->device, device->transientPool, nullptr);
 		vkDestroyCommandPool(device->device, device->commandPool, nullptr);
-
-		destroy_render_target(device, device->renderTarget);
 		destroy_render_pass(device, device->renderPass);
-		detail::destroy_window(device, device->window);
+
+		for (uint32_t i = 0; i < device->windows.size(); i++) {
+			detail::destroy_window(device, device->windows[i]);
+		}
 
 		vkDestroyDevice(device->device, nullptr);
 

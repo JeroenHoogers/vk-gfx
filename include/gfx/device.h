@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 #include <vulkan/vulkan.h>
-#include "sync.h"
 
 namespace gfx
 {
@@ -27,13 +26,6 @@ namespace gfx
 		uint32_t queueIndex = 0;
 	};
 
-	struct Frame {
-		CommandBuffer* commands;
-		Image* depthImage = nullptr;
-		Fence inFlightFence;
-		Semaphore imageAvailable;
-	};
-
 	struct Device
 	{
 		VkInstance instance;
@@ -46,11 +38,11 @@ namespace gfx
 		VkCommandPool commandPool = VK_NULL_HANDLE;
 		VkCommandPool transientPool = VK_NULL_HANDLE;
 		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-		std::vector<Frame> frames = {}; // TODO: should move to rendertarget / window?
-		uint32_t currentFrame = 0;
-		Window* window;
+		 // TODO: should move to rendertarget / window?
+		// uint32_t currentFrame = 0;
+		uint32_t framesInFlight = 2;
+		std::vector<Window*> windows = {};
 		RenderPass* renderPass = nullptr;
-		RenderTarget* renderTarget = nullptr; // TODO: do we need this?
 	};
 
 	struct DeviceCreateParams
@@ -60,7 +52,8 @@ namespace gfx
 		std::vector<const char*> deviceExtensions{};
 		std::vector<const char*> layers{};
 		VkFormat swapchainFormat = VK_FORMAT_UNDEFINED; // TODO: move vulkan out of public API?
-		WindowCallbacks* windowCallbacks = nullptr;
+		std::vector<WindowCallbacks*> windows {};
+		// WindowCallbacks* windowCallbacks = nullptr;
 		bool enableValidation = false;
 		uint32_t framesInFlight = 2;
 	};
@@ -68,6 +61,7 @@ namespace gfx
 	struct DeviceInit
 	{
 		Device* device;
+		// TODO: add error handling
 	};
 
 	DeviceInit create_device(const DeviceCreateParams& init);

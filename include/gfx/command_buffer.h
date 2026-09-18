@@ -25,7 +25,7 @@ namespace gfx
 		void end_one_time_commands(Device* device, VkCommandBuffer commandBuffer);
 	}
 
-	[[nodiscard]] CommandBuffer* begin_commands(Device* device);
+	[[nodiscard]] CommandBuffer* begin_commands(Window* window);
 	void end_commands(CommandBuffer* commands);
 
 	void draw(CommandBuffer* commands, Mesh* mesh, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0);

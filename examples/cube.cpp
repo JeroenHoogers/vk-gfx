@@ -45,6 +45,9 @@ int main()
 	    4, 5, 6, 6, 7, 4
 	};
 
+	const std::string MODEL_PATH = "../assets/models/viking_room.obj";
+	const std::string TEXTURE_PATH = "../assets/textures/viking_room.png";
+
 	gfx::VertexLayout vertexLayout = gfx::create_vertex_layout({{
 		.stride = sizeof(Vertex),
 		.attributes = {
@@ -56,19 +59,32 @@ int main()
 
 	std::string appName = "textured cube example";
 	Window window = create_window(width, height, appName);
+	// gfx::Window mainWindow {
+	// 	.callbacks = window.callbacks
+	// };
 
-	gfx::DeviceInit deviceInit = gfx::create_device({.appname = appName, .extensions = {}, .swapchainFormat = VK_FORMAT_B8G8R8A8_SRGB, .windowCallbacks = &window.callbacks, .enableValidation = enableValidationLayers});
+	gfx::DeviceInit deviceInit = gfx::create_device({
+		.appname = appName,
+		.extensions = {},
+		.swapchainFormat = VK_FORMAT_B8G8R8A8_SRGB,
+		.windows = {&window.callbacks},
+		.enableValidation = enableValidationLayers
+	});
 
 	gfx::Device* device = deviceInit.device;
 
-	printf("frames in flight %lu\n", device->frames.size());
+	printf("frames in flight %u\n", device->framesInFlight);
 	// if () { // TODO: error handling
 	// gfx::destroy_device(device);
 	// close_window(window);
 	// }
-	glfwSetWindowUserPointer(window.window, device->window);
+	gfx::Window* mainWindow = device->windows[0];
+	glfwSetWindowUserPointer(window.window, mainWindow);
 
-	gfx::Texture* texture = load_image(device, "../assets/textures/texture.jpg");
+	gfx::Texture* texture = load_image(device, TEXTURE_PATH);
+	gfx::Mesh model = load_model(device, MODEL_PATH);
+
+	// gfx::Texture* texture = load_image(device, "../assets/textures/texture.jpg");
 	gfx::UniformBuffer* ubo = gfx::create_uniform_buffer(device, sizeof(UniformBufferObject));
 
 	gfx::ResourceSetLayout* uboResourceLayout = gfx::create_resource_set_layout(device, {
@@ -81,7 +97,7 @@ int main()
 
 	std::vector<gfx::ResourceSet*> uboResources = gfx::create_resource_sets(device, uboResourceLayout, {gfx::Resource{
 		.type = gfx::ResourceType::UniformBuffer, .uniformBuffer = ubo
-	}}, device->frames.size());
+	}}, device->framesInFlight);
 
 	gfx::ResourceSet* materialResourceSet = gfx::create_resource_set(device, materialResourceLayout, {gfx::Resource{
 		.type = gfx::ResourceType::CombinedImageSampler, .texture = texture
@@ -95,29 +111,29 @@ int main()
 		.rasterizer = { .front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE }
 	});
 
-	gfx::Mesh cube = gfx::create_mesh(device, {
-		.vertices {
-			.data = vertices.data(),
-			.size = sizeof(Vertex) * vertices.size(),
-			.stride = sizeof(Vertex)
-		},
-		.indices {
-			.data = indices.data(),
-			.size = sizeof(uint16_t) * indices.size(),
-			.stride = sizeof(uint16_t)
-		}
-	});
+	// gfx::Mesh cube = gfx::create_mesh(device, {
+	// 	.vertices {
+	// 		.data = vertices.data(),
+	// 		.size = sizeof(Vertex) * vertices.size(),
+	// 		.stride = sizeof(Vertex)
+	// 	},
+	// 	.indices {
+	// 		.data = indices.data(),
+	// 		.size = sizeof(uint16_t) * indices.size(),
+	// 		.stride = sizeof(uint16_t)
+	// 	}
+	// });
 
 	while (poll_window_events(window)) {
-		const gfx::SwapchainFrame frame = gfx::acquire(device);
+		const gfx::SwapchainFrame frame = gfx::acquire(device, mainWindow);
 		updateUniformBuffer(ubo, frame);
-		gfx::CommandBuffer* commands = gfx::begin_commands(device);
+		gfx::CommandBuffer* commands = gfx::begin_commands(frame.window);
 		gfx::begin_render_pass(device, commands, &frame);
 		gfx::bind_pipeline(pipeline, commands, frame.dynamicState);
 		// TODO: create helper to bind more than 1 set at once?
 		gfx::bind_resource_set(commands, pipeline, 0, uboResources[frame.index]);
 		gfx::bind_resource_set(commands, pipeline, 1, materialResourceSet);
-		gfx::draw_indexed(commands, &cube, indices.size());
+		gfx::draw_indexed(commands, &model, model.indexCount);
 		gfx::end_render_pass(commands);
 		gfx::end_commands(commands);
 		gfx::submit_and_present(device, frame.window, commands);
@@ -125,7 +141,7 @@ int main()
 
 	gfx::wait_idle(device);
 
-	gfx::destroy_mesh(device, &cube);
+	gfx::destroy_mesh(device, &model);
 
 	gfx::destroy_pipeline(device, pipeline);
 	gfx::destroy_resource_set_layouts(device, {uboResourceLayout, materialResourceLayout});

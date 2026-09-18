@@ -72,16 +72,18 @@ namespace gfx
 	VkDescriptorPool create_descriptor_pool(Device* device)
 	{
 		// TODO: expose poolsizes as an argument
+		uint32_t poolSize = device->framesInFlight * device->windows.size();
+
 		std::array<VkDescriptorPoolSize, 2> poolSizes{
-			VkDescriptorPoolSize{.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = static_cast<uint32_t>(device->frames.size())},
-			VkDescriptorPoolSize{.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = static_cast<uint32_t>(device->frames.size())}
+			VkDescriptorPoolSize{.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = static_cast<uint32_t>(poolSize)},
+			VkDescriptorPoolSize{.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = static_cast<uint32_t>(poolSize)}
 		};
 
 		VkDescriptorPoolCreateInfo poolInfo{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
 			.pNext = nullptr,
 			.flags = 0,
-			.maxSets = static_cast<uint32_t>(device->frames.size() + 1),
+			.maxSets = static_cast<uint32_t>(poolSize + 1),
 			.poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
 			.pPoolSizes = poolSizes.data()
 		};

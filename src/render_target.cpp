@@ -9,13 +9,13 @@ namespace gfx
 {
 	namespace
 	{
-		std::vector<VkFramebuffer> create_framebuffers(Device* device, Swapchain* swapchain, RenderPass* renderPass, VkExtent2D extent) {
-			const auto& swapchainFrames = swapchain->images;
-			std::vector<VkFramebuffer> framebuffers(swapchainFrames.size());
-			for (size_t i = 0; i < swapchainFrames.size(); i++) {
+		std::vector<VkFramebuffer> create_framebuffers(Device* device, Window* window, std::vector<Image*> depthImages, RenderPass* renderPass) {
+			const auto& swapchain = window->swapchain;
+			std::vector<VkFramebuffer> framebuffers(swapchain->images.size());
+			for (size_t i = 0; i < swapchain->images.size(); i++) {
 				std::vector<VkImageView> attachments = {
-					swapchainFrames[i].imageView,
-					device->frames[0].depthImage->imageView // TODO: also store per window
+					swapchain->images[i].imageView,
+					depthImages[0]->imageView // TODO: also store per window
 				};
 
 				VkFramebufferCreateInfo framebufferInfo{
@@ -25,8 +25,8 @@ namespace gfx
 					.renderPass = renderPass->renderPass,
 					.attachmentCount = static_cast<uint32_t>(attachments.size()),
 					.pAttachments = attachments.data(),
-					.width = extent.width,
-					.height = extent.height,
+					.width = swapchain->extent.width,
+					.height = swapchain->extent.height,
 					.layers = 1
 				};
 
@@ -56,24 +56,26 @@ namespace gfx
 		}
 	}
 
-	RenderTarget* create_render_target(Device* device, Swapchain* swapchain, RenderPass* renderPass) {
-		for (auto& frame : device->frames) {
-			frame.depthImage = detail::create_depth_resources(device, swapchain);
+	RenderTarget* create_render_target(Device* device, Window* window, RenderPass* renderPass) {
+		std::vector<Image*> depthImages(window->frames.size());
+		for (uint32_t i = 0; i < depthImages.size(); i++) {
+			depthImages[i] = detail::create_depth_resources(device, window->swapchain);
 		}
 
-		std::vector<VkFramebuffer> framebuffers = create_framebuffers(device, swapchain, renderPass, swapchain->extent);
+		std::vector<VkFramebuffer> framebuffers = create_framebuffers(device, window, depthImages, renderPass);
 
 		RenderTarget* pRenderTarget = new RenderTarget{
 			// .renderPass = renderPass,
-			.framebuffers = std::move(framebuffers)
+			.depthImages = std::move(depthImages),
+			.framebuffers = std::move(framebuffers),
 		};
 
 		return pRenderTarget;
 	}
 
 	void destroy_render_target(Device* device, RenderTarget* renderTarget) {
-		for (auto& frame : device->frames) {
-			destroy_image(device, frame.depthImage);
+		for (auto* depthImage : renderTarget->depthImages) {
+			destroy_image(device, depthImage);
 		}
 
 		for (auto framebuffer : renderTarget->framebuffers) {
