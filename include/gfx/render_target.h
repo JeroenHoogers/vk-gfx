@@ -5,11 +5,12 @@
 namespace gfx
 {
 	struct Device;
+	struct Swapchain;
 	struct RenderPass;
 	struct Image;
 
 	namespace detail {
-		Image* create_depth_resources(Device* device);
+		Image* create_depth_resources(Device* device, Swapchain* swapchain);
 	}
 
 	struct RenderTarget
@@ -22,6 +23,6 @@ namespace gfx
 	    // RenderPass* renderPass; // weak reference?
 	};
 
-	RenderTarget* create_render_target(Device* device, RenderPass* renderPass);
+	RenderTarget* create_render_target(Device* device, Swapchain* swapchain, RenderPass* renderPass);
 	void destroy_render_target(Device* device, RenderTarget* renderTarget);
 } // namespace gfx

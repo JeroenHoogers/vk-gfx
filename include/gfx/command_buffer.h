@@ -6,6 +6,7 @@
 namespace gfx
 {
 	struct Device;
+	struct Window;
 	struct Fence;
 	struct Semaphore;
 	struct Mesh;
@@ -33,6 +34,6 @@ namespace gfx
 	void submit(Device* device, CommandBuffer* commands); // TODO:
 
 	// TODO: allow for multiple command buffers
-	void submit_and_present(Device* device, const CommandBuffer* commands);
+	void submit_and_present(Device* device, Window* window, const CommandBuffer* commands);
 
 } // namespace gfx

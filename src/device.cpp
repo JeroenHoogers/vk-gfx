@@ -14,8 +14,16 @@
 
 namespace gfx
 {
-	namespace detail
+	namespace
 	{
+		struct QueueFamilyIndices
+		{
+			std::uint32_t graphicsFamily;
+			std::uint32_t presentFamily;
+
+			std::uint32_t queueFamilyCount;
+		};
+
 		bool find_queue_families(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, QueueFamilyIndices& indices)
 		{
 			vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &indices.queueFamilyCount, nullptr);
@@ -45,10 +53,7 @@ namespace gfx
 
 			return false;
 		}
-	} // namespace detail
 
-	namespace
-	{
 		// TODO: allow user callback instead
 		VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback([[maybe_unused]] VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* callbackData, [[maybe_unused]] void* userData)
 		{
@@ -158,9 +163,8 @@ namespace gfx
 
 		bool is_device_suitable(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, const std::vector<const char*>& extensions)
 		{
-			detail::QueueFamilyIndices indices;
-
 			// check queue families
+			QueueFamilyIndices indices;
 			bool has_queue_families = find_queue_families(physicalDevice, surface, indices);
 
 			// check required extensions
@@ -225,9 +229,9 @@ namespace gfx
 			abort();
 		}
 
-		VkDevice create_logical_device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, const std::vector<const char*>& extensions, VkQueue& graphicsQueue, VkQueue& presentQueue)
+		VkDevice create_logical_device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, const std::vector<const char*>& extensions, Queue& graphicsQueue, Queue& presentQueue)
 		{
-			detail::QueueFamilyIndices indices;
+			QueueFamilyIndices indices;
 			if (!find_queue_families(physicalDevice, surface, indices)) {
 				fprintf(stderr, "failed to find required queue families!");
 			}
@@ -278,24 +282,22 @@ namespace gfx
 			VkResult result = vkCreateDevice(physicalDevice, &createInfo, nullptr, &device);
 			VK_ASSERT(result);
 
-			vkGetDeviceQueue(device, indices.graphicsFamily, 0, &graphicsQueue);
-			vkGetDeviceQueue(device, indices.presentFamily, 0, &presentQueue);
+			graphicsQueue.familyIndex = indices.graphicsFamily;
+			presentQueue.familyIndex = indices.presentFamily;
+
+			vkGetDeviceQueue(device, graphicsQueue.familyIndex, graphicsQueue.queueIndex, &graphicsQueue.handle);
+			vkGetDeviceQueue(device, presentQueue.familyIndex, presentQueue.queueIndex, &presentQueue.handle);
 
 			return device;
 		}
 
-		VkCommandPool create_command_pool(Device* device, VkCommandPoolCreateFlags flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)
+		VkCommandPool create_command_pool(Device* device, uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)
 		{
-			detail::QueueFamilyIndices indices;
-			if (!find_queue_families(device->physicalDevice, device->surface, indices)) {
-				fprintf(stderr, "failed to find required queue families!");
-			}
-
 			VkCommandPoolCreateInfo poolInfo{
 				.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 				.pNext = nullptr,
 				.flags = flags,
-				.queueFamilyIndex = indices.graphicsFamily
+				.queueFamilyIndex = queueFamilyIndex
 			};
 
 			VkCommandPool commandPool;
@@ -322,15 +324,16 @@ namespace gfx
 			// printf("Layer")
 		}
 
+		// TODO: move to window.h
 		// add window instance extensions
-		if (params.window) {
+		if (params.windowCallbacks) {
 			std::uint32_t windowExtensionCount = 0;
-			VkResult result = params.window->get_required_instance_extensions(&windowExtensionCount, nullptr, nullptr);
+			VkResult result = params.windowCallbacks->get_required_instance_extensions(&windowExtensionCount, nullptr, nullptr);
 			VK_ASSERT(result);
 
 			// TODO: extend params vector and write into the offset?
 			std::vector<const char*> windowExtensions(windowExtensionCount);
-			result = params.window->get_required_instance_extensions(&windowExtensionCount, windowExtensions.data(), nullptr);
+			result = params.windowCallbacks->get_required_instance_extensions(&windowExtensionCount, windowExtensions.data(), nullptr);
 			VK_ASSERT(result);
 
 			for (std::uint32_t i = 0; i < windowExtensionCount; i++) {
@@ -340,22 +343,16 @@ namespace gfx
 		}
 
 		VkInstance instance = create_instance(params.appname, extensions, layers);
-		VkSurfaceKHR surface = VK_NULL_HANDLE;
+		Window* window = detail::create_window(instance, params.windowCallbacks);
 
-		// create surface
-		if (params.window) {
-			VkResult result = params.window->create_surface(instance, &surface, params.window->user_data);
-			VK_ASSERT(result);
-		}
-
-		// always create swapchain
+		// always add swapchain extension
 		deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
-		VkPhysicalDevice physicalDevice = pick_physical_device(instance, surface, deviceExtensions);
+		VkPhysicalDevice physicalDevice = pick_physical_device(instance, window->surface, deviceExtensions);
 
-		VkQueue graphicsQueue = VK_NULL_HANDLE;
-		VkQueue presentQueue = VK_NULL_HANDLE;
-		VkDevice device = create_logical_device(physicalDevice, surface, deviceExtensions, graphicsQueue, presentQueue);
+		Queue graphicsQueue = {};
+		Queue presentQueue = {};
+		VkDevice device = create_logical_device(physicalDevice, window->surface, deviceExtensions, graphicsQueue, presentQueue);
 
 		VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
 		if (params.enableValidation) {
@@ -366,23 +363,22 @@ namespace gfx
 			.instance = instance,
 			.physicalDevice = physicalDevice,
 			.device = device,
-			.surface = surface,
 			.debugMessenger = debugMessenger,
 			.graphicsQueue = graphicsQueue,
 			.presentQueue = presentQueue,
-			.window = params.window
+			.window = window
 		};
 
-		Swapchain* swapchain = create_swapchain(pDevice, params.swapchainFormat);
-		pDevice->swapchain = swapchain;
+		Swapchain* swapchain = create_swapchain(pDevice, window, params.swapchainFormat);
+		window->swapchain = swapchain;
 
 		RenderPass* renderPass = create_render_pass(pDevice);
 		pDevice->renderPass = renderPass;
 
-		VkCommandPool commandPool = create_command_pool(pDevice);
+		VkCommandPool commandPool = create_command_pool(pDevice, graphicsQueue.familyIndex);
 		pDevice->commandPool = commandPool;
 
-		VkCommandPool transientPool = create_command_pool(pDevice, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+		VkCommandPool transientPool = create_command_pool(pDevice, graphicsQueue.familyIndex, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 		pDevice->transientPool = transientPool;
 
 		std::vector<VkCommandBuffer> commandBuffers = detail::create_command_buffers(pDevice, commandPool, params.framesInFlight);
@@ -396,7 +392,7 @@ namespace gfx
 			};
 		}
 
-		RenderTarget* renderTarget = create_render_target(pDevice, renderPass);
+		RenderTarget* renderTarget = create_render_target(pDevice, swapchain, renderPass);
 		pDevice->renderTarget = renderTarget;
 
 		VkDescriptorPool descriptorPool = create_descriptor_pool(pDevice);
@@ -426,9 +422,8 @@ namespace gfx
 
 		destroy_render_target(device, device->renderTarget);
 		destroy_render_pass(device, device->renderPass);
-		destroy_swapchain(device, device->swapchain);
+		detail::destroy_window(device, device->window);
 
-		vkDestroySurfaceKHR(device->instance, device->surface, nullptr);
 		vkDestroyDevice(device->device, nullptr);
 
 		if (device->debugMessenger != VK_NULL_HANDLE) {

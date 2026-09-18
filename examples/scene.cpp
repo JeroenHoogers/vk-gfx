@@ -40,10 +40,10 @@ int main()
 		}
 	}});
 
-	std::string appName = "textured cube example";
+	std::string appName = "scene example";
 	Window window = create_window(width, height, appName);
 
-	gfx::DeviceInit deviceInit = gfx::create_device({.appname = appName, .extensions = {}, .swapchainFormat = VK_FORMAT_B8G8R8A8_SRGB, .window = &window.callbacks, .enableValidation = enableValidationLayers});
+	gfx::DeviceInit deviceInit = gfx::create_device({.appname = appName, .extensions = {}, .swapchainFormat = VK_FORMAT_B8G8R8A8_SRGB, .windowCallbacks = &window.callbacks, .enableValidation = enableValidationLayers});
 
 	gfx::Device* device = deviceInit.device;
 
@@ -52,7 +52,9 @@ int main()
 	// gfx::destroy_device(device);
 	// close_window(window);
 	// }
-	glfwSetWindowUserPointer(window.window, device);
+
+	glfwSetWindowUserPointer(window.window, device->window);
+
 
 	gfx::Texture* texture = load_image(device, TEXTURE_PATH);
 	gfx::Mesh model = load_model(device, MODEL_PATH);
@@ -88,14 +90,14 @@ int main()
 		updateUniformBuffer(ubo, frame);
 		gfx::CommandBuffer* commands = gfx::begin_commands(device);
 		gfx::begin_render_pass(device, commands, &frame);
-		gfx::bind_pipeline(device, pipeline, commands);
+		gfx::bind_pipeline(pipeline, commands, frame.dynamicState);
 		// TODO: create helper to bind more than 1 set at once?
 		gfx::bind_resource_set(commands, pipeline, 0, uboResources[frame.index]);
 		gfx::bind_resource_set(commands, pipeline, 1, materialResourceSet);
 		gfx::draw_indexed(commands, &model, model.indexCount);
 		gfx::end_render_pass(commands);
 		gfx::end_commands(commands);
-		gfx::submit_and_present(device, commands);
+		gfx::submit_and_present(device, frame.window, commands);
 	}
 
 	gfx::wait_idle(device);

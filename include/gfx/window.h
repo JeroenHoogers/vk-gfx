@@ -1,10 +1,12 @@
-// TODO: not needed
-
 #pragma once
+
 #include <vulkan/vulkan.h>
 
 namespace gfx
 {
+	struct Device;
+	struct Swapchain;
+
 	struct WindowCallbacks {
 		// used to query window specific instance extensions
 	    VkResult (*get_required_instance_extensions)(
@@ -28,4 +30,15 @@ namespace gfx
 
 		void* user_data;
 	};
+
+	struct Window {
+		WindowCallbacks* callbacks;
+		VkSurfaceKHR surface;
+		Swapchain* swapchain = nullptr;
+	};
+
+	namespace detail {
+		Window* create_window(VkInstance instance, WindowCallbacks* callbacks);
+		void destroy_window(Device* device, Window* window);
+	}
 }

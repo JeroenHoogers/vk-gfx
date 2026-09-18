@@ -3,6 +3,7 @@
 #include "gfx/render_target.h"
 #include "gfx/sync.h"
 #include "gfx/image.h"
+#include "gfx/window.h"
 #include <algorithm>
 #include <limits>
 
@@ -89,12 +90,12 @@ namespace gfx
 
 	} // namespace detail
 
-	Swapchain* create_swapchain(Device* device, VkFormat desiredFormat)
+	Swapchain* create_swapchain(Device* device, Window* window, VkFormat desiredFormat)
 	{
-		auto swapchainSupport = detail::query_swapchain_support(device->physicalDevice, device->surface);
+		auto swapchainSupport = detail::query_swapchain_support(device->physicalDevice, window->surface);
 		VkPresentModeKHR presentMode = detail::choose_swap_present_mode(swapchainSupport.presentModes);
 		uint32_t width = 0, height = 0;
-		device->window->get_framebuffer_size(&width, &height, device->window->user_data);
+		window->callbacks->get_framebuffer_size(&width, &height, window->callbacks->user_data);
 		VkExtent2D extent = detail::choose_swap_extent(swapchainSupport.capabilities, width, height);
 		VkSurfaceFormatKHR surfaceFormat = detail::choose_swap_surface_format(swapchainSupport.formats, desiredFormat);
 
@@ -110,7 +111,7 @@ namespace gfx
 			.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
 			.pNext = nullptr,
 			.flags = 0,
-			.surface = device->surface,
+			.surface = window->surface,
 			.minImageCount = imageCount,
 			.imageFormat = surfaceFormat.format,
 			.imageColorSpace = surfaceFormat.colorSpace,
@@ -127,13 +128,9 @@ namespace gfx
 			.oldSwapchain = VK_NULL_HANDLE
 		};
 
-		detail::QueueFamilyIndices indices;
-		if (!find_queue_families(device->physicalDevice, device->surface, indices)) {
-			fprintf(stderr, "failed to find required queue families!");
-		}
-		uint32_t queueFamilyIndices[] = {indices.graphicsFamily, indices.presentFamily};
+		uint32_t queueFamilyIndices[] = {device->graphicsQueue.familyIndex, device->presentQueue.familyIndex};
 
-		if (indices.graphicsFamily != indices.presentFamily) {
+		if (device->graphicsQueue.familyIndex != device->presentQueue.familyIndex) {
 			createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
 			createInfo.queueFamilyIndexCount = 2;
 			createInfo.pQueueFamilyIndices = queueFamilyIndices;
@@ -179,8 +176,10 @@ namespace gfx
 		destroy_render_target(device, device->renderTarget);
 		destroy_swapchain(device, swapchain);
 
-		device->swapchain = create_swapchain(device, format);
-		device->renderTarget = create_render_target(device, device->renderPass);
+		Window* window = device->window; // TODO: fix, don't pass window from device
+
+		window->swapchain = create_swapchain(device, window, format);
+		device->renderTarget = create_render_target(device, window->swapchain, device->renderPass);
 	}
 
 	void destroy_swapchain(Device* device, Swapchain* swapchain)
@@ -191,20 +190,24 @@ namespace gfx
 		}
 
 		vkDestroySwapchainKHR(device->device, swapchain->swapchain, nullptr);
-
 		delete swapchain;
 		swapchain = nullptr;
 	}
 
-	SwapchainFrame acquire(Device* device)
+	SwapchainFrame acquire(Device* device, Window* window)
 	{
+		// if no window specified use main window
+		if(window == nullptr) {
+			window = device->window;
+		}
+
 		const Frame& frame = device->frames[device->currentFrame];
 
 		vkWaitForFences(device->device, 1, &frame.inFlightFence.fence, VK_TRUE, UINT64_MAX);
-		VkResult result = vkAcquireNextImageKHR(device->device, device->swapchain->swapchain, UINT64_MAX, frame.imageAvailable.semaphore, VK_NULL_HANDLE, &device->swapchain->imageIndex);
+		VkResult result = vkAcquireNextImageKHR(device->device, window->swapchain->swapchain, UINT64_MAX, frame.imageAvailable.semaphore, VK_NULL_HANDLE, &window->swapchain->imageIndex);
 
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-			recreate_swapchain(device, device->swapchain);
+			recreate_swapchain(device, window->swapchain);
 			return {};
 		}
 		if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
@@ -213,12 +216,34 @@ namespace gfx
 
 		vkResetFences(device->device, 1, &frame.inFlightFence.fence);
 
+		// create dynamic state object
+		VkViewport defaultViewport{
+			.x = 0.0f,
+			.y = 0.0f,
+			.width = static_cast<float>(window->swapchain->extent.width),
+			.height = static_cast<float>(window->swapchain->extent.height),
+			.minDepth = 0.0f,
+			.maxDepth = 1.0f
+		};
+
+		VkRect2D defaultScissor{
+			.offset = {0, 0},
+			.extent = window->swapchain->extent
+		};
+
+		DynamicState dynamicState{
+			.viewport = defaultViewport,
+			.scissor = defaultScissor,
+		};
+
 		SwapchainFrame swapchainFrame {
-			.image = device->swapchain->images[device->swapchain->imageIndex],
-			.frameBuffer = device->renderTarget->framebuffers[device->swapchain->imageIndex],
-			.extent = device->swapchain->extent,
+			.image = window->swapchain->images[window->swapchain->imageIndex],
+			.window = window,
+			.dynamicState = dynamicState,
+			.frameBuffer = device->renderTarget->framebuffers[window->swapchain->imageIndex],
+			.extent = window->swapchain->extent,
 			.index = device->currentFrame,
-			.swapImageIndex = device->swapchain->imageIndex,
+			.swapImageIndex = window->swapchain->imageIndex,
 		};
 
 		return swapchainFrame;

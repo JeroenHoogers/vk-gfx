@@ -10,10 +10,10 @@ namespace gfx
 {
 	namespace
 	{
-		void present(Device* device, VkSemaphore signalSemaphore)
+		void present(Device* device, Swapchain* swapchain, VkSemaphore signalSemaphore)
 		{
 			VkSemaphore signalSemaphores[] = {signalSemaphore};
-			VkSwapchainKHR swapChains[] = {device->swapchain->swapchain};
+			VkSwapchainKHR swapChains[] = {swapchain->swapchain};
 
 			VkPresentInfoKHR presentInfo{
 				.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
@@ -22,14 +22,14 @@ namespace gfx
 				.pWaitSemaphores = signalSemaphores,
 				.swapchainCount = 1,
 				.pSwapchains = swapChains,
-				.pImageIndices = &device->swapchain->imageIndex,
+				.pImageIndices = &swapchain->imageIndex,
 				.pResults = nullptr
 			};
 
-			VkResult result = vkQueuePresentKHR(device->presentQueue, &presentInfo);
-			if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || device->swapchain->resized) {
-				device->swapchain->resized = false;
-				recreate_swapchain(device, device->swapchain);
+			VkResult result = vkQueuePresentKHR(device->presentQueue.handle, &presentInfo);
+			if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || swapchain->resized) {
+				swapchain->resized = false;
+				recreate_swapchain(device, swapchain);
 				return;
 			} else {
 				VK_ASSERT(result);
@@ -77,7 +77,7 @@ namespace gfx
 			VkCommandBufferBeginInfo beginInfo{
 				.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
 				.pNext = nullptr,
-				.flags = 0,
+				.flags = flags,
 				.pInheritanceInfo = nullptr
 			};
 
@@ -102,8 +102,8 @@ namespace gfx
 			submitInfo.pCommandBuffers = &commandBuffer;
 
 			// TODO: create transferqueue?
-			vkQueueSubmit(device->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-			vkQueueWaitIdle(device->graphicsQueue);
+			vkQueueSubmit(device->graphicsQueue.handle, 1, &submitInfo, VK_NULL_HANDLE);
+			vkQueueWaitIdle(device->graphicsQueue.handle);
 
 			vkFreeCommandBuffers(device->device, device->transientPool, 1, &commandBuffer);
 		}
@@ -125,12 +125,12 @@ namespace gfx
 		VK_ASSERT(result);
 	}
 
-	void submit_and_present(Device* device, const CommandBuffer* commands)
+	void submit_and_present(Device* device, Window* window, const CommandBuffer* commands)
 	{
 		Frame& frame = device->frames[device->currentFrame];
 
-		uint32_t imageIndex = device->swapchain->imageIndex;
-		VkSemaphore signalSemaphore = device->swapchain->images[imageIndex].renderFinished;
+		uint32_t imageIndex = window->swapchain->imageIndex;
+		VkSemaphore signalSemaphore = window->swapchain->images[imageIndex].renderFinished;
 		VkSemaphore signalSemaphores[] = {signalSemaphore};
 		VkSemaphore waitSemaphores[] = {frame.imageAvailable.semaphore};
 
@@ -148,11 +148,12 @@ namespace gfx
 			.pSignalSemaphores = signalSemaphores
 		};
 
-		VkResult result = vkQueueSubmit(device->graphicsQueue, 1, &submitInfo, frame.inFlightFence.fence);
+		VkResult result = vkQueueSubmit(device->graphicsQueue.handle, 1, &submitInfo, frame.inFlightFence.fence);
 		VK_ASSERT(result);
 
-		present(device, signalSemaphore);
+		present(device, window->swapchain, signalSemaphore);
 
+		// TODO: should frames in flight be per window?
 		device->currentFrame = (device->currentFrame + 1) % static_cast<uint32_t>(device->frames.size());
 	}
 

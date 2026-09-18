@@ -6,9 +6,36 @@
 #include "gfx/render_pass.h"
 #include "gfx/swapchain.h"
 #include "gfx/uniform_buffer.h"
+#include <bit>
 
 namespace gfx
 {
+	namespace
+	{
+		std::vector<VkDynamicState> get_dynamic_states(DynamicStateFlags flags)
+		{
+			uint32_t count = std::popcount(static_cast<uint32_t>(flags));
+
+			std::vector<VkDynamicState> dynamicStates(count);
+			uint32_t i = 0;
+
+			if ((flags & DynamicStateFlags::Viewport) != DynamicStateFlags::None)
+				dynamicStates[i++] = VK_DYNAMIC_STATE_VIEWPORT;
+			if ((flags & DynamicStateFlags::Scissor) != DynamicStateFlags::None)
+				dynamicStates[i++] = VK_DYNAMIC_STATE_SCISSOR;
+			if ((flags & DynamicStateFlags::CullMode) != DynamicStateFlags::None)
+				dynamicStates[i++] = VK_DYNAMIC_STATE_CULL_MODE;
+			if ((flags & DynamicStateFlags::FrontFace) != DynamicStateFlags::None)
+				dynamicStates[i++] = VK_DYNAMIC_STATE_FRONT_FACE;
+			if ((flags & DynamicStateFlags::PrimitiveTopology) != DynamicStateFlags::None)
+				dynamicStates[i++] = VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY;
+			if ((flags & DynamicStateFlags::LineWidth) != DynamicStateFlags::None)
+				dynamicStates[i++] = VK_DYNAMIC_STATE_LINE_WIDTH;
+
+			return dynamicStates;
+		}
+	} // namespace
+
 	namespace detail
 	{
 		VkShaderModule create_shader_module(Device* device, const std::vector<char>& shader)
@@ -72,10 +99,7 @@ namespace gfx
 		}
 
 		// Dynamic state
-		std::vector<VkDynamicState> dynamicStates = {
-			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR
-		};
+		std::vector<VkDynamicState> dynamicStates = get_dynamic_states(params.dynamic_states);
 
 		VkPipelineDynamicStateCreateInfo dynamicState{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
@@ -272,7 +296,8 @@ namespace gfx
 		Pipeline* pPipeline = new Pipeline{
 			.pipeline = graphicsPipeline,
 			.pipelineLayout = pipelineLayout,
-			.bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS
+			.bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+			.dynamicStates = params.dynamic_states
 		};
 
 		// cleanup shader modules
@@ -286,26 +311,34 @@ namespace gfx
 		return pPipeline;
 	}
 
-	void bind_pipeline(Device* device, Pipeline* pipeline, CommandBuffer* commands)
+	void bind_pipeline(Pipeline* pipeline, CommandBuffer* commands, const DynamicState& dynamicState)
 	{
 		vkCmdBindPipeline(commands->commandBuffer, pipeline->bindPoint, pipeline->pipeline);
 
-		// TODO: does this belong here?
-		VkViewport viewport{
-			.x = 0.0f,
-			.y = 0.0f,
-			.width = static_cast<float>(device->swapchain->extent.width),
-			.height = static_cast<float>(device->swapchain->extent.height),
-			.minDepth = 0.0f,
-			.maxDepth = 1.0f
-		};
-		vkCmdSetViewport(commands->commandBuffer, 0, 1, &viewport);
+		// set dynamic states
+		if ((pipeline->dynamicStates & DynamicStateFlags::Viewport) != DynamicStateFlags::None) {
+			vkCmdSetViewport(commands->commandBuffer, 0, 1, &dynamicState.viewport);
+		}
 
-		VkRect2D scissor{
-			.offset = {0, 0},
-			.extent = device->swapchain->extent
-		};
-		vkCmdSetScissor(commands->commandBuffer, 0, 1, &scissor);
+		if ((pipeline->dynamicStates & DynamicStateFlags::Scissor) != DynamicStateFlags::None) {
+			vkCmdSetScissor(commands->commandBuffer, 0, 1, &dynamicState.scissor);
+		}
+
+		if ((pipeline->dynamicStates & DynamicStateFlags::CullMode) != DynamicStateFlags::None) {
+			vkCmdSetCullMode(commands->commandBuffer, dynamicState.cullMode);
+		}
+
+		if ((pipeline->dynamicStates & DynamicStateFlags::FrontFace) != DynamicStateFlags::None) {
+			vkCmdSetFrontFace(commands->commandBuffer, dynamicState.frontFace);
+		}
+
+		if ((pipeline->dynamicStates & DynamicStateFlags::PrimitiveTopology) != DynamicStateFlags::None) {
+			vkCmdSetPrimitiveTopology(commands->commandBuffer, dynamicState.primitiveTopology);
+		}
+
+		if ((pipeline->dynamicStates & DynamicStateFlags::LineWidth) != DynamicStateFlags::None) {
+			vkCmdSetLineWidth(commands->commandBuffer, dynamicState.lineWidth);
+		}
 	}
 
 	void destroy_pipeline(Device* device, Pipeline* pipeline)

@@ -1,11 +1,13 @@
 #pragma once
 #include <vector>
 #include <vulkan/vulkan.h>
+#include "dynamic_state.h"
 
 namespace gfx
 {
 	struct Device;
 	struct Semaphore;
+	struct Window;
 
 	struct SwapchainImage {
 		VkImage image;
@@ -17,6 +19,8 @@ namespace gfx
 	struct SwapchainFrame
 	{
 		SwapchainImage image;
+		Window* window;
+		DynamicState dynamicState;
 		VkFramebuffer frameBuffer;
 		VkExtent2D extent;
 		// CommandBuffer* commandBuffer; // TODO: could be added here
@@ -51,9 +55,9 @@ namespace gfx
 
 	} // namespace detail
 
-	[[nodiscard]] Swapchain* create_swapchain(Device* device, VkFormat swapchainFormat);
+	[[nodiscard]] Swapchain* create_swapchain(Device* device, Window* window, VkFormat swapchainFormat);
 	void recreate_swapchain(Device* device, Swapchain* swapchain);
 	void destroy_swapchain(Device* device, Swapchain* swapchain);
-	[[nodiscard]] SwapchainFrame acquire(Device* device);
+	[[nodiscard]] SwapchainFrame acquire(Device* device, Window* window = nullptr);
 
 } // namespace gfx

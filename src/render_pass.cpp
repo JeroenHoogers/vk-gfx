@@ -101,7 +101,7 @@ namespace gfx
 			.framebuffer = frame->frameBuffer,
 			.renderArea = {
 				.offset = {0, 0},
-				.extent = device->swapchain->extent
+				.extent = frame->window->swapchain->extent
 			},
 			.clearValueCount = static_cast<uint32_t>(clearValues.size()),
 			.pClearValues = clearValues.data()

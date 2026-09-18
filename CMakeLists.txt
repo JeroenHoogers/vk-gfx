@@ -44,6 +44,7 @@ set(ASSETS_DIR assets)
 set(SRC_LIB
     ${SOURCE_DIR}/device.cpp
     ${SOURCE_DIR}/buffer.cpp
+    ${SOURCE_DIR}/window.cpp
     ${SOURCE_DIR}/swapchain.cpp
     ${SOURCE_DIR}/pipeline.cpp
     ${SOURCE_DIR}/sync.cpp
