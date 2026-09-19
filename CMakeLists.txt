@@ -116,12 +116,32 @@ if(BUILD_EXAMPLES)
 
   set(EXAMPLE_LIBS ${LIBRARIES} glfw glm::glm)
 
+  # triangle
   include_directories(${INCLUDE_DIR} ${EXAMPLES_DIR}/thirdparty)
   add_executable(triangle-example ${SRC_EXAMPLES} ${EXAMPLES_DIR}/triangle.cpp)
   target_link_libraries(triangle-example PRIVATE vk-gfx ${EXAMPLE_LIBS})
   add_dependencies(triangle-example compile_shaders)
 
+  # cube
   add_executable(cube-example ${SRC_EXAMPLES} ${EXAMPLES_DIR}/cube.cpp)
   target_link_libraries(cube-example PRIVATE vk-gfx ${EXAMPLE_LIBS})
   add_dependencies(cube-example compile_shaders)
+
+  # imgui
+  set(IMGUI_DIR ${EXAMPLES_DIR}/thirdparty/imgui)
+  include_directories(${IMGUI_DIR} ${IMGUI_DIR}/backends ..)
+  set(SRC_IMGUI
+   ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+   ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp
+   ${IMGUI_DIR}/imgui.cpp
+   ${IMGUI_DIR}/imgui_draw.cpp
+   ${IMGUI_DIR}/imgui_demo.cpp
+   ${IMGUI_DIR}/imgui_tables.cpp
+   ${IMGUI_DIR}/imgui_widgets.cpp
+   ${IMGUI_DIR}/imconfig.h
+  )
+
+  add_executable(imgui-example ${SRC_EXAMPLES} ${SRC_IMGUI} ${EXAMPLES_DIR}/imgui.cpp)
+  target_link_libraries(imgui-example PRIVATE vk-gfx ${EXAMPLE_LIBS})
+  add_dependencies(imgui-example compile_shaders)
 endif(BUILD_EXAMPLES)

@@ -345,7 +345,7 @@ namespace gfx
 		VkInstance instance = create_instance(params.appname, extensions, layers);
 
 		std::vector<Window*> windows(params.windows.size());
-		for(uint32_t i = 0; i < params.windows.size(); i++) {
+		for (uint32_t i = 0; i < params.windows.size(); i++) {
 			windows[i] = detail::create_window(instance, params.windows[i]);
 		}
 
@@ -372,12 +372,9 @@ namespace gfx
 			.presentQueue = presentQueue
 		};
 
-		for(uint32_t i = 0; i < windows.size(); i++) {
+		for (uint32_t i = 0; i < windows.size(); i++) {
 			windows[i]->swapchain = create_swapchain(pDevice, windows[i], params.swapchainFormat);
 		}
-
-		RenderPass* renderPass = create_render_pass(pDevice);
-		pDevice->renderPass = renderPass;
 
 		VkCommandPool commandPool = create_command_pool(pDevice, graphicsQueue.familyIndex);
 		pDevice->commandPool = commandPool;
@@ -385,7 +382,10 @@ namespace gfx
 		VkCommandPool transientPool = create_command_pool(pDevice, graphicsQueue.familyIndex, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 		pDevice->transientPool = transientPool;
 
-		for(Window* window : windows) {
+		RenderPass* renderPass = create_render_pass(pDevice);
+		pDevice->renderPass = renderPass;
+
+		for (Window* window : windows) {
 			std::vector<VkCommandBuffer> commandBuffers = detail::create_command_buffers(pDevice, commandPool, params.framesInFlight);
 			window->frames.resize(params.framesInFlight);
 			for (uint32_t i = 0; i < params.framesInFlight; i++) {
@@ -401,9 +401,9 @@ namespace gfx
 			window->renderTarget = renderTarget;
 		}
 		pDevice->windows = windows;
-
-		VkDescriptorPool descriptorPool = create_descriptor_pool(pDevice);
-		pDevice->descriptorPool = descriptorPool;
+		if(params.resourcePool.max_sets > 0) {
+			pDevice->resourcePool = create_resource_pool(pDevice, params.resourcePool);
+		}
 
 		return DeviceInit{
 			.device = pDevice
@@ -417,7 +417,9 @@ namespace gfx
 
 	void destroy_device(Device* device)
 	{
-		vkDestroyDescriptorPool(device->device, device->descriptorPool, nullptr);
+		if (device->resourcePool) {
+			destroy_resource_pool(device, device->resourcePool);
+		}
 
 		for (uint32_t i = 0; i < device->windows.size(); i++) {
 			for (uint32_t j = 0; j < device->windows[i]->frames.size(); j++) {

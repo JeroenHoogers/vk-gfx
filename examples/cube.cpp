@@ -1,16 +1,17 @@
 #include "common.h"
 #include "glfw_window.h"
-#include <cstdint>
-#include <vk_gfx.h>
 #include <chrono>
+#include <cstdint>
 #include <cstring>
 #include <glm/gtc/matrix_transform.hpp>
+#include <vk_gfx.h>
 
-void updateUniformBuffer(gfx::UniformBuffer* uniformBuffer, const gfx::SwapchainFrame& frame) {
-    static auto startTime = std::chrono::high_resolution_clock::now();
+void updateUniformBuffer(gfx::UniformBuffer* uniformBuffer, const gfx::SwapchainFrame& frame)
+{
+	static auto startTime = std::chrono::high_resolution_clock::now();
 
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 	UniformBufferObject ubo{
 		.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
@@ -28,29 +29,28 @@ int main()
 	constexpr std::uint32_t height = 600;
 	constexpr bool enableValidationLayers = true;
 
-	const std::vector<Vertex> vertices = {
-		{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-		{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-		{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-		{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
+	// const std::vector<Vertex> vertices = {
+	// 	{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+	// 	{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+	// 	{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+	// 	{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
 
-		{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-		{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-		{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-		{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
-	};
+	// 	{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+	// 	{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+	// 	{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+	// 	{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
+	// };
 
-	const std::vector<uint16_t> indices = {
-	    0, 1, 2, 2, 3, 0,
-	    4, 5, 6, 6, 7, 4
-	};
+	// const std::vector<uint16_t> indices = {
+	// 	0, 1, 2, 2, 3, 0,
+	// 	4, 5, 6, 6, 7, 4
+	// };
 
 	const std::string MODEL_PATH = "../assets/models/viking_room.obj";
 	const std::string TEXTURE_PATH = "../assets/textures/viking_room.png";
 
 	gfx::VertexLayout vertexLayout = gfx::create_vertex_layout({{
-		.stride = sizeof(Vertex),
-		.attributes = {
+		.stride = sizeof(Vertex), .attributes = {
 			{.format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, pos)},
 			{.format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, color)},
 			{.format = VK_FORMAT_R32G32_SFLOAT, .offset = offsetof(Vertex, uv)},
@@ -59,15 +59,19 @@ int main()
 
 	std::string appName = "textured cube example";
 	Window window = create_window(width, height, appName);
-	// gfx::Window mainWindow {
-	// 	.callbacks = window.callbacks
-	// };
 
 	gfx::DeviceInit deviceInit = gfx::create_device({
 		.appname = appName,
 		.extensions = {},
 		.swapchainFormat = VK_FORMAT_B8G8R8A8_SRGB,
 		.windows = {&window.callbacks},
+		.resourcePool = {
+			.sizes = {
+				{.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = static_cast<uint32_t>(10)},
+				{.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = static_cast<uint32_t>(10)}
+			},
+			.max_sets = 2,
+		},
 		.enableValidation = enableValidationLayers
 	});
 
@@ -86,29 +90,26 @@ int main()
 
 	// gfx::Texture* texture = load_image(device, "../assets/textures/texture.jpg");
 	gfx::UniformBuffer* ubo = gfx::create_uniform_buffer(device, sizeof(UniformBufferObject));
-
 	gfx::ResourceSetLayout* uboResourceLayout = gfx::create_resource_set_layout(device, {
-		gfx::ResourceDesc{ .type = gfx::ResourceType::UniformBuffer, .stages = VK_SHADER_STAGE_VERTEX_BIT}
+		gfx::ResourceDesc{.type = gfx::ResourceType::UniformBuffer, .stages = VK_SHADER_STAGE_VERTEX_BIT}
 	});
 
 	gfx::ResourceSetLayout* materialResourceLayout = gfx::create_resource_set_layout(device, {
-		gfx::ResourceDesc{ .type = gfx::ResourceType::CombinedImageSampler, .stages = VK_SHADER_STAGE_FRAGMENT_BIT}
+		{.type = gfx::ResourceType::CombinedImageSampler, .stages = VK_SHADER_STAGE_FRAGMENT_BIT}
 	});
 
-	std::vector<gfx::ResourceSet*> uboResources = gfx::create_resource_sets(device, uboResourceLayout, {gfx::Resource{
-		.type = gfx::ResourceType::UniformBuffer, .uniformBuffer = ubo
-	}}, device->framesInFlight);
+	std::vector<gfx::ResourceSet*> uboResources = gfx::create_resource_sets(device, uboResourceLayout, {
+		{.type = gfx::ResourceType::UniformBuffer, .uniformBuffer = ubo}}, device->framesInFlight);
 
-	gfx::ResourceSet* materialResourceSet = gfx::create_resource_set(device, materialResourceLayout, {gfx::Resource{
-		.type = gfx::ResourceType::CombinedImageSampler, .texture = texture
-	}});
+	gfx::ResourceSet* materialResourceSet = gfx::create_resource_set(device, materialResourceLayout, {
+		{.type = gfx::ResourceType::CombinedImageSampler, .texture = texture}
+	});
 
 	gfx::Pipeline* pipeline = gfx::create_graphics_pipeline(device, {
 		.vertex_shader = load_shader("shaders/shader.vert.spv"),
 		.fragment_shader = load_shader("shaders/shader.frag.spv"),
-		.vertex_layout = &vertexLayout,
-		.resource_set_layouts = { uboResourceLayout, materialResourceLayout }, // allow create directly in pipeline?
-		.rasterizer = { .front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE }
+		.vertex_layout = &vertexLayout, .resource_set_layouts = {uboResourceLayout, materialResourceLayout}, // allow create directly in pipeline?
+		.rasterizer = {.front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE}
 	});
 
 	// gfx::Mesh cube = gfx::create_mesh(device, {

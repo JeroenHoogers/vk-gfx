@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <vulkan/vulkan.h>
+#include "descriptor_set.h"
 
 namespace gfx
 {
@@ -18,6 +19,8 @@ namespace gfx
 	struct RenderPass;
 	struct RenderTarget;
 	struct CommandBuffer;
+	struct ResourcePool;
+	struct ResourcePoolDesc;
 	struct Image;
 
 	struct Queue {
@@ -37,7 +40,7 @@ namespace gfx
 		// Queue transferQueue = {};
 		VkCommandPool commandPool = VK_NULL_HANDLE;
 		VkCommandPool transientPool = VK_NULL_HANDLE;
-		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+		ResourcePool* resourcePool = nullptr;
 		 // TODO: should move to rendertarget / window?
 		// uint32_t currentFrame = 0;
 		uint32_t framesInFlight = 2;
@@ -53,6 +56,7 @@ namespace gfx
 		std::vector<const char*> layers{};
 		VkFormat swapchainFormat = VK_FORMAT_UNDEFINED; // TODO: move vulkan out of public API?
 		std::vector<WindowCallbacks*> windows {};
+		ResourcePoolDesc resourcePool {};
 		// WindowCallbacks* windowCallbacks = nullptr;
 		bool enableValidation = false;
 		uint32_t framesInFlight = 2;

@@ -69,30 +69,31 @@ namespace gfx
 		}
 	} // namespace detail
 
-	VkDescriptorPool create_descriptor_pool(Device* device)
+	ResourcePool* create_resource_pool(Device* device, const ResourcePoolDesc& params)
 	{
-		// TODO: expose poolsizes as an argument
-		uint32_t poolSize = device->framesInFlight * device->windows.size();
-
-		std::array<VkDescriptorPoolSize, 2> poolSizes{
-			VkDescriptorPoolSize{.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = static_cast<uint32_t>(poolSize)},
-			VkDescriptorPoolSize{.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = static_cast<uint32_t>(poolSize)}
-		};
-
 		VkDescriptorPoolCreateInfo poolInfo{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
 			.pNext = nullptr,
-			.flags = 0,
-			.maxSets = static_cast<uint32_t>(poolSize + 1),
-			.poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
-			.pPoolSizes = poolSizes.data()
+			.flags = params.flags,
+			.maxSets = params.max_sets,
+			.poolSizeCount = static_cast<uint32_t>(params.sizes.size()),
+			.pPoolSizes = params.sizes.data()
 		};
 
 		VkDescriptorPool descriptorPool;
 		VkResult result = vkCreateDescriptorPool(device->device, &poolInfo, nullptr, &descriptorPool);
 		VK_ASSERT(result);
 
-		return descriptorPool;
+		return new ResourcePool{
+			.descriptorPool = descriptorPool
+		};
+	}
+
+	void destroy_resource_pool(Device* device, ResourcePool* pool)
+	{
+		vkDestroyDescriptorPool(device->device, pool->descriptorPool, nullptr);
+		delete pool;
+		pool = nullptr;
 	}
 
 	std::vector<VkDescriptorSet> create_descriptor_sets(Device* device, uint32_t count, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout)
@@ -153,7 +154,7 @@ namespace gfx
 		VkDescriptorSetAllocateInfo allocInfo{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
 			.pNext = nullptr,
-			.descriptorPool = device->descriptorPool,
+			.descriptorPool = device->resourcePool->descriptorPool,
 			.descriptorSetCount = static_cast<uint32_t>(count),
 			.pSetLayouts = layouts.data()
 		};

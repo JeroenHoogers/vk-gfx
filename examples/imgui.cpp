@@ -1,0 +1,116 @@
+#include <cstdint>
+#include "glfw_window.h"
+#include "common.h"
+#include <vk_gfx.h>
+#include <imgui.h>
+#include <imgui/backends/imgui_impl_glfw.h>
+#include <imgui/backends/imgui_impl_vulkan.h>
+
+static void check_vk_result(VkResult err)
+{
+    if (err == 0)
+        return;
+    fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
+    if (err < 0)
+        abort();
+}
+
+void init_imgui(gfx::Device* device, GLFWwindow* window) {
+	// Setup Dear ImGui context
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+
+	// Setup Platform/Renderer backends
+	ImGui_ImplGlfw_InitForVulkan(window, true);
+	ImGui_ImplVulkan_InitInfo init_info = {};
+	init_info.Instance = device->instance;
+	init_info.PhysicalDevice = device->physicalDevice;
+	init_info.Device = device->device;
+	init_info.QueueFamily = device->graphicsQueue.familyIndex;
+	init_info.Queue = device->graphicsQueue.handle;
+	init_info.PipelineCache = VK_NULL_HANDLE;
+	init_info.DescriptorPoolSize = IMGUI_IMPL_VULKAN_MINIMUM_SAMPLED_IMAGE_POOL_SIZE,
+	init_info.DescriptorPool = VK_NULL_HANDLE;
+	init_info.MinImageCount = 2;
+	init_info.ImageCount = 2;
+	init_info.Allocator = nullptr;
+	init_info.PipelineInfoMain.RenderPass = device->renderPass->renderPass;
+	init_info.PipelineInfoMain.Subpass = 0;
+	init_info.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+	init_info.CheckVkResultFn = check_vk_result;
+	ImGui_ImplVulkan_Init(&init_info);
+}
+
+int main() {
+	constexpr std::uint32_t width = 800;
+	constexpr std::uint32_t height = 600;
+	constexpr bool enableValidationLayers = true;
+
+	std::string appName = "imgui example";
+	Window window = create_window(width, height, appName);
+
+	// TODO: specify pool size: IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE
+
+	gfx::DeviceInit deviceInit = gfx::create_device({
+		.appname = appName,
+		.extensions = {},
+		.swapchainFormat = VK_FORMAT_B8G8R8A8_SRGB,
+		.windows = {&window.callbacks},
+		.enableValidation = enableValidationLayers
+	});
+
+	gfx::Device* device = deviceInit.device;
+	gfx::Window* mainWindow = device->windows[0];
+
+	// gfx::ResourcePool* imguiResourcePool = gfx::create_resource_pool(device, {
+	// 	.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+	// 	.sizes =  { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024 },
+	// 	.max_sets = 1,
+	// });
+
+	glfwSetWindowUserPointer(window.window, mainWindow); // TODO: get window
+
+	init_imgui(device, window.window);
+	// if () { // TODO: error handling
+		// gfx::destroy_device(device);
+		// close_window(window);
+	// }
+	gfx::Pipeline* pipeline = gfx::create_graphics_pipeline(device, {
+		.vertex_shader = load_shader("shaders/triangle.vert.spv"),
+		.fragment_shader = load_shader("shaders/triangle.frag.spv"),
+	});
+
+	while (poll_window_events(window)) {
+		ImGui_ImplVulkan_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+		ImGui::ShowDemoWindow();
+
+		const gfx::SwapchainFrame frame = gfx::acquire(device, mainWindow);
+		gfx::CommandBuffer* commands = gfx::begin_commands(frame.window);
+		gfx::begin_render_pass(device, commands, &frame);
+		gfx::bind_pipeline(pipeline, commands, frame.dynamicState);
+		gfx::draw(commands, {}, 3);
+
+		ImGui::Render();
+		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commands->commandBuffer);
+
+		gfx::end_render_pass(commands);
+		gfx::end_commands(commands);
+		gfx::submit_and_present(device, frame.window, commands);
+	}
+
+	gfx::wait_idle(device);
+
+	ImGui_ImplVulkan_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
+
+	gfx::destroy_pipeline(device, pipeline);
+	gfx::destroy_device(device);
+	close_window(window);
+
+	return EXIT_SUCCESS;
+}

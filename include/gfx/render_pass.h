@@ -14,7 +14,6 @@ namespace gfx
 
 	struct ColorAttachment
 	{
-		VkImageView renderView = VK_NULL_HANDLE;
 		VkFormat format = VK_FORMAT_B8G8R8A8_SRGB;
 		VkAttachmentLoadOp loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		VkAttachmentStoreOp storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -23,7 +22,6 @@ namespace gfx
 
 	struct DepthAttachment
 	{
-		VkImageView renderView = VK_NULL_HANDLE;
 		VkFormat format = VK_FORMAT_D32_SFLOAT_S8_UINT;
 		VkAttachmentLoadOp loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		VkAttachmentStoreOp storeOp = VK_ATTACHMENT_STORE_OP_STORE;
