@@ -68,6 +68,8 @@ int main()
 		.extensions = {},
 		.framesInFlight = framesInFlight,
 		.swapchainFormat = VK_FORMAT_B8G8R8A8_SRGB,
+		.enableDepth = true,
+		.msaaSamples = VK_SAMPLE_COUNT_4_BIT,
 		.windows = {&window.callbacks},
 		.resourcePool = {
 			.sizes = {
@@ -80,7 +82,6 @@ int main()
 
 	gfx::Device* device = deviceInit.device;
 
-	printf("frames in flight %u\n", device->framesInFlight);
 	// if () { // TODO: error handling
 	// gfx::destroy_device(device);
 	// close_window(window);
@@ -112,7 +113,8 @@ int main()
 	gfx::Pipeline* pipeline = gfx::create_graphics_pipeline(device, {
 		.vertex_shader = load_shader("shaders/shader.vert.spv"),
 		.fragment_shader = load_shader("shaders/shader.frag.spv"),
-		.vertex_layout = &vertexLayout, .resource_set_layouts = {uboResourceLayout, materialResourceLayout}, // allow create directly in pipeline?
+		.vertex_layout = &vertexLayout,
+		.resource_set_layouts = {uboResourceLayout, materialResourceLayout}, // allow create directly in pipeline?
 		.rasterizer = {
 			.front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE
 		}

@@ -41,8 +41,8 @@ namespace gfx
 		VkCommandPool commandPool = VK_NULL_HANDLE;
 		VkCommandPool transientPool = VK_NULL_HANDLE;
 		ResourcePool* resourcePool = nullptr;
-		VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_4_BIT;
-		VkSampleCountFlagBits maxMsaaSamples;
+		VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+		bool enableDepth = false;
 		uint32_t framesInFlight = 2;
 		std::vector<Window*> windows = {}; // TODO: store windows on user side?
 		RenderPass* renderPass = nullptr;
@@ -56,7 +56,8 @@ namespace gfx
 		std::vector<const char*> layers{};
 		uint32_t framesInFlight = 2;
 		VkFormat swapchainFormat = VK_FORMAT_UNDEFINED; // TODO: move vulkan out of public API?
-		VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+		bool enableDepth = false;
+		VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT; // 1 bit means no MSAA
 		std::vector<WindowCallbacks*> windows {};
 		ResourcePoolDesc resourcePool {};
 		// WindowCallbacks* windowCallbacks = nullptr;

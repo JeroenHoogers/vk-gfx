@@ -13,11 +13,21 @@ namespace gfx
 			const auto& swapchain = window->swapchain;
 			std::vector<VkFramebuffer> framebuffers(swapchain->images.size());
 			for (size_t i = 0; i < swapchain->images.size(); i++) {
-				std::vector<VkImageView> attachments = {
-					colorImages[0]->imageView,
-					depthImages[0]->imageView, // TODO: also store per window
-					swapchain->images[i].imageView
-				};
+				std::vector<VkImageView> attachments = {};
+
+				if(device->msaaSamples == VK_SAMPLE_COUNT_1_BIT) { // no msaa
+					attachments.push_back(swapchain->images[i].imageView);
+					if(device->enableDepth) {
+						attachments.push_back(depthImages[window->currentFrame]->imageView);// TODO: check if indexing is correct
+					}
+				} else {
+					// msaa enabled
+					attachments.push_back(colorImages[window->currentFrame]->imageView); // TODO: check if indexing is correct
+					if(device->enableDepth) { // no msaa + depth
+						attachments.push_back(depthImages[window->currentFrame]->imageView);// TODO: check if indexing is correct
+					}
+					attachments.push_back(swapchain->images[i].imageView);
+				}
 
 				VkFramebufferCreateInfo framebufferInfo{
 					.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,

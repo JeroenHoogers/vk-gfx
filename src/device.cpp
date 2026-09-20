@@ -11,6 +11,7 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include <algorithm>
 
 namespace gfx
 {
@@ -373,7 +374,10 @@ namespace gfx
 
 		VkPhysicalDevice physicalDevice = pick_physical_device(instance, deviceExtensions, surface);
 		VkSampleCountFlagBits maxMsaaSamples = get_max_usable_sample_count(physicalDevice); // TODO: incorporate desired MSAA samples in device choice?
-		printf("max samples supported: %d\n", maxMsaaSamples);
+		VkSampleCountFlagBits msaaSamples = std::clamp(params.msaaSamples, VK_SAMPLE_COUNT_1_BIT, maxMsaaSamples);
+
+		printf("Frames in Flight: %d\n", params.framesInFlight);
+		printf("MSAA samples: %d/%d\n", msaaSamples, maxMsaaSamples);
 
 		Queue graphicsQueue = {};
 		Queue presentQueue = {};
@@ -391,24 +395,20 @@ namespace gfx
 			.debugMessenger = debugMessenger,
 			.graphicsQueue = graphicsQueue,
 			.presentQueue = presentQueue,
-			.maxMsaaSamples = maxMsaaSamples,
+			.msaaSamples = msaaSamples,
+			.enableDepth = params.enableDepth
 		};
 
 		for (uint32_t i = 0; i < windows.size(); i++) {
 			windows[i]->swapchain = create_swapchain(pDevice, windows[i], params.swapchainFormat);
 		}
 
-		VkCommandPool commandPool = create_command_pool(pDevice, graphicsQueue.familyIndex);
-		pDevice->commandPool = commandPool;
-
-		VkCommandPool transientPool = create_command_pool(pDevice, graphicsQueue.familyIndex, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
-		pDevice->transientPool = transientPool;
-
-		RenderPass* renderPass = create_render_pass(pDevice);
-		pDevice->renderPass = renderPass;
+		pDevice->commandPool = create_command_pool(pDevice, graphicsQueue.familyIndex);
+		pDevice->transientPool = create_command_pool(pDevice, graphicsQueue.familyIndex, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+		pDevice->renderPass = create_render_pass(pDevice);
 
 		for (Window* window : windows) {
-			std::vector<VkCommandBuffer> commandBuffers = detail::create_command_buffers(pDevice, commandPool, params.framesInFlight);
+			std::vector<VkCommandBuffer> commandBuffers = detail::create_command_buffers(pDevice, pDevice->commandPool, params.framesInFlight);
 			window->frames.resize(params.framesInFlight);
 			for (uint32_t i = 0; i < params.framesInFlight; i++) {
 				window->frames[i] = Frame{
@@ -418,11 +418,11 @@ namespace gfx
 					.imageAvailable = create_semaphore(pDevice)
 				};
 			}
-
-			RenderTarget* renderTarget = create_render_target(pDevice, window, renderPass);
-			window->renderTarget = renderTarget;
+			window->renderTarget = create_render_target(pDevice, window, pDevice->renderPass);
 		}
+
 		pDevice->windows = windows;
+
 		if (params.resourcePool.max_sets > 0) {
 			pDevice->resourcePool = create_resource_pool(pDevice, params.resourcePool);
 		}
