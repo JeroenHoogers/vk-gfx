@@ -60,9 +60,12 @@ int main()
 	std::string appName = "textured cube example";
 	Window window = create_window(width, height, appName);
 
+	constexpr uint32_t framesInFlight = 2;
+
 	gfx::DeviceInit deviceInit = gfx::create_device({
 		.appname = appName,
 		.extensions = {},
+		.framesInFlight = framesInFlight,
 		.swapchainFormat = VK_FORMAT_B8G8R8A8_SRGB,
 		.windows = {&window.callbacks},
 		.resourcePool = {
@@ -70,9 +73,9 @@ int main()
 				{.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = static_cast<uint32_t>(10)},
 				{.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = static_cast<uint32_t>(10)}
 			},
-			.max_sets = 2,
+			.max_sets = framesInFlight + 1,
 		},
-		.enableValidation = enableValidationLayers
+		.enableValidation = enableValidationLayers,
 	});
 
 	gfx::Device* device = deviceInit.device;

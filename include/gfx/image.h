@@ -21,8 +21,8 @@ namespace gfx
 	namespace detail
 	{
 		VkImage create_image(Device* device, const ImageDesc& params, VkDeviceMemory& imageMemory);
-		VkImageView create_image_view(Device* device, VkImage image, VkFormat format, VkImageAspectFlags aspect);
-		void transition_image_layout(Device* device, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+		VkImageView create_image_view(Device* device, VkImage image, VkFormat format, VkImageAspectFlags aspect, uint32_t mipLevels = 1);
+		void transition_image_layout(Device* device, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels = 1);
 
 		// TODO: extract upload function for CPU -> GPU transfer of pixel data
 	}

@@ -54,12 +54,12 @@ namespace gfx
 		std::vector<const char*> extensions{};
 		std::vector<const char*> deviceExtensions{};
 		std::vector<const char*> layers{};
+		uint32_t framesInFlight = 2;
 		VkFormat swapchainFormat = VK_FORMAT_UNDEFINED; // TODO: move vulkan out of public API?
 		std::vector<WindowCallbacks*> windows {};
 		ResourcePoolDesc resourcePool {};
 		// WindowCallbacks* windowCallbacks = nullptr;
 		bool enableValidation = false;
-		uint32_t framesInFlight = 2;
 	};
 
 	struct DeviceInit

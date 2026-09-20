@@ -51,7 +51,7 @@ namespace gfx
 				.compareEnable = VK_FALSE,
 				.compareOp = VK_COMPARE_OP_ALWAYS,
 				.minLod = 0.0f,
-				.maxLod = 0.0f,
+				.maxLod = VK_LOD_CLAMP_NONE,
 				.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
 				.unnormalizedCoordinates = VK_FALSE
 			};
@@ -66,7 +66,119 @@ namespace gfx
 		{
 			return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 		}
+
+		void generate_mipmaps(Device* device, VkImage image, VkFormat format, int32_t width, int32_t height, uint32_t mipLevels)
+		{
+			// check if image format supports linear blitting
+			VkFormatProperties formatProperties;
+			vkGetPhysicalDeviceFormatProperties(device->physicalDevice, format, &formatProperties);
+			if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
+				printf("Unable to generate mipmaps! Texture image format does not support linear blitting!");
+			}
+
+			VkCommandBuffer commandBuffer = detail::begin_one_time_commands(device);
+
+			VkImageMemoryBarrier barrier {
+				.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+				.pNext = nullptr,
+				.srcAccessMask = 0,
+				.dstAccessMask = 0,
+				.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+				.newLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+				.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+				.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+				.image = image,
+				.subresourceRange = {
+					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+					.baseMipLevel = 0,
+					.levelCount = 1,
+					.baseArrayLayer = 0,
+					.layerCount = 1
+				}
+			};
+
+			int32_t mipWidth = width;
+			int32_t mipHeight = height;
+
+			for (uint32_t i = 1; i < mipLevels; i++)
+			{
+				barrier.subresourceRange.baseMipLevel = i - 1;
+				barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+				barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+				barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+				vkCmdPipelineBarrier(
+					commandBuffer,
+					VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+					0, nullptr,
+					0, nullptr,
+					1, &barrier
+				);
+
+				VkImageBlit blit{
+					.srcSubresource = {
+						.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+						.mipLevel = i - 1,
+						.baseArrayLayer = 0,
+						.layerCount = 1
+					},
+					.srcOffsets = {
+						{0, 0, 0 },
+						{ mipWidth, mipHeight, 1 }
+					},
+					.dstSubresource = {
+						.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+						.mipLevel = i,
+						.baseArrayLayer = 0,
+						.layerCount = 1
+					},
+					.dstOffsets = {
+						{ 0, 0, 0 },
+						{ mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 }
+					}
+				};
+
+				vkCmdBlitImage(commandBuffer,
+					image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+					image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+					1, &blit,
+					VK_FILTER_LINEAR
+				);
+
+				barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+				barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+				barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+				vkCmdPipelineBarrier(
+					commandBuffer,
+					VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+					0, nullptr,
+					0, nullptr,
+					1, &barrier
+				);
+
+				if (mipWidth > 1) mipWidth /= 2;
+				if (mipHeight > 1) mipHeight /= 2;
+			}
+
+			barrier.subresourceRange.baseMipLevel = mipLevels - 1;
+			barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+			vkCmdPipelineBarrier(commandBuffer,
+				VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+				0, nullptr,
+				0, nullptr,
+				1, &barrier);
+
+			detail::end_one_time_commands(device, commandBuffer);
+		}
 	} // namespace
+
 	namespace detail
 	{
 		VkImage create_image(Device* device, const ImageDesc& params, VkDeviceMemory& imageMemory)
@@ -112,7 +224,7 @@ namespace gfx
 			return image;
 		}
 
-		VkImageView create_image_view(Device* device, VkImage image, VkFormat format, VkImageAspectFlags aspect)
+		VkImageView create_image_view(Device* device, VkImage image, VkFormat format, VkImageAspectFlags aspect, uint32_t mipLevels)
 		{
 			VkImageViewCreateInfo viewInfo{
 				.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -127,7 +239,13 @@ namespace gfx
 					.b = VK_COMPONENT_SWIZZLE_IDENTITY,
 					.a = VK_COMPONENT_SWIZZLE_IDENTITY
 				},
-				.subresourceRange = {.aspectMask = aspect, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1}
+				.subresourceRange = {
+					.aspectMask = aspect,
+					.baseMipLevel = 0,
+					.levelCount = mipLevels,
+					.baseArrayLayer = 0,
+					.layerCount = 1
+				}
 			};
 
 			VkImageView imageView;
@@ -136,7 +254,7 @@ namespace gfx
 			return imageView;
 		}
 
-		void transition_image_layout(Device* device, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
+		void transition_image_layout(Device* device, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels)
 		{
 			VkCommandBuffer commandBuffer = detail::begin_one_time_commands(device);
 
@@ -153,7 +271,7 @@ namespace gfx
 				.subresourceRange = {
 					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 					.baseMipLevel = 0,
-					.levelCount = 1,
+					.levelCount = mipLevels,
 					.baseArrayLayer = 0,
 					.layerCount = 1
 				},
@@ -191,8 +309,7 @@ namespace gfx
 
 			vkCmdPipelineBarrier(
 				commandBuffer,
-				srcStage, dstStage,
-				0,
+				srcStage, dstStage, 0,
 				0, nullptr,
 				0, nullptr,
 				1, &barrier
@@ -206,7 +323,7 @@ namespace gfx
 	{
 		VkDeviceMemory imageMemory;
 		VkImage image = detail::create_image(device, params, imageMemory);
-		VkImageView imageView = detail::create_image_view(device, image, params.format, params.aspect);
+		VkImageView imageView = detail::create_image_view(device, image, params.format, params.aspect, params.mipLevels);
 
 		return new Image{
 			.image = image,
@@ -217,7 +334,11 @@ namespace gfx
 
 	Image* create_image(Device* device, void* pixels, uint64_t size, const ImageDesc& params)
 	{
-		Buffer* staging = create_buffer(device, {.size = size, .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT, .properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT});
+		Buffer* staging = create_buffer(device, {
+			.size = size,
+			.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			.properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+		});
 
 		void* data;
 		vkMapMemory(device->device, staging->memory, 0, size, 0, &data);
@@ -228,13 +349,16 @@ namespace gfx
 		VkImage image = detail::create_image(device, params, imageMemory);
 
 		// TODO OPTIMIZE THIS: put these all into a single command buffer and flush
-		detail::transition_image_layout(device, image, params.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		detail::transition_image_layout(device, image, params.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, params.mipLevels);
 		copy_buffer_to_image(device, staging->buffer, image, params.extent.width, params.extent.height);
-		detail::transition_image_layout(device, image, params.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+		// generate_mipmaps also transfers layout to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+		// TODO: also support loading mipmaps instead of generating them at runtime
+		generate_mipmaps(device, image, params.format, params.extent.width, params.extent.height, params.mipLevels);
 
 		destroy_buffer(device, staging);
 
-		VkImageView imageView = detail::create_image_view(device, image, params.format, params.aspect);
+		VkImageView imageView = detail::create_image_view(device, image, params.format, params.aspect, params.mipLevels);
 		// VkSampler sampler = create_texture_sampler(device);
 
 		return new Image{

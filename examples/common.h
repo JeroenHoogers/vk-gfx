@@ -81,7 +81,17 @@ inline gfx::Texture* load_image(gfx::Device* device, const std::string& filename
 		throw std::runtime_error("failed to load texture image!");
 	}
 
-	gfx::Texture* texture = gfx::create_texture(device, pixels, imageSize, {.format = VK_FORMAT_R8G8B8A8_SRGB, .extent = {.width = static_cast<uint32_t>(texWidth), .height = static_cast<uint32_t>(texHeight), .depth = 1}, .properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
+	uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
+	gfx::Texture* texture = gfx::create_texture(device, pixels, imageSize, {
+		.format = VK_FORMAT_R8G8B8A8_SRGB,
+		.extent = {
+			.width = static_cast<uint32_t>(texWidth),
+			.height = static_cast<uint32_t>(texHeight),
+			.depth = 1
+		},
+		.mipLevels = mipLevels,
+		.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+		.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
 
 	stbi_image_free(pixels);
 
