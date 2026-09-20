@@ -17,6 +17,7 @@ namespace gfx
 	struct RenderTarget
 	{
 		// RenderPass* renderPass;
+		std::vector<Image*> colorImages; // used for MSAA
 		std::vector<Image*> depthImages;
 		std::vector<VkFramebuffer> framebuffers;
 	};

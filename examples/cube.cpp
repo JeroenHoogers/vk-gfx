@@ -50,7 +50,8 @@ int main()
 	const std::string TEXTURE_PATH = "../assets/textures/viking_room.png";
 
 	gfx::VertexLayout vertexLayout = gfx::create_vertex_layout({{
-		.stride = sizeof(Vertex), .attributes = {
+		.stride = sizeof(Vertex),
+		.attributes = {
 			{.format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, pos)},
 			{.format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, color)},
 			{.format = VK_FORMAT_R32G32_SFLOAT, .offset = offsetof(Vertex, uv)},
@@ -71,8 +72,7 @@ int main()
 		.resourcePool = {
 			.sizes = {
 				{.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = static_cast<uint32_t>(10)},
-				{.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = static_cast<uint32_t>(10)}
-			},
+				{.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = static_cast<uint32_t>(10)}},
 			.max_sets = framesInFlight + 1,
 		},
 		.enableValidation = enableValidationLayers,
@@ -94,7 +94,7 @@ int main()
 	// gfx::Texture* texture = load_image(device, "../assets/textures/texture.jpg");
 	gfx::UniformBuffer* ubo = gfx::create_uniform_buffer(device, sizeof(UniformBufferObject));
 	gfx::ResourceSetLayout* uboResourceLayout = gfx::create_resource_set_layout(device, {
-		gfx::ResourceDesc{.type = gfx::ResourceType::UniformBuffer, .stages = VK_SHADER_STAGE_VERTEX_BIT}
+		{.type = gfx::ResourceType::UniformBuffer, .stages = VK_SHADER_STAGE_VERTEX_BIT}
 	});
 
 	gfx::ResourceSetLayout* materialResourceLayout = gfx::create_resource_set_layout(device, {
@@ -102,7 +102,8 @@ int main()
 	});
 
 	std::vector<gfx::ResourceSet*> uboResources = gfx::create_resource_sets(device, uboResourceLayout, {
-		{.type = gfx::ResourceType::UniformBuffer, .uniformBuffer = ubo}}, device->framesInFlight);
+		{.type = gfx::ResourceType::UniformBuffer, .uniformBuffer = ubo}
+	}, device->framesInFlight);
 
 	gfx::ResourceSet* materialResourceSet = gfx::create_resource_set(device, materialResourceLayout, {
 		{.type = gfx::ResourceType::CombinedImageSampler, .texture = texture}
@@ -112,7 +113,9 @@ int main()
 		.vertex_shader = load_shader("shaders/shader.vert.spv"),
 		.fragment_shader = load_shader("shaders/shader.frag.spv"),
 		.vertex_layout = &vertexLayout, .resource_set_layouts = {uboResourceLayout, materialResourceLayout}, // allow create directly in pipeline?
-		.rasterizer = {.front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE}
+		.rasterizer = {
+			.front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE
+		}
 	});
 
 	// gfx::Mesh cube = gfx::create_mesh(device, {

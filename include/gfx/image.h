@@ -12,6 +12,7 @@ namespace gfx
 		VkFormat format = VK_FORMAT_R8G8B8A8_SRGB;
 		VkExtent3D extent;
 		uint32_t mipLevels = 1;
+		VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT;
 		VkImageUsageFlags usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 		VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL;

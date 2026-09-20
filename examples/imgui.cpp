@@ -38,7 +38,7 @@ void init_imgui(gfx::Device* device, GLFWwindow* window) {
 	init_info.Allocator = nullptr;
 	init_info.PipelineInfoMain.RenderPass = device->renderPass->renderPass;
 	init_info.PipelineInfoMain.Subpass = 0;
-	init_info.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+	init_info.PipelineInfoMain.MSAASamples = device->msaaSamples;
 	init_info.CheckVkResultFn = check_vk_result;
 	ImGui_ImplVulkan_Init(&init_info);
 }

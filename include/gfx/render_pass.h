@@ -10,6 +10,7 @@ namespace gfx
 	struct RenderPass
 	{
 		VkRenderPass renderPass;
+		uint32_t attachmentCount;
 	};
 
 	struct ColorAttachment

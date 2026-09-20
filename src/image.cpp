@@ -192,7 +192,7 @@ namespace gfx
 				.extent = params.extent,
 				.mipLevels = params.mipLevels,
 				.arrayLayers = 1,
-				.samples = VK_SAMPLE_COUNT_1_BIT,
+				.samples = params.samples,
 				.tiling = params.tiling,
 				.usage = params.usage,
 				.sharingMode = VK_SHARING_MODE_EXCLUSIVE,

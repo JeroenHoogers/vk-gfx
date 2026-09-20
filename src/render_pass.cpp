@@ -12,21 +12,34 @@ namespace gfx
 		VkAttachmentDescription colorAttachment{
 			.flags = 0,
 			.format = desc.colors.format,
-			.samples = VK_SAMPLE_COUNT_1_BIT,
+			.samples = device->msaaSamples,
 			.loadOp = desc.colors.loadOp,
 			.storeOp = desc.colors.storeOp,
 			.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 			.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
 			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-			.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+			.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+			// .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR  // No MSAA
 		};
 
 		VkAttachmentDescription depthStencilAttachment{
 			.flags = 0,
 			.format = desc.depth.format,
-			.samples = VK_SAMPLE_COUNT_1_BIT,
+			.samples = device->msaaSamples,
 			.loadOp = desc.depth.loadOp,
 			.storeOp = desc.depth.storeOp,
+			.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+			.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+			.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+		};
+
+		VkAttachmentDescription colorAttachmentResolve{
+			.flags = 0,
+			.format = desc.colors.format,
+			.samples = VK_SAMPLE_COUNT_1_BIT,
+			.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+			.storeOp = desc.colors.storeOp,
 			.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 			.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
 			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
@@ -43,24 +56,31 @@ namespace gfx
 			.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
 		};
 
+		VkAttachmentReference colorAttachmentResolveRef{
+			.attachment = 2,
+			.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+		};
+
 		VkSubpassDescription subpass{};
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS; // TODO: support compute
 		subpass.colorAttachmentCount = 1;
 		subpass.pColorAttachments = &colorAttachmentRef;
+		subpass.pResolveAttachments = &colorAttachmentResolveRef;
 		subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
 		VkSubpassDependency dependency{
 			.srcSubpass = VK_SUBPASS_EXTERNAL,
 			.dstSubpass = 0,
-			.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-			.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-			.srcAccessMask = 0,
-			.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+			.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+			.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+			.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+			.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 			.dependencyFlags = 0
 		};
 
-		// std::array<VkAttachmentDescription, 1> attachments = {colorAttachment};
-		std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthStencilAttachment};
+		// std::array<VkAttachmentDescription, 1> attachments = {colorAttachment}; // color no msaa
+		// std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthStencilAttachment}; // color + depth no msaa
+		std::array<VkAttachmentDescription, 3> attachments = {colorAttachment, depthStencilAttachment, colorAttachmentResolve}; // color + depth w/ msaa
 
 		VkRenderPassCreateInfo renderPassInfo{
 			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
@@ -80,7 +100,8 @@ namespace gfx
 		VK_ASSERT(result);
 
 		RenderPass* pRenderPass = new RenderPass{
-			.renderPass = renderPass
+			.renderPass = renderPass,
+			.attachmentCount = attachments.size()
 		};
 
 		return pRenderPass;

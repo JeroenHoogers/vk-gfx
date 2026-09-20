@@ -20,11 +20,27 @@ namespace gfx
 		{
 			std::uint32_t graphicsFamily;
 			std::uint32_t presentFamily;
+			std::uint32_t transferFamily;
 
 			std::uint32_t queueFamilyCount;
 		};
 
-		bool find_queue_families(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, QueueFamilyIndices& indices)
+		VkSampleCountFlagBits get_max_usable_sample_count(VkPhysicalDevice physicalDevice) {
+			VkPhysicalDeviceProperties properties;
+			vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+
+			VkSampleCountFlags counts = properties.limits.framebufferColorSampleCounts & properties.limits.framebufferDepthSampleCounts;
+			if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
+			if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
+			if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
+			if (counts & VK_SAMPLE_COUNT_8_BIT) { return VK_SAMPLE_COUNT_8_BIT; }
+			if (counts & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT; }
+			if (counts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
+
+			return VK_SAMPLE_COUNT_1_BIT;
+		}
+
+		bool find_queue_families(VkPhysicalDevice physicalDevice, QueueFamilyIndices& indices, VkSurfaceKHR surface)
 		{
 			vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &indices.queueFamilyCount, nullptr);
 
@@ -161,11 +177,11 @@ namespace gfx
 			return true;
 		}
 
-		bool is_device_suitable(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, const std::vector<const char*>& extensions)
+		bool is_device_suitable(VkPhysicalDevice physicalDevice, const std::vector<const char*>& extensions, VkSurfaceKHR surface)
 		{
 			// check queue families
 			QueueFamilyIndices indices;
-			bool has_queue_families = find_queue_families(physicalDevice, surface, indices);
+			bool has_queue_families = find_queue_families(physicalDevice, indices, surface);
 
 			// check required extensions
 			std::uint32_t extensionCount;
@@ -202,7 +218,7 @@ namespace gfx
 			return has_queue_families && has_extensions && swapchain_adequate && supportedFeatures.samplerAnisotropy;
 		}
 
-		VkPhysicalDevice pick_physical_device(VkInstance instance, VkSurfaceKHR surface, const std::vector<const char*>& extensions)
+		VkPhysicalDevice pick_physical_device(VkInstance instance, const std::vector<const char*>& extensions, VkSurfaceKHR surface)
 		{
 			std::uint32_t deviceCount = 0;
 			vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
@@ -216,7 +232,7 @@ namespace gfx
 			vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
 			for (const VkPhysicalDevice& physicalDevice : devices) {
-				if (is_device_suitable(physicalDevice, surface, extensions)) {
+				if (is_device_suitable(physicalDevice, extensions, surface)) {
 					VkPhysicalDeviceProperties deviceProperties;
 					vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
 
@@ -232,7 +248,7 @@ namespace gfx
 		VkDevice create_logical_device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, const std::vector<const char*>& extensions, Queue& graphicsQueue, Queue& presentQueue)
 		{
 			QueueFamilyIndices indices;
-			if (!find_queue_families(physicalDevice, surface, indices)) {
+			if (!find_queue_families(physicalDevice, indices, surface)) {
 				fprintf(stderr, "failed to find required queue families!");
 			}
 
@@ -344,19 +360,24 @@ namespace gfx
 
 		VkInstance instance = create_instance(params.appname, extensions, layers);
 
+		VkSurfaceKHR surface = VK_NULL_HANDLE;
+
 		std::vector<Window*> windows(params.windows.size());
 		for (uint32_t i = 0; i < params.windows.size(); i++) {
 			windows[i] = detail::create_window(instance, params.windows[i]);
+			surface = windows[i]->surface;
 		}
 
 		// always add swapchain extension
 		deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
-		VkPhysicalDevice physicalDevice = pick_physical_device(instance, windows[0]->surface, deviceExtensions);
+		VkPhysicalDevice physicalDevice = pick_physical_device(instance, deviceExtensions, surface);
+		VkSampleCountFlagBits maxMsaaSamples = get_max_usable_sample_count(physicalDevice); // TODO: incorporate desired MSAA samples in device choice?
+		printf("max samples supported: %d\n", maxMsaaSamples);
 
 		Queue graphicsQueue = {};
 		Queue presentQueue = {};
-		VkDevice device = create_logical_device(physicalDevice, windows[0]->surface, deviceExtensions, graphicsQueue, presentQueue);
+		VkDevice device = create_logical_device(physicalDevice, surface, deviceExtensions, graphicsQueue, presentQueue);
 
 		VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
 		if (params.enableValidation) {
@@ -369,7 +390,8 @@ namespace gfx
 			.device = device,
 			.debugMessenger = debugMessenger,
 			.graphicsQueue = graphicsQueue,
-			.presentQueue = presentQueue
+			.presentQueue = presentQueue,
+			.maxMsaaSamples = maxMsaaSamples,
 		};
 
 		for (uint32_t i = 0; i < windows.size(); i++) {
@@ -401,7 +423,7 @@ namespace gfx
 			window->renderTarget = renderTarget;
 		}
 		pDevice->windows = windows;
-		if(params.resourcePool.max_sets > 0) {
+		if (params.resourcePool.max_sets > 0) {
 			pDevice->resourcePool = create_resource_pool(pDevice, params.resourcePool);
 		}
 

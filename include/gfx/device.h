@@ -37,14 +37,14 @@ namespace gfx
 		VkDebugUtilsMessengerEXT debugMessenger;
 		Queue graphicsQueue = {};
 		Queue presentQueue = {};
-		// Queue transferQueue = {};
+		Queue transferQueue = {};
 		VkCommandPool commandPool = VK_NULL_HANDLE;
 		VkCommandPool transientPool = VK_NULL_HANDLE;
 		ResourcePool* resourcePool = nullptr;
-		 // TODO: should move to rendertarget / window?
-		// uint32_t currentFrame = 0;
+		VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_4_BIT;
+		VkSampleCountFlagBits maxMsaaSamples;
 		uint32_t framesInFlight = 2;
-		std::vector<Window*> windows = {};
+		std::vector<Window*> windows = {}; // TODO: store windows on user side?
 		RenderPass* renderPass = nullptr;
 	};
 
@@ -56,6 +56,7 @@ namespace gfx
 		std::vector<const char*> layers{};
 		uint32_t framesInFlight = 2;
 		VkFormat swapchainFormat = VK_FORMAT_UNDEFINED; // TODO: move vulkan out of public API?
+		VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 		std::vector<WindowCallbacks*> windows {};
 		ResourcePoolDesc resourcePool {};
 		// WindowCallbacks* windowCallbacks = nullptr;
