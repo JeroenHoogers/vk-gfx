@@ -1,7 +1,7 @@
 #include "gfx/buffer.h"
 #include "gfx/device.h"
 #include "gfx/command_buffer.h"
-#include <iostream>
+#include <cstring>
 
 namespace gfx
 {
@@ -58,6 +58,25 @@ namespace gfx
 		VK_ASSERT(result);
 
 		return new Buffer{.buffer = buffer, .memory = deviceMemory, .size = params.size};
+	}
+
+	Buffer* create_and_upload_buffer(Device* device, const void* data, const BufferDesc& params)
+	{
+		Buffer* staging = create_buffer(device, {.size = params.size, .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT, .properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT});
+
+		void* mapped;
+		VkResult result = vkMapMemory(device->device, staging->memory, 0, staging->size, 0, &mapped);
+		VK_ASSERT(result);
+		memcpy(mapped, data, static_cast<size_t>(staging->size));
+		vkUnmapMemory(device->device, staging->memory);
+
+		Buffer* buffer = create_buffer(device, {.size = params.size, .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | params.usage, .properties = params.properties});
+
+		copy_buffer(device, staging, buffer);
+
+		destroy_buffer(device, staging);
+
+		return buffer;
 	}
 
 	void copy_buffer(Device* device, Buffer* src, Buffer* dst)

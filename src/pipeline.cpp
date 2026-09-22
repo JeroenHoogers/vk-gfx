@@ -153,7 +153,7 @@ namespace gfx
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
 			.pNext = nullptr,
 			.flags = 0,
-			.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+			.topology = params.primitiveTopology,
 			.primitiveRestartEnable = VK_FALSE
 		};
 
@@ -194,8 +194,8 @@ namespace gfx
 			.pNext = nullptr,
 			.flags = 0,
 			.rasterizationSamples = device->msaaSamples,
-			.sampleShadingEnable = VK_FALSE,
-			.minSampleShading = 1.0f,
+			.sampleShadingEnable = params.multisampling.enable_sample_shading,
+			.minSampleShading = params.multisampling.min_sample_shading,
 			.pSampleMask = nullptr,
 			.alphaToCoverageEnable = VK_FALSE,
 			.alphaToOneEnable = VK_FALSE
@@ -203,12 +203,12 @@ namespace gfx
 
 		// Color Blend Attachment
 		VkPipelineColorBlendAttachmentState colorBlendAttachment{
-			.blendEnable = VK_FALSE,
-			.srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
-			.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO,
+			.blendEnable = params.blending.enable_blend,
+			.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+			.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
 			.colorBlendOp = VK_BLEND_OP_ADD,
 			.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
-			.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+			.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
 			.alphaBlendOp = VK_BLEND_OP_ADD,
 			.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
 		};

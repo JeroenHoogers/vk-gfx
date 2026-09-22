@@ -246,7 +246,7 @@ namespace gfx
 			abort();
 		}
 
-		VkDevice create_logical_device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, const std::vector<const char*>& extensions, Queue& graphicsQueue, Queue& presentQueue)
+		VkDevice create_logical_device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, const std::vector<const char*>& extensions, const VkPhysicalDeviceFeatures& features, Queue& graphicsQueue, Queue& presentQueue)
 		{
 			QueueFamilyIndices indices;
 			if (!find_queue_families(physicalDevice, indices, surface)) {
@@ -279,9 +279,6 @@ namespace gfx
 				}
 			}
 
-			VkPhysicalDeviceFeatures deviceFeatures{};
-			deviceFeatures.samplerAnisotropy = VK_TRUE;
-
 			VkDeviceCreateInfo createInfo{
 				.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 				.pNext = nullptr,
@@ -292,7 +289,7 @@ namespace gfx
 				.ppEnabledLayerNames = {},
 				.enabledExtensionCount = static_cast<std::uint32_t>(extensions.size()),
 				.ppEnabledExtensionNames = extensions.data(),
-				.pEnabledFeatures = &deviceFeatures
+				.pEnabledFeatures = &features
 			};
 
 			VkDevice device;
@@ -381,7 +378,7 @@ namespace gfx
 
 		Queue graphicsQueue = {};
 		Queue presentQueue = {};
-		VkDevice device = create_logical_device(physicalDevice, surface, deviceExtensions, graphicsQueue, presentQueue);
+		VkDevice device = create_logical_device(physicalDevice, surface, deviceExtensions, params.features, graphicsQueue, presentQueue);
 
 		VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
 		if (params.enableValidation) {

@@ -25,6 +25,7 @@ namespace gfx {
 	};
 
 	Buffer* create_buffer(Device* device, const BufferDesc& params);
+	Buffer* create_and_upload_buffer(Device* device, const void* data, const BufferDesc& params);
 
 	void copy_buffer(Device* device, Buffer* src, Buffer* dst);
 

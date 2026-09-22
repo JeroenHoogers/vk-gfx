@@ -10,6 +10,7 @@ namespace gfx
 	struct Pipeline;
 	struct UniformBuffer;
 	struct Texture;
+	struct Buffer;
 
 	namespace detail
 	{
@@ -23,8 +24,8 @@ namespace gfx
 	// TODO: support more
 	enum class ResourceType {
 		CombinedImageSampler,
-		UniformBuffer
-		// StorageBuffer
+		UniformBuffer,
+		StorageBuffer
 	};
 
 	struct ResourceDesc
@@ -62,6 +63,7 @@ namespace gfx
 			void* ptr;
 			Texture* texture;
 			UniformBuffer* uniformBuffer;
+			Buffer* storageBuffer;
 			// TODO: add more (Sampler, StorageBuffer etc.)
 		};
 	};

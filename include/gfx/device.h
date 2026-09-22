@@ -56,6 +56,7 @@ namespace gfx
 		std::vector<const char*> layers{};
 		uint32_t framesInFlight = 2;
 		VkFormat swapchainFormat = VK_FORMAT_UNDEFINED; // TODO: move vulkan out of public API?
+		VkPhysicalDeviceFeatures features{};
 		bool enableDepth = false;
 		VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT; // 1 bit means no MSAA
 		std::vector<WindowCallbacks*> windows {};

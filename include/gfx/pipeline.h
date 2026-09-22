@@ -19,6 +19,19 @@ namespace gfx
 		VkFrontFace front_face = VK_FRONT_FACE_CLOCKWISE;
 	};
 
+	struct MultisamplingParams
+	{
+		VkBool32 enable_sample_shading = VK_FALSE;
+		VkBool32 enable_alpha_to_coverage = VK_FALSE;
+		float min_sample_shading = 1.0f;
+	};
+
+
+	struct BlendParams
+	{
+		VkBool32 enable_blend = VK_FALSE;
+	};
+
 	struct PipelineParams
 	{
 		std::vector<char> vertex_shader = {};
@@ -27,6 +40,9 @@ namespace gfx
 		VertexLayout* vertex_layout = nullptr;
 		std::vector<ResourceSetLayout*> resource_set_layouts = {};
 		RasterizerParams rasterizer = {};
+		MultisamplingParams multisampling = {};
+		VkPrimitiveTopology primitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		BlendParams blending = {};
 		DynamicStateFlags dynamic_states = DynamicStateFlags::Viewport | DynamicStateFlags::Scissor;
 		// TODO: add color & depth formats?
 		// TODO: allow more customization

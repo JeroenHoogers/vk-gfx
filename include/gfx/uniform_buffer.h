@@ -15,7 +15,6 @@ namespace gfx {
 	};
 
 	UniformBuffer* create_uniform_buffer(Device* device, uint32_t size);
-	void bind_uniform_buffer(Device* device, Pipeline* pipeline, CommandBuffer* commands, UniformBuffer* uniformBuffer);
 
 	void destroy_uniform_buffer(Device* device, UniformBuffer* uniformBuffer);
 }

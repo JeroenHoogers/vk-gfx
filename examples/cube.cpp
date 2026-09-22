@@ -46,8 +46,8 @@ int main()
 	// 	4, 5, 6, 6, 7, 4
 	// };
 
-	const std::string MODEL_PATH = "../assets/models/viking_room.obj";
-	const std::string TEXTURE_PATH = "../assets/textures/viking_room.png";
+	const std::string MODEL_PATH = "assets/models/viking_room.obj";
+	const std::string TEXTURE_PATH = "assets/textures/viking_room.png";
 
 	gfx::VertexLayout vertexLayout = gfx::create_vertex_layout({{
 		.stride = sizeof(Vertex),
@@ -63,11 +63,15 @@ int main()
 
 	constexpr uint32_t framesInFlight = 2;
 
+	VkPhysicalDeviceFeatures features = {};
+	features.samplerAnisotropy = VK_TRUE;
+
 	gfx::DeviceInit deviceInit = gfx::create_device({
 		.appname = appName,
 		.extensions = {},
 		.framesInFlight = framesInFlight,
 		.swapchainFormat = VK_FORMAT_B8G8R8A8_SRGB,
+		.features = features,
 		.enableDepth = true,
 		.msaaSamples = VK_SAMPLE_COUNT_4_BIT,
 		.windows = {&window.callbacks},

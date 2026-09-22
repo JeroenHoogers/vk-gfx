@@ -5,7 +5,7 @@ project(vk-gfx
   LANGUAGES C CXX
 )
 
-option(BUILD_EXAMPLES "Build examples" ON)
+option(BUILD_EXAMPLES "Build examples" OFF)
 
 # export compile commands for IDE
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -87,6 +87,8 @@ if(BUILD_EXAMPLES)
     ${SHADER_SRC_DIR}/triangle.frag
     ${SHADER_SRC_DIR}/shader.vert
     ${SHADER_SRC_DIR}/shader.frag
+    ${SHADER_SRC_DIR}/text.vert
+    ${SHADER_SRC_DIR}/text.frag
   )
 
   set(COMPILED_SHADERS)
@@ -114,18 +116,40 @@ if(BUILD_EXAMPLES)
       DEPENDS ${COMPILED_SHADERS}
   )
 
-  set(EXAMPLE_LIBS ${LIBRARIES} glfw glm::glm)
+  set(EXAMPLE_LIBS ${LIBRARIES} glfw glm::glm vk-gfx)
+
 
   # triangle
   include_directories(${INCLUDE_DIR} ${EXAMPLES_DIR}/thirdparty)
   add_executable(triangle-example ${SRC_EXAMPLES} ${EXAMPLES_DIR}/triangle.cpp)
-  target_link_libraries(triangle-example PRIVATE vk-gfx ${EXAMPLE_LIBS})
+  target_link_libraries(triangle-example PRIVATE ${EXAMPLE_LIBS})
   add_dependencies(triangle-example compile_shaders)
 
   # cube
   add_executable(cube-example ${SRC_EXAMPLES} ${EXAMPLES_DIR}/cube.cpp)
-  target_link_libraries(cube-example PRIVATE vk-gfx ${EXAMPLE_LIBS})
+  target_link_libraries(cube-example PRIVATE ${EXAMPLE_LIBS})
   add_dependencies(cube-example compile_shaders)
+
+  add_custom_command(TARGET cube-example POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_directory
+              "${CMAKE_SOURCE_DIR}/assets"
+              "$<TARGET_FILE_DIR:cube-example>/assets"
+  )
+
+  # text
+  set(DRAFT_TYPE_DIR ${EXAMPLES_DIR}/thirdparty/draft-type)
+  add_subdirectory(${DRAFT_TYPE_DIR})
+  include_directories(${DRAFT_TYPE_DIR}/include)
+
+  add_executable(text-example ${SRC_EXAMPLES} ${EXAMPLES_DIR}/text.cpp)
+  target_link_libraries(text-example PRIVATE draft_type ${EXAMPLE_LIBS})
+  add_dependencies(text-example compile_shaders)
+
+  add_custom_command(TARGET text-example POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_directory
+              "${CMAKE_SOURCE_DIR}/${DRAFT_TYPE_DIR}/assets/hershey-fonts"
+              "$<TARGET_FILE_DIR:text-example>/assets/hershey-fonts"
+  )
 
   # imgui
   set(IMGUI_DIR ${EXAMPLES_DIR}/thirdparty/imgui)
@@ -142,6 +166,6 @@ if(BUILD_EXAMPLES)
   )
 
   add_executable(imgui-example ${SRC_EXAMPLES} ${SRC_IMGUI} ${EXAMPLES_DIR}/imgui.cpp)
-  target_link_libraries(imgui-example PRIVATE vk-gfx ${EXAMPLE_LIBS})
+  target_link_libraries(imgui-example PRIVATE ${EXAMPLE_LIBS})
   add_dependencies(imgui-example compile_shaders)
 endif(BUILD_EXAMPLES)

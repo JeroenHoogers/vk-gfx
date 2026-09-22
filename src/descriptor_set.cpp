@@ -20,8 +20,8 @@ namespace gfx
 				return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			case ResourceType::CombinedImageSampler:
 				return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				// case ResourceType::StorageBuffer:
-				// 	return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			case ResourceType::StorageBuffer:
+				return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 			}
 
 			assert(false && "Invalid resource type value");
@@ -191,6 +191,10 @@ namespace gfx
 				case ResourceType::CombinedImageSampler:
 					imageInfo = detail::get_texture_sampler_descriptor_info(resources[j].texture);
 					writes[j].pImageInfo = &imageInfo;
+					break;
+				case ResourceType::StorageBuffer:
+					bufferInfo = detail::get_buffer_descriptor_info(resources[j].storageBuffer);
+					writes[j].pBufferInfo = &bufferInfo;
 					break;
 				}
 			}
