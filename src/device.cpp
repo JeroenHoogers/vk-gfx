@@ -128,7 +128,7 @@ namespace gfx
 				.applicationVersion = VK_MAKE_VERSION(1, 0, 0),
 				.pEngineName = "No Engine",
 				.engineVersion = VK_MAKE_VERSION(1, 0, 0),
-				.apiVersion = VK_API_VERSION_1_3
+				.apiVersion = VK_API_VERSION_1_0
 			};
 
 			std::printf("extensions %lu, layers: %lu\n", extensions.size(), layers.size());
@@ -233,10 +233,10 @@ namespace gfx
 			vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
 			for (const VkPhysicalDevice& physicalDevice : devices) {
-				if (is_device_suitable(physicalDevice, extensions, surface)) {
-					VkPhysicalDeviceProperties deviceProperties;
-					vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
+				VkPhysicalDeviceProperties deviceProperties;
+				vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
 
+				if (is_device_suitable(physicalDevice, extensions, surface)) {
 					printf("Found suitable physical device: %s \n", deviceProperties.deviceName);
 					return physicalDevice;
 				}

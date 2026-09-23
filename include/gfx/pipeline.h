@@ -26,6 +26,10 @@ namespace gfx
 		float min_sample_shading = 1.0f;
 	};
 
+	struct InputAssemblyParams {
+		VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		VkBool32 restartEnable = VK_FALSE;
+	};
 
 	struct BlendParams
 	{
@@ -41,7 +45,7 @@ namespace gfx
 		std::vector<ResourceSetLayout*> resource_set_layouts = {};
 		RasterizerParams rasterizer = {};
 		MultisamplingParams multisampling = {};
-		VkPrimitiveTopology primitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		InputAssemblyParams inputAssembly = {};
 		BlendParams blending = {};
 		DynamicStateFlags dynamic_states = DynamicStateFlags::Viewport | DynamicStateFlags::Scissor;
 		// TODO: add color & depth formats?

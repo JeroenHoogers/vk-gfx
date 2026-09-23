@@ -74,8 +74,8 @@ namespace gfx
 		VkDescriptorSet descriptorSet;
 	};
 
-	ResourceSet* create_resource_set(Device* device, ResourceSetLayout* layout, const std::vector<Resource>& resources);
 	std::vector<ResourceSet*> create_resource_sets(Device* device, ResourceSetLayout* layout, const std::vector<Resource>& resources, uint32_t count = 1);
+	ResourceSet* create_resource_set(Device* device, ResourceSetLayout* layout, const std::vector<Resource>& resources);
 	void bind_resource_set(CommandBuffer* commandBuffer, Pipeline* pipeline, uint32_t index, ResourceSet* resourceSet);
 
 	ResourcePool* create_resource_pool(Device* device, const ResourcePoolDesc& params);

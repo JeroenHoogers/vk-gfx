@@ -153,8 +153,8 @@ namespace gfx
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
 			.pNext = nullptr,
 			.flags = 0,
-			.topology = params.primitiveTopology,
-			.primitiveRestartEnable = VK_FALSE
+			.topology = params.inputAssembly.topology,
+			.primitiveRestartEnable = params.inputAssembly.restartEnable
 		};
 
 		// // Viewport

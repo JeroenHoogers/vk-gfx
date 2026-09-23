@@ -115,8 +115,8 @@ int main()
 	});
 
 	gfx::Pipeline* pipeline = gfx::create_graphics_pipeline(device, {
-		.vertex_shader = load_shader("shaders/shader.vert.spv"),
-		.fragment_shader = load_shader("shaders/shader.frag.spv"),
+		.vertex_shader = load_shader("shaders/textured.vert.spv"),
+		.fragment_shader = load_shader("shaders/textured.frag.spv"),
 		.vertex_layout = &vertexLayout,
 		.resource_set_layouts = {uboResourceLayout, materialResourceLayout}, // allow create directly in pipeline?
 		.rasterizer = {

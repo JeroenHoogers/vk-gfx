@@ -87,6 +87,8 @@ if(BUILD_EXAMPLES)
     ${SHADER_SRC_DIR}/triangle.frag
     ${SHADER_SRC_DIR}/shader.vert
     ${SHADER_SRC_DIR}/shader.frag
+    ${SHADER_SRC_DIR}/textured.vert
+    ${SHADER_SRC_DIR}/textured.frag
     ${SHADER_SRC_DIR}/text.vert
     ${SHADER_SRC_DIR}/text.frag
   )

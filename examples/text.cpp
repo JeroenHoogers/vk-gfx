@@ -15,12 +15,11 @@ void updateUniformBuffer(gfx::UniformBuffer* uniformBuffer, const gfx::Swapchain
 	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 	UniformBufferObject ubo{
-		// .model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
-		.model = glm::mat4(1.0),
-		.view = glm::lookAt(glm::vec3(-50.0f, 0.0f, -300.0f), glm::vec3(-50.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
+		.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
+		.view = glm::lookAt(glm::vec3(0.0f, 50.0f, -300.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
 		.proj = glm::perspective(glm::radians(45.0f), frame.extent.width / (float)frame.extent.height, 0.1f, 1000.0f)
 	};
-	// ubo.proj[1][1] *= -1;
+	ubo.proj[1][1] *= -1;
 
 	memcpy(uniformBuffer->mappedMemory[frame.index], &ubo, sizeof(ubo));
 }
@@ -32,11 +31,11 @@ struct TextBuffer {
 
 TextBuffer createTextBuffer(gfx::Device* device, const drafttype::HersheyFont& font, const drafttype::GPUFont& gpuFont, const std::string& text, glm::vec2 pos, drafttype::LayoutOptions opts) {
 	auto glyphInstances = drafttype::layout(font, text, pos.x, pos.y, opts, true);
-	printf("created instances: %lu\n", glyphInstances.size());
 
 	// create indirect buffer
 	std::vector<VkDrawIndexedIndirectCommand> commands;
 
+	// generate one command per unique glyph in the text, recurring glyphs are instanced.
 	uint32_t instanceCount = 1;
 	uint32_t firstInstance = 0;
 	for (uint32_t i = 0; i < glyphInstances.size(); i++) {
@@ -55,24 +54,20 @@ TextBuffer createTextBuffer(gfx::Device* device, const drafttype::HersheyFont& f
 		instanceCount++;
 	}
 
-	TextBuffer textBuffer {};
+	TextBuffer textBuffer {
+		.glyphInstanceBuffer = gfx::create_and_upload_buffer(device, glyphInstances.data(), {
+			.size = glyphInstances.size() * sizeof(drafttype::ShapedGlyph),
+			.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+			.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+		}),
+		.indirectBuffer = gfx::create_and_upload_buffer(device, commands.data(), {
+			.size = commands.size() * sizeof(VkDrawIndexedIndirectCommand),
+			.usage = VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
+			.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+		})
+	};
 
-	VkDeviceSize instanceSize = glyphInstances.size() * sizeof(drafttype::ShapedGlyph);
-	VkDeviceSize indirectSize = commands.size() * sizeof(VkDrawIndexedIndirectCommand);
-
-	printf("created text buffer with: %lu commands (%lu) and %lu instances (%lu)\n", commands.size(), indirectSize, glyphInstances.size(), instanceSize);
-
-	textBuffer.glyphInstanceBuffer = gfx::create_and_upload_buffer(device, glyphInstances.data(), {
-		.size = instanceSize,
-		.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-		.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-	});
-
-	textBuffer.indirectBuffer = gfx::create_and_upload_buffer(device, commands.data(), {
-		.size = indirectSize,
-		.usage = VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
-		.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-	});
+	printf("created text buffer with: %lu commands (%lu) and %lu instances (%lu)\n", commands.size(), textBuffer.indirectBuffer->size, glyphInstances.size(), textBuffer.glyphInstanceBuffer->size);
 
 	return textBuffer;
 }
@@ -82,7 +77,7 @@ int main()
 	constexpr std::uint32_t width = 800;
 	constexpr std::uint32_t height = 600;
 	constexpr bool enableValidationLayers = true;
-	std::string appName = "Instanced text example";
+	std::string appName = "Instanced Text example";
 	Window window = create_window(width, height, appName);
 
 	constexpr uint32_t framesInFlight = 2;
@@ -91,6 +86,7 @@ int main()
 	deviceFeatures.fillModeNonSolid = VK_TRUE;
 	deviceFeatures.multiDrawIndirect = VK_TRUE;
 	deviceFeatures.wideLines = VK_TRUE;
+	deviceFeatures.drawIndirectFirstInstance = VK_TRUE;
 
 	gfx::DeviceInit deviceInit = gfx::create_device({
 		.appname = appName,
@@ -111,10 +107,8 @@ int main()
 		.enableValidation = enableValidationLayers,
 	});
 
-	const std::string FONT_PATH = "assets/hershey-fonts/timesg.jhf";
+	const std::string FONT_PATH = "assets/hershey-fonts/rowmans.jhf";
 	drafttype::HersheyFont font(FONT_PATH);
-
-	const auto gpuFont = font.generateGPUFont();
 
 	std::string text = " !\"#$%&'()*\n"
 		"+,-./012345\n"
@@ -126,14 +120,11 @@ int main()
 		"lmnopqrstuv\n"
 		"wxyz{|}~\x7F";
 
-	// text = "aabbdas";
-
-	drafttype::LayoutOptions opts = {
-		.letterSpacing = 20.0f,
-		.lineSpacing = 0.0f,
-		.scale = 1.0f,
+	drafttype::LayoutOptions textLayoutOpts = {
+		.letterSpacing = 5.0f,
+		.scale = 0.5f,
 		.horizontalAlign = drafttype::HorizontalAlign::Center,
-		// .verticalAlign = drafttype::VerticalAlign::Middle
+		.verticalAlign = drafttype::VerticalAlign::Middle
 	};
 
 	gfx::Device* device = deviceInit.device;
@@ -142,18 +133,53 @@ int main()
 	// gfx::destroy_device(device);
 	// close_window(window);
 	// }
+
 	gfx::Window* mainWindow = device->windows[0];
 	glfwSetWindowUserPointer(window.window, mainWindow);
 
-	TextBuffer textBuffers = createTextBuffer(device, font, gpuFont, text, glm::vec2(0.0f, -100.0f), opts);
+	constexpr float AXIS_SIZE = 10.0f;
+	const std::vector<Vertex> vertices = {
+		{{-AXIS_SIZE, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0, 0}},
+		{{ AXIS_SIZE, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0, 0}},
+		{{0.0f, -AXIS_SIZE, 0.0f}, {0.0f, 1.0f, 0.0f}, {0, 0}},
+		{{0.0f,  AXIS_SIZE, 0.0f}, {0.0f, 1.0f, 0.0f}, {0, 0}},
+		{{0.0f, 0.0f, -AXIS_SIZE}, {0.0f, 0.0f, 1.0f}, {0, 0}},
+		{{0.0f, 0.0f,  AXIS_SIZE}, {0.0f, 0.0f, 1.0f}, {0, 0}},
+	};
 
-	gfx::VertexLayout vertexLayout = gfx::create_vertex_layout({{
+	const std::vector<uint16_t> indices = {
+		0, 1, 2, 3, 4, 5
+	};
+
+	gfx::Mesh axesMesh = gfx::create_mesh(device, {
+		.vertices {
+			.data = vertices.data(),
+			.size = sizeof(Vertex) * vertices.size(),
+			.stride = sizeof(Vertex)
+		},
+		.indices {
+			.data = indices.data(),
+			.size = sizeof(uint16_t) * indices.size(),
+			.stride = sizeof(uint16_t)
+		}
+	});
+
+	gfx::VertexLayout axesVertexLayout = gfx::create_vertex_layout({{
+		.stride = sizeof(Vertex),
+		.attributes = {
+			{.format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, pos)},
+			{.format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, color)}
+		}
+	}});
+
+	gfx::VertexLayout textVertexLayout = gfx::create_vertex_layout({{
 		.stride = sizeof(drafttype::Vert),
 		.attributes = {
 			{.format = VK_FORMAT_R16G16_SINT, .offset = 0},
 		}
 	}});
 
+	const auto gpuFont = font.generateGPUFont();
 	gfx::Mesh fontMesh = gfx::create_mesh(device, {
 		.vertices {
 			.data = gpuFont.vertices.data(),
@@ -167,7 +193,6 @@ int main()
 		}
 	});
 
-	gfx::UniformBuffer* ubo = gfx::create_uniform_buffer(device, sizeof(UniformBufferObject));
 	gfx::ResourceSetLayout* uboResourceLayout = gfx::create_resource_set_layout(device, {
 		{.type = gfx::ResourceType::UniformBuffer, .stages = VK_SHADER_STAGE_VERTEX_BIT}
 	});
@@ -176,26 +201,42 @@ int main()
 		{.type = gfx::ResourceType::StorageBuffer, .stages = VK_SHADER_STAGE_VERTEX_BIT}
 	});
 
+	gfx::Pipeline* textPipeline = gfx::create_graphics_pipeline(device, {
+		.vertex_shader = load_shader("shaders/text.vert.spv"),
+		.fragment_shader = load_shader("shaders/text.frag.spv"),
+		.vertex_layout = &textVertexLayout,
+		.resource_set_layouts = {uboResourceLayout, glyphInstancesResourceLayout},
+		.multisampling = {
+			.enable_alpha_to_coverage = VK_TRUE
+		},
+		.inputAssembly{
+			.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST
+		},
+		.dynamic_states = gfx::DynamicStateFlags::Viewport | gfx::DynamicStateFlags::Scissor | gfx::DynamicStateFlags::LineWidth,
+	});
+
+	gfx::UniformBuffer* ubo = gfx::create_uniform_buffer(device, sizeof(UniformBufferObject));
 	std::vector<gfx::ResourceSet*> uboResources = gfx::create_resource_sets(device, uboResourceLayout, {
 		{.type = gfx::ResourceType::UniformBuffer, .uniformBuffer = ubo}
 	}, device->framesInFlight);
 
+	const auto bounds = drafttype::measure(font, text, textLayoutOpts);
+	TextBuffer textBuffers = createTextBuffer(device, font, gpuFont, text, glm::vec2(0.0f, -(bounds.bottom + bounds.top) * 0.5f), textLayoutOpts);
 	gfx::ResourceSet* glyphInstancesResourceSet = gfx::create_resource_set(device, glyphInstancesResourceLayout, {
 		{.type = gfx::ResourceType::StorageBuffer, .storageBuffer = textBuffers.glyphInstanceBuffer}
 	});
 
-	gfx::Pipeline* pipeline = gfx::create_graphics_pipeline(device, {
-		.vertex_shader = load_shader("shaders/text.vert.spv"),
-		.fragment_shader = load_shader("shaders/text.frag.spv"),
-		.vertex_layout = &vertexLayout,
-		.resource_set_layouts = {uboResourceLayout, glyphInstancesResourceLayout},
-		// .rasterizer = {
-		// 	.polygon_mode = VK_POLYGON_MODE_LINE,
-		// },
+	gfx::Pipeline* linePipeline = gfx::create_graphics_pipeline(device, {
+		.vertex_shader = load_shader("shaders/shader.vert.spv"),
+		.fragment_shader = load_shader("shaders/shader.frag.spv"),
+		.vertex_layout = &axesVertexLayout,
+		.resource_set_layouts = {uboResourceLayout},
 		.multisampling = {
 			.enable_alpha_to_coverage = VK_TRUE
 		},
-		.primitiveTopology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
+		.inputAssembly{
+ 			.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST
+		},
 		.dynamic_states = gfx::DynamicStateFlags::Viewport | gfx::DynamicStateFlags::Scissor | gfx::DynamicStateFlags::LineWidth,
 	});
 
@@ -204,16 +245,23 @@ int main()
 		updateUniformBuffer(ubo, frame);
 		gfx::CommandBuffer* commands = gfx::begin_commands(frame.window);
 		gfx::begin_render_pass(device, commands, &frame);
-		gfx::DynamicState dynamicState = frame.dynamicState;
-		dynamicState.lineWidth = 2.0f;
-		gfx::bind_pipeline(pipeline, commands, dynamicState);
 
-		// TODO: create helper to bind more than 1 set at once?
-		gfx::bind_resource_set(commands, pipeline, 0, uboResources[frame.index]);
-		gfx::bind_resource_set(commands, pipeline, 1, glyphInstancesResourceSet);
+		// draw text
+		gfx::bind_pipeline(textPipeline, commands, frame.dynamicState);
+		gfx::bind_resource_set(commands, textPipeline, 0, uboResources[frame.index]);
+		gfx::bind_resource_set(commands, textPipeline, 1, glyphInstancesResourceSet);
 
 		uint32_t count = textBuffers.indirectBuffer->size / sizeof(VkDrawIndexedIndirectCommand);
-		gfx::draw_indirect(commands, &fontMesh, textBuffers.indirectBuffer, count);
+		gfx::draw_indexed_indirect(commands, &fontMesh, textBuffers.indirectBuffer, count, 0);
+
+		// draw axes
+		gfx::DynamicState dynamicState = frame.dynamicState;
+		dynamicState.lineWidth = 2.0f;
+		gfx::bind_pipeline(linePipeline, commands, dynamicState);
+
+		gfx::bind_resource_set(commands, linePipeline, 0, uboResources[frame.index]);
+		gfx::draw_indexed(commands, &axesMesh, axesMesh.indexCount);
+
 		gfx::end_render_pass(commands);
 		gfx::end_commands(commands);
 		gfx::submit_and_present(device, frame.window, commands);
@@ -222,8 +270,11 @@ int main()
 	gfx::wait_idle(device);
 
 	gfx::destroy_mesh(device, &fontMesh);
+	gfx::destroy_mesh(device, &axesMesh);
 
-	gfx::destroy_pipeline(device, pipeline);
+	gfx::destroy_pipeline(device, textPipeline);
+	gfx::destroy_pipeline(device, linePipeline);
+
 	gfx::destroy_resource_set_layouts(device, {uboResourceLayout, glyphInstancesResourceLayout});
 	gfx::destroy_uniform_buffer(device, ubo);
 

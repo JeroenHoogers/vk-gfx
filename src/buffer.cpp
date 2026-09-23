@@ -62,6 +62,8 @@ namespace gfx
 
 	Buffer* create_and_upload_buffer(Device* device, const void* data, const BufferDesc& params)
 	{
+		// TODO: cache staging buffer? (user provided)
+		// TODO: re-use command buffer
 		Buffer* staging = create_buffer(device, {.size = params.size, .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT, .properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT});
 
 		void* mapped;

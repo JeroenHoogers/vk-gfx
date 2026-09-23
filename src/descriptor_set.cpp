@@ -5,12 +5,10 @@
 #include "gfx/image.h"
 #include "gfx/pipeline.h"
 #include "gfx/uniform_buffer.h"
-#include <array>
 #include <assert.h>
 
 namespace gfx
 {
-
 	namespace detail
 	{
 		constexpr VkDescriptorType to_descriptor_type(ResourceType resourceType) noexcept
