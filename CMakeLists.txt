@@ -77,49 +77,89 @@ if(BUILD_EXAMPLES)
   find_package(glfw3 3.3 REQUIRED)
   find_package(glm REQUIRED)
 
+  find_program(SLANGC_EXECUTABLE
+      NAMES slangc
+      HINTS
+          ${SLANGC_ROOT}
+          ENV SLANGC_ROOT
+      REQUIRED
+  )
+
   set (CMAKE_CXX_STANDARD 20)
 
   set(SHADER_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders")
   set(SHADER_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders")
 
-  set(SRC_SHADERS
-    ${SHADER_SRC_DIR}/triangle.vert
-    ${SHADER_SRC_DIR}/triangle.frag
-    ${SHADER_SRC_DIR}/shader.vert
-    ${SHADER_SRC_DIR}/shader.frag
-    ${SHADER_SRC_DIR}/textured.vert
-    ${SHADER_SRC_DIR}/textured.frag
-    ${SHADER_SRC_DIR}/text.vert
-    ${SHADER_SRC_DIR}/text.frag
+  set(VERTEX_SHADERS
+      "${SHADER_SRC_DIR}/shader.slang"
+      "${SHADER_SRC_DIR}/triangle.slang"
+      "${SHADER_SRC_DIR}/textured.slang"
+      "${SHADER_SRC_DIR}/text.slang"
   )
 
-  set(COMPILED_SHADERS)
+  set(FRAGMENT_SHADERS
+      "${SHADER_SRC_DIR}/shader.slang"
+      "${SHADER_SRC_DIR}/triangle.slang"
+      "${SHADER_SRC_DIR}/textured.slang"
+      "${SHADER_SRC_DIR}/text.slang"
+  )
 
-  foreach(SHADER IN LISTS SRC_SHADERS)
-    get_filename_component(SHADER_NAME "${SHADER}" NAME)
-    set(OUTPUT "${SHADER_BINARY_DIR}/${SHADER_NAME}.spv")
+  function(compile_slang_stage OUTPUTS_VAR STAGE ENTRY)
+      set(COMPILED_OUTPUTS)
 
-    add_custom_command(
-          OUTPUT "${OUTPUT}"
-          COMMAND ${CMAKE_COMMAND} -E make_directory
-                  "${SHADER_BINARY_DIR}"
-          COMMAND glslc
-                  ${SHADER}
-                  -o "${OUTPUT}"
-          DEPENDS "${SHADER}"
-          COMMENT "Compiling Vulkan shader ${SHADER_NAME}..."
-          VERBATIM
-      )
+      foreach(SHADER IN LISTS ARGN)
+          get_filename_component(SHADER_NAME "${SHADER}" NAME_WE)
 
-    list(APPEND COMPILED_SHADERS "${OUTPUT}")
-  endforeach()
+          set(OUTPUT
+              "${SHADER_BINARY_DIR}/${SHADER_NAME}.${STAGE}.spv"
+          )
+
+          add_custom_command(
+              OUTPUT "${OUTPUT}"
+              COMMAND ${CMAKE_COMMAND} -E make_directory
+                      "${SHADER_BINARY_DIR}"
+              COMMAND "${SLANGC_EXECUTABLE}"
+                      -target spirv
+                      -profile "spirv_1_0+GLSL_150" # spirv_1_3 (vulkan v1.1)
+                      -emit-spirv-via-glsl # -emit-spirv-directly (>=v1.1)
+                      -entry ${ENTRY}
+                      -stage ${STAGE}
+                      ${SHADER}
+                      -o "${OUTPUT}"
+              DEPENDS "${SHADER}"
+              COMMENT "Compiling Vulkan shader ${SHADER_NAME} [${STAGE}]..."
+              VERBATIM
+          )
+          list(APPEND COMPILED_OUTPUTS "${OUTPUT}")
+      endforeach()
+
+      set("${OUTPUTS_VAR}" "${COMPILED_OUTPUTS}" PARENT_SCOPE)
+  endfunction()
+
+  compile_slang_stage(
+      COMPILED_VERTEX_SHADERS
+      vertex
+      vertexMain
+      ${VERTEX_SHADERS}
+  )
+
+  compile_slang_stage(
+      COMPILED_FRAGMENT_SHADERS
+      fragment
+      fragmentMain
+      ${FRAGMENT_SHADERS}
+  )
+
+  set(COMPILED_SHADERS
+      ${COMPILED_VERTEX_SHADERS}
+      ${COMPILED_FRAGMENT_SHADERS}
+  )
 
   add_custom_target(compile_shaders ALL
       DEPENDS ${COMPILED_SHADERS}
   )
 
   set(EXAMPLE_LIBS ${LIBRARIES} glfw glm::glm vk-gfx)
-
 
   # triangle
   include_directories(${INCLUDE_DIR} ${EXAMPLES_DIR}/thirdparty)

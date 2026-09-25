@@ -128,7 +128,7 @@ namespace gfx
 				.applicationVersion = VK_MAKE_VERSION(1, 0, 0),
 				.pEngineName = "No Engine",
 				.engineVersion = VK_MAKE_VERSION(1, 0, 0),
-				.apiVersion = VK_API_VERSION_1_0
+				.apiVersion = VK_API_VERSION_1_0 // TODO: expose to API
 			};
 
 			std::printf("extensions %lu, layers: %lu\n", extensions.size(), layers.size());

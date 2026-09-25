@@ -90,7 +90,7 @@ int main()
 
 	gfx::DeviceInit deviceInit = gfx::create_device({
 		.appname = appName,
-		.extensions = {},
+		.deviceExtensions = { VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME },
 		.framesInFlight = framesInFlight,
 		.swapchainFormat = VK_FORMAT_B8G8R8A8_SRGB,
 		.features = deviceFeatures,
@@ -202,8 +202,8 @@ int main()
 	});
 
 	gfx::Pipeline* textPipeline = gfx::create_graphics_pipeline(device, {
-		.vertex_shader = load_shader("shaders/text.vert.spv"),
-		.fragment_shader = load_shader("shaders/text.frag.spv"),
+		.vertex_shader = load_shader("shaders/text.vertex.spv"),
+		.fragment_shader = load_shader("shaders/text.fragment.spv"),
 		.vertex_layout = &textVertexLayout,
 		.resource_set_layouts = {uboResourceLayout, glyphInstancesResourceLayout},
 		.multisampling = {
@@ -227,8 +227,8 @@ int main()
 	});
 
 	gfx::Pipeline* linePipeline = gfx::create_graphics_pipeline(device, {
-		.vertex_shader = load_shader("shaders/shader.vert.spv"),
-		.fragment_shader = load_shader("shaders/shader.frag.spv"),
+		.vertex_shader = load_shader("shaders/shader.vertex.spv"),
+		.fragment_shader = load_shader("shaders/shader.fragment.spv"),
 		.vertex_layout = &axesVertexLayout,
 		.resource_set_layouts = {uboResourceLayout},
 		.multisampling = {

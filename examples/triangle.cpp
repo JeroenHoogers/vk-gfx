@@ -28,8 +28,8 @@ int main() {
 		// close_window(window);
 	// }
 	gfx::Pipeline* pipeline = gfx::create_graphics_pipeline(device, {
-		.vertex_shader = load_shader("shaders/triangle.vert.spv"),
-		.fragment_shader = load_shader("shaders/triangle.frag.spv"),
+		.vertex_shader = load_shader("shaders/triangle.vertex.spv"),
+		.fragment_shader = load_shader("shaders/triangle.fragment.spv"),
 	});
 
 	while (poll_window_events(window)) {
