@@ -1,7 +1,8 @@
 struct VertexInput
 {
     int2 position : POSITION;
-    uint instanceIndex : SV_StartInstanceLocation;
+    uint startInstance : SV_StartInstanceLocation;
+    uint instanceIndex : SV_InstanceID;
 };
 
 struct VertexOutput
@@ -32,7 +33,8 @@ StructuredBuffer<GlyphInstance> instances;
 VertexOutput vertexMain(VertexInput input)
 {
     VertexOutput output;
-    GlyphInstance instance = instances[input.instanceIndex];
+    uint instanceIndex = input.startInstance + input.instanceIndex;
+    GlyphInstance instance = instances[instanceIndex];
 
     float2 pos = input.position * instance.scale;
     pos.y = -pos.y;

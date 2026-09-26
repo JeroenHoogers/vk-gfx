@@ -94,7 +94,7 @@ if(BUILD_EXAMPLES)
       "${SHADER_SRC_DIR}/shader.slang"
       "${SHADER_SRC_DIR}/triangle.slang"
       "${SHADER_SRC_DIR}/textured.slang"
-      "${SHADER_SRC_DIR}/text.slang"
+      "${SHADER_SRC_DIR}/text.slang" # will be compiled to spirv_1_3 instead of 1_0 since it uses SV_InstanceID
   )
 
   set(FRAGMENT_SHADERS

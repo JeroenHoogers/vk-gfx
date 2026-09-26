@@ -90,7 +90,8 @@ int main()
 
 	gfx::DeviceInit deviceInit = gfx::create_device({
 		.appname = appName,
-		.deviceExtensions = { VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME },
+		.apiVersion = VK_API_VERSION_1_1, // slang compilation of a vertex shader using SV_InstanceID doesn't compile to spirv_1_0 so we need to raise API version
+		.deviceExtensions = { VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME }, // required by SV_InstanceID
 		.framesInFlight = framesInFlight,
 		.swapchainFormat = VK_FORMAT_B8G8R8A8_SRGB,
 		.features = deviceFeatures,

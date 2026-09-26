@@ -51,6 +51,7 @@ namespace gfx
 	struct DeviceCreateParams
 	{
 		std::string appname = "vulkan app";
+		uint32_t apiVersion = VK_API_VERSION_1_0;
 		std::vector<const char*> extensions{};
 		std::vector<const char*> deviceExtensions{};
 		std::vector<const char*> layers{};

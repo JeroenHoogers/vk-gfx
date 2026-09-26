@@ -119,7 +119,7 @@ namespace gfx
 			}
 		}
 
-		VkInstance create_instance(const std::string& appName, const std::vector<const char*>& extensions, const std::vector<const char*>& layers)
+		VkInstance create_instance(const std::string& appName, uint32_t apiVersion, const std::vector<const char*>& extensions, const std::vector<const char*>& layers)
 		{
 			VkApplicationInfo appInfo{
 				.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -128,7 +128,7 @@ namespace gfx
 				.applicationVersion = VK_MAKE_VERSION(1, 0, 0),
 				.pEngineName = "No Engine",
 				.engineVersion = VK_MAKE_VERSION(1, 0, 0),
-				.apiVersion = VK_API_VERSION_1_0 // TODO: expose to API
+				.apiVersion = apiVersion
 			};
 
 			std::printf("extensions %lu, layers: %lu\n", extensions.size(), layers.size());
@@ -356,7 +356,7 @@ namespace gfx
 			}
 		}
 
-		VkInstance instance = create_instance(params.appname, extensions, layers);
+		VkInstance instance = create_instance(params.appname, params.apiVersion, extensions, layers);
 
 		VkSurfaceKHR surface = VK_NULL_HANDLE;
 
