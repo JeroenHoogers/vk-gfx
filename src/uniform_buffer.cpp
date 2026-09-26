@@ -1,7 +1,7 @@
 #include "gfx/uniform_buffer.h"
 #include "gfx/buffer.h"
 #include "gfx/command_buffer.h"
-#include "gfx/descriptor_set.h"
+#include "gfx/resource.h"
 #include "gfx/device.h"
 #include <assert.h>
 

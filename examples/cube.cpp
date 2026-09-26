@@ -23,6 +23,10 @@ void updateUniformBuffer(gfx::UniformBuffer* uniformBuffer, const gfx::Swapchain
 	memcpy(uniformBuffer->mappedMemory[frame.index], &ubo, sizeof(ubo));
 }
 
+struct Material {
+	glm::vec3 tint;
+};
+
 int main()
 {
 	constexpr std::uint32_t width = 800;
@@ -106,11 +110,11 @@ int main()
 		{.type = gfx::ResourceType::CombinedImageSampler, .stages = VK_SHADER_STAGE_FRAGMENT_BIT}
 	});
 
-	std::vector<gfx::ResourceSet*> uboResources = gfx::create_resource_sets(device, uboResourceLayout, {
+	std::vector<gfx::ResourceSet> uboResources = gfx::create_resource_sets(device, uboResourceLayout, {
 		{.type = gfx::ResourceType::UniformBuffer, .uniformBuffer = ubo}
 	}, device->framesInFlight);
 
-	gfx::ResourceSet* materialResourceSet = gfx::create_resource_set(device, materialResourceLayout, {
+	gfx::ResourceSet materialResourceSet = gfx::create_resource_set(device, materialResourceLayout, {
 		{.type = gfx::ResourceType::CombinedImageSampler, .texture = texture}
 	});
 
@@ -119,6 +123,9 @@ int main()
 		.fragment_shader = load_shader("shaders/textured.fragment.spv"),
 		.vertex_layout = &vertexLayout,
 		.resource_set_layouts = {uboResourceLayout, materialResourceLayout}, // allow create directly in pipeline?
+		.push_constants = {
+			{ .size = sizeof(Material), .stages = VK_SHADER_STAGE_FRAGMENT_BIT}
+		},
 		.rasterizer = {
 			.front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE
 		}
@@ -137,15 +144,18 @@ int main()
 	// 	}
 	// });
 
+	Material mat{
+		.tint = { 1.0f, 1.0f, 1.0f }
+	};
+
 	while (poll_window_events(window)) {
 		const gfx::SwapchainFrame frame = gfx::acquire(device, mainWindow);
 		updateUniformBuffer(ubo, frame);
 		gfx::CommandBuffer* commands = gfx::begin_commands(frame.window);
 		gfx::begin_render_pass(device, commands, &frame);
 		gfx::bind_pipeline(pipeline, commands, frame.dynamicState);
-		// TODO: create helper to bind more than 1 set at once?
-		gfx::bind_resource_set(commands, pipeline, 0, uboResources[frame.index]);
-		gfx::bind_resource_set(commands, pipeline, 1, materialResourceSet);
+		gfx::bind_resource_sets(commands, pipeline, { uboResources[frame.index], materialResourceSet });
+		gfx::push_constants(commands, pipeline, 0, &mat);
 		gfx::draw_indexed(commands, &model, model.indexCount);
 		gfx::end_render_pass(commands);
 		gfx::end_commands(commands);

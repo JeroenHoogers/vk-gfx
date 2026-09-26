@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 #include <vulkan/vulkan.h>
-#include "descriptor_set.h"
+#include "resource.h"
 
 namespace gfx
 {
@@ -19,8 +19,6 @@ namespace gfx
 	struct RenderPass;
 	struct RenderTarget;
 	struct CommandBuffer;
-	struct ResourcePool;
-	struct ResourcePoolDesc;
 	struct Image;
 
 	struct Queue {

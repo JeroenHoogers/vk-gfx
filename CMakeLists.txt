@@ -53,7 +53,7 @@ set(SRC_LIB
     ${SOURCE_DIR}/render_target.cpp
     ${SOURCE_DIR}/mesh.cpp
     ${SOURCE_DIR}/image.cpp
-    ${SOURCE_DIR}/descriptor_set.cpp
+    ${SOURCE_DIR}/resource.cpp
     ${SOURCE_DIR}/uniform_buffer.cpp
 )
 

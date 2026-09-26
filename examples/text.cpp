@@ -217,13 +217,13 @@ int main()
 	});
 
 	gfx::UniformBuffer* ubo = gfx::create_uniform_buffer(device, sizeof(UniformBufferObject));
-	std::vector<gfx::ResourceSet*> uboResources = gfx::create_resource_sets(device, uboResourceLayout, {
+	std::vector<gfx::ResourceSet> uboResources = gfx::create_resource_sets(device, uboResourceLayout, {
 		{.type = gfx::ResourceType::UniformBuffer, .uniformBuffer = ubo}
 	}, device->framesInFlight);
 
 	const auto bounds = drafttype::measure(font, text, textLayoutOpts);
 	TextBuffer textBuffers = createTextBuffer(device, font, gpuFont, text, glm::vec2(0.0f, -(bounds.bottom + bounds.top) * 0.5f), textLayoutOpts);
-	gfx::ResourceSet* glyphInstancesResourceSet = gfx::create_resource_set(device, glyphInstancesResourceLayout, {
+	gfx::ResourceSet glyphInstancesResourceSet = gfx::create_resource_set(device, glyphInstancesResourceLayout, {
 		{.type = gfx::ResourceType::StorageBuffer, .storageBuffer = textBuffers.glyphInstanceBuffer}
 	});
 
@@ -249,8 +249,7 @@ int main()
 
 		// draw text
 		gfx::bind_pipeline(textPipeline, commands, frame.dynamicState);
-		gfx::bind_resource_set(commands, textPipeline, 0, uboResources[frame.index]);
-		gfx::bind_resource_set(commands, textPipeline, 1, glyphInstancesResourceSet);
+		gfx::bind_resource_sets(commands, textPipeline, { uboResources[frame.index], glyphInstancesResourceSet });
 
 		uint32_t count = textBuffers.indirectBuffer->size / sizeof(VkDrawIndexedIndirectCommand);
 		gfx::draw_indexed_indirect(commands, &fontMesh, textBuffers.indirectBuffer, count, 0);

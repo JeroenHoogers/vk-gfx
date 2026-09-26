@@ -6,6 +6,6 @@
 #include "gfx/command_buffer.h"
 #include "gfx/render_pass.h"
 #include "gfx/uniform_buffer.h"
-#include "gfx/descriptor_set.h"
+#include "gfx/resource.h"
 #include "gfx/mesh.h"
 #include "gfx/image.h"

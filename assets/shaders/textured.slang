@@ -18,6 +18,13 @@ struct UniformBufferObject {
     float4x4 proj;
 };
 
+struct Material {
+	float3 tint;
+};
+
+[[vk::push_constant]]
+Material material;
+
 [[vk::binding(0, 0)]]
 ConstantBuffer<UniformBufferObject> ubo;
 
@@ -38,5 +45,5 @@ VertexOutput vertexMain(VertexInput input)
 [shader("fragment")]
 float4 fragmentMain(VertexOutput input) : SV_Target0
 {
-    return texSampler.Sample(input.uv);
+    return texSampler.Sample(input.uv) * float4(material.tint, 1.0);
 }

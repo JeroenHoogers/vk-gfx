@@ -28,7 +28,7 @@ namespace gfx
 
 	struct InputAssemblyParams {
 		VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-		VkBool32 restartEnable = VK_FALSE;
+		VkBool32 restart_enable = VK_FALSE;
 	};
 
 	struct BlendParams
@@ -36,6 +36,13 @@ namespace gfx
 		VkBool32 enable_blend = VK_FALSE;
 	};
 
+	struct PushConstantRange {
+		uint32_t offset = 0;
+		uint32_t size;
+		VkShaderStageFlags stages;
+	};
+
+	// TODO: support separation of pipeline and layout (ability to re-use pipeline layout)
 	struct PipelineParams
 	{
 		std::vector<char> vertex_shader = {};
@@ -43,6 +50,7 @@ namespace gfx
 		std::vector<char> geometry_shader = {};
 		VertexLayout* vertex_layout = nullptr;
 		std::vector<ResourceSetLayout*> resource_set_layouts = {};
+		std::vector<PushConstantRange> push_constants = {};
 		RasterizerParams rasterizer = {};
 		MultisamplingParams multisampling = {};
 		InputAssemblyParams inputAssembly = {};
@@ -56,6 +64,7 @@ namespace gfx
 	{
 		VkPipeline pipeline;
 		VkPipelineLayout pipelineLayout;
+		std::vector<PushConstantRange> pushConstantRanges;
 		VkPipelineBindPoint bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 
 		DynamicStateFlags dynamicStates;
@@ -65,6 +74,8 @@ namespace gfx
 
 	Pipeline* create_graphics_pipeline(Device* device, const PipelineParams& params);
 	void bind_pipeline(Pipeline* pipeline, CommandBuffer* commands, const DynamicState& dynamicState);
+
+	void push_constants(CommandBuffer* commands, Pipeline* pipeline, uint32_t rangeIndex, void* data);
 
 	void destroy_pipeline(Device* device, Pipeline* pipeline);
 } // namespace gfx

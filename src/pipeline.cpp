@@ -1,6 +1,6 @@
 #include "gfx/pipeline.h"
 #include "gfx/command_buffer.h"
-#include "gfx/descriptor_set.h"
+#include "gfx/resource.h"
 #include "gfx/device.h"
 #include "gfx/mesh.h"
 #include "gfx/render_pass.h"
@@ -154,7 +154,7 @@ namespace gfx
 			.pNext = nullptr,
 			.flags = 0,
 			.topology = params.inputAssembly.topology,
-			.primitiveRestartEnable = params.inputAssembly.restartEnable
+			.primitiveRestartEnable = params.inputAssembly.restart_enable
 		};
 
 		// // Viewport
@@ -253,14 +253,23 @@ namespace gfx
 			setLayouts[i] = params.resource_set_layouts[i]->descriptorSetLayout;
 		}
 
+		std::vector<VkPushConstantRange> pushConstantRanges(params.push_constants.size());
+		for (uint32_t i = 0; i < params.push_constants.size(); i++) {
+			pushConstantRanges[i] = {
+				.stageFlags = params.push_constants[i].stages,
+				.offset = params.push_constants[i].offset,
+				.size = params.push_constants[i].size
+			};
+		}
+
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 			.pNext = nullptr,
 			.flags = 0,
 			.setLayoutCount = static_cast<uint32_t>(setLayouts.size()),
 			.pSetLayouts = setLayouts.data(),
-			.pushConstantRangeCount = 0,
-			.pPushConstantRanges = nullptr
+			.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size()),
+			.pPushConstantRanges = pushConstantRanges.data()
 		};
 
 		VkPipelineLayout pipelineLayout;
@@ -296,6 +305,7 @@ namespace gfx
 		Pipeline* pPipeline = new Pipeline{
 			.pipeline = graphicsPipeline,
 			.pipelineLayout = pipelineLayout,
+			.pushConstantRanges = params.push_constants, // TODO: we could std::move() this if we know the pipeline params are not re-used (maybe add a && overload?)
 			.bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
 			.dynamicStates = params.dynamic_states
 		};
@@ -339,6 +349,18 @@ namespace gfx
 		if ((pipeline->dynamicStates & DynamicStateFlags::LineWidth) != DynamicStateFlags::None) {
 			vkCmdSetLineWidth(commands->commandBuffer, dynamicState.lineWidth);
 		}
+	}
+
+	void push_constants(CommandBuffer* commands, Pipeline* pipeline, uint32_t rangeIndex, void* data){
+		// TODO: add bounds checking or return a safe handle?
+		const PushConstantRange& range = pipeline->pushConstantRanges[rangeIndex];
+
+		vkCmdPushConstants(
+		    commands->commandBuffer,
+		    pipeline->pipelineLayout,
+		    range.stages, range.offset, range.size,
+		    data
+		);
 	}
 
 	void destroy_pipeline(Device* device, Pipeline* pipeline)

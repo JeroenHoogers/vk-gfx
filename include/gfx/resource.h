@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <vulkan/vulkan.h>
+#include <span>
 
 namespace gfx
 {
@@ -70,13 +71,15 @@ namespace gfx
 
 	struct ResourceSet
 	{
-		std::vector<Resource> resources;
 		VkDescriptorSet descriptorSet;
 	};
 
-	std::vector<ResourceSet*> create_resource_sets(Device* device, ResourceSetLayout* layout, const std::vector<Resource>& resources, uint32_t count = 1);
-	ResourceSet* create_resource_set(Device* device, ResourceSetLayout* layout, const std::vector<Resource>& resources);
-	void bind_resource_set(CommandBuffer* commandBuffer, Pipeline* pipeline, uint32_t index, ResourceSet* resourceSet);
+	std::vector<ResourceSet> create_resource_sets(Device* device, ResourceSetLayout* layout, const std::vector<Resource>& resources, uint32_t count = 1);
+	ResourceSet create_resource_set(Device* device, ResourceSetLayout* layout, const std::vector<Resource>& resources);
+	void bind_resource_set(CommandBuffer* commandBuffer, Pipeline* pipeline, uint32_t index, const ResourceSet& resourceSet);
+
+	void bind_resource_sets(CommandBuffer* commandBuffer, Pipeline* pipeline, std::initializer_list<ResourceSet> resourceSets);
+	void bind_resource_sets(CommandBuffer* commandBuffer, Pipeline* pipeline, std::span<const ResourceSet> resourceSets);
 
 	ResourcePool* create_resource_pool(Device* device, const ResourcePoolDesc& params);
 	void destroy_resource_pool(Device* device, ResourcePool* pool);
