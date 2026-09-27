@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include "resource.h"
 
 namespace gfx
 {
@@ -46,6 +47,9 @@ namespace gfx
 	Image* create_image(Device* device, const ImageDesc& params);
 	Image* create_image(Device* device, void* pixels, uint64_t size, const ImageDesc& params);
 	Texture* create_texture(Device* device, void* pixels, uint64_t size, const ImageDesc& params);
+
+	TextureResource create_texture_resource(Device* device, void* pixels, uint64_t size, const ImageDesc& params, ResourceSetLayout* resourceLayout);
+
 	void destroy_image(Device* device, Image* image);
 	void destroy_texture(Device* device, Texture* texture);
 } // namespace gfx

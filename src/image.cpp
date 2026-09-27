@@ -15,7 +15,6 @@ namespace gfx
 				.bufferOffset = 0,
 				.bufferRowLength = 0,
 				.bufferImageHeight = 0,
-
 				.imageSubresource = {
 					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 					.mipLevel = 0,
@@ -78,7 +77,7 @@ namespace gfx
 
 			VkCommandBuffer commandBuffer = detail::begin_one_time_commands(device);
 
-			VkImageMemoryBarrier barrier {
+			VkImageMemoryBarrier barrier{
 				.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
 				.pNext = nullptr,
 				.srcAccessMask = 0,
@@ -100,8 +99,7 @@ namespace gfx
 			int32_t mipWidth = width;
 			int32_t mipHeight = height;
 
-			for (uint32_t i = 1; i < mipLevels; i++)
-			{
+			for (uint32_t i = 1; i < mipLevels; i++) {
 				barrier.subresourceRange.baseMipLevel = i - 1;
 				barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 				barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
@@ -124,8 +122,8 @@ namespace gfx
 						.layerCount = 1
 					},
 					.srcOffsets = {
-						{0, 0, 0 },
-						{ mipWidth, mipHeight, 1 }
+						{0, 0, 0},
+						{mipWidth, mipHeight, 1}
 					},
 					.dstSubresource = {
 						.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -134,17 +132,12 @@ namespace gfx
 						.layerCount = 1
 					},
 					.dstOffsets = {
-						{ 0, 0, 0 },
-						{ mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 }
+						{0, 0, 0},
+						{mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1}
 					}
 				};
 
-				vkCmdBlitImage(commandBuffer,
-					image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-					image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-					1, &blit,
-					VK_FILTER_LINEAR
-				);
+				vkCmdBlitImage(commandBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR);
 
 				barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 				barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -159,8 +152,10 @@ namespace gfx
 					1, &barrier
 				);
 
-				if (mipWidth > 1) mipWidth /= 2;
-				if (mipHeight > 1) mipHeight /= 2;
+				if (mipWidth > 1)
+					mipWidth /= 2;
+				if (mipHeight > 1)
+					mipHeight /= 2;
 			}
 
 			barrier.subresourceRange.baseMipLevel = mipLevels - 1;
@@ -169,11 +164,7 @@ namespace gfx
 			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-			vkCmdPipelineBarrier(commandBuffer,
-				VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
-				0, nullptr,
-				0, nullptr,
-				1, &barrier);
+			vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
 			detail::end_one_time_commands(device, commandBuffer);
 		}
@@ -239,13 +230,7 @@ namespace gfx
 					.b = VK_COMPONENT_SWIZZLE_IDENTITY,
 					.a = VK_COMPONENT_SWIZZLE_IDENTITY
 				},
-				.subresourceRange = {
-					.aspectMask = aspect,
-					.baseMipLevel = 0,
-					.levelCount = mipLevels,
-					.baseArrayLayer = 0,
-					.layerCount = 1
-				}
+				.subresourceRange = {.aspectMask = aspect, .baseMipLevel = 0, .levelCount = mipLevels, .baseArrayLayer = 0, .layerCount = 1}
 			};
 
 			VkImageView imageView;
@@ -376,6 +361,16 @@ namespace gfx
 		return new Texture{
 			.image = image,
 			.sampler = sampler
+		};
+	}
+
+	TextureResource create_texture_resource(Device* device, void* pixels, uint64_t size, const ImageDesc& params, ResourceSetLayout* resourceLayout)
+	{
+		Texture* texture = create_texture(device, pixels, size, params);
+		ResourceSet resourceSet = create_resource_set(device, resourceLayout, {Resource{.type = ResourceType::CombinedImageSampler, .texture = texture}});
+		return TextureResource{
+			.texture = texture,
+			.resourceSet = resourceSet
 		};
 	}
 

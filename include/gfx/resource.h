@@ -74,6 +74,11 @@ namespace gfx
 		VkDescriptorSet descriptorSet;
 	};
 
+	struct TextureResource {
+		Texture* texture;
+		ResourceSet resourceSet;
+	};
+
 	std::vector<ResourceSet> create_resource_sets(Device* device, ResourceSetLayout* layout, const std::vector<Resource>& resources, uint32_t count = 1);
 	ResourceSet create_resource_set(Device* device, ResourceSetLayout* layout, const std::vector<Resource>& resources);
 	void bind_resource_set(CommandBuffer* commandBuffer, Pipeline* pipeline, uint32_t index, const ResourceSet& resourceSet);
