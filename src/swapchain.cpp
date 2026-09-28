@@ -94,18 +94,14 @@ namespace gfx
 	{
 		auto swapchainSupport = detail::query_swapchain_support(device->physicalDevice, window->surface);
 		VkPresentModeKHR presentMode = detail::choose_swap_present_mode(swapchainSupport.presentModes);
-		uint32_t width = 0, height = 0;
-		window->callbacks->get_framebuffer_size(&width, &height, window->callbacks->user_data);
-		VkExtent2D extent = detail::choose_swap_extent(swapchainSupport.capabilities, width, height);
+		window->callbacks.get_framebuffer_size(&window->width, &window->height, window->callbacks.user_data);
+		VkExtent2D extent = detail::choose_swap_extent(swapchainSupport.capabilities, window->width, window->height);
 		VkSurfaceFormatKHR surfaceFormat = detail::choose_swap_surface_format(swapchainSupport.formats, desiredFormat);
-
-		printf("extent %d, %d\n", extent.width, extent.height);
 
 		uint32_t imageCount = swapchainSupport.capabilities.minImageCount + 1;
 		if (swapchainSupport.capabilities.maxImageCount > 0 && imageCount > swapchainSupport.capabilities.maxImageCount) {
 			imageCount = swapchainSupport.capabilities.maxImageCount;
 		}
-		printf("Swapchain image count: %d\n", imageCount);
 
 		VkSwapchainCreateInfoKHR createInfo{
 			.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
@@ -195,10 +191,6 @@ namespace gfx
 	SwapchainFrame acquire(Device* device, Window* window)
 	{
 		// if no window specified use main window
-		if(window == nullptr) {
-			window = device->windows[0];
-		}
-
 		const Frame& frame = window->frames[window->currentFrame];
 
 		vkWaitForFences(device->device, 1, &frame.inFlightFence.fence, VK_TRUE, UINT64_MAX);

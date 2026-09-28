@@ -4,13 +4,15 @@
 #include <string>
 #include <vector>
 #include <vulkan/vulkan.h>
+#include <vulkan/vk_enum_string_helper.h>
 #include "resource.h"
 
 namespace gfx
 {
-	inline void vk_assert_impl(VkResult result, const char* file, int line) {
+	inline void vk_assert_impl(VkResult result, const char* file, int line)
+	{
 		if (result != VK_SUCCESS) {
-			std::fprintf(stderr, "Vulkan error: %d at %s:%d\n", static_cast<int>(result), file, line);
+			std::fprintf(stderr, "Vulkan error: %d: %s at  %s:%d\n", static_cast<int>(result), string_VkResult(result), file, line);
 
 			std::abort();
 		}
@@ -42,7 +44,6 @@ namespace gfx
 		VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 		bool enableDepth = false;
 		uint32_t framesInFlight = 2;
-		std::vector<Window*> windows = {}; // TODO: store windows on user side?
 		RenderPass* renderPass = nullptr;
 	};
 
@@ -58,7 +59,7 @@ namespace gfx
 		VkPhysicalDeviceFeatures features{};
 		bool enableDepth = false;
 		VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT; // 1 bit means no MSAA
-		std::vector<WindowCallbacks*> windows {};
+		std::vector<Window*> windows {};
 		ResourcePoolDesc resourcePool {};
 		// WindowCallbacks* windowCallbacks = nullptr;
 		bool enableValidation = false;

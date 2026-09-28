@@ -204,10 +204,11 @@ namespace gfx
 
 			// check swapchain
 			bool swapchain_adequate = false;
-			if (has_extensions) {
+			if (has_extensions && surface) {
 				auto supportDetails = detail::query_swapchain_support(physicalDevice, surface);
 				swapchain_adequate = !supportDetails.formats.empty() && !supportDetails.presentModes.empty();
 			}
+			bool present_adequate = !surface || swapchain_adequate;
 
 			// VkPhysicalDeviceProperties properties;
 			// vkGetPhysicalDeviceProperties(physicalDevice, &properties);
@@ -215,13 +216,14 @@ namespace gfx
 
 			VkPhysicalDeviceFeatures supportedFeatures;
 			vkGetPhysicalDeviceFeatures(physicalDevice, &supportedFeatures);
-			return has_queue_families && has_extensions && swapchain_adequate && supportedFeatures.samplerAnisotropy;
+			return has_queue_families && has_extensions && present_adequate && supportedFeatures.samplerAnisotropy;
 		}
 
 		VkPhysicalDevice pick_physical_device(VkInstance instance, const std::vector<const char*>& extensions, VkSurfaceKHR surface)
 		{
 			std::uint32_t deviceCount = 0;
-			vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+			VkResult result = vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+			VK_ASSERT(result);
 
 			if (deviceCount == 0) {
 				fprintf(stderr, "failed to find GPUs with Vulkan support!");
@@ -229,7 +231,8 @@ namespace gfx
 			}
 
 			std::vector<VkPhysicalDevice> devices(deviceCount);
-			vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+			result = vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+			VK_ASSERT(result);
 
 			for (const VkPhysicalDevice& physicalDevice : devices) {
 				VkPhysicalDeviceProperties deviceProperties;
@@ -256,7 +259,10 @@ namespace gfx
 			std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 			{
 				// TODO: this assumes all queues are required, should be adapted
-				std::vector<std::uint32_t> queueFamilies = {indices.graphicsFamily, indices.presentFamily};
+				std::vector<std::uint32_t> queueFamilies = {indices.graphicsFamily};
+				if(surface) {
+					queueFamilies.push_back(indices.presentFamily);
+				}
 				std::vector<bool> exists(indices.queueFamilyCount, false);
 
 				float queuePriority = 1.0f;
@@ -299,8 +305,9 @@ namespace gfx
 			presentQueue.familyIndex = indices.presentFamily;
 
 			vkGetDeviceQueue(device, graphicsQueue.familyIndex, graphicsQueue.queueIndex, &graphicsQueue.handle);
-			vkGetDeviceQueue(device, presentQueue.familyIndex, presentQueue.queueIndex, &presentQueue.handle);
-
+			if(surface) {
+				vkGetDeviceQueue(device, presentQueue.familyIndex, presentQueue.queueIndex, &presentQueue.handle);
+			}
 			return device;
 		}
 
@@ -341,12 +348,12 @@ namespace gfx
 		// add window instance extensions
 		if (params.windows.size() > 0) {
 			std::uint32_t windowExtensionCount = 0;
-			VkResult result = params.windows[0]->get_required_instance_extensions(&windowExtensionCount, nullptr, nullptr);
+			VkResult result = (*params.windows.begin())->callbacks.get_required_instance_extensions(&windowExtensionCount, nullptr, nullptr);
 			VK_ASSERT(result);
 
 			// TODO: extend params vector and write into the offset?
 			std::vector<const char*> windowExtensions(windowExtensionCount);
-			result = params.windows[0]->get_required_instance_extensions(&windowExtensionCount, windowExtensions.data(), nullptr);
+			result = (*params.windows.begin())->callbacks.get_required_instance_extensions(&windowExtensionCount, windowExtensions.data(), nullptr);
 			VK_ASSERT(result);
 
 			for (std::uint32_t i = 0; i < windowExtensionCount; i++) {
@@ -357,16 +364,17 @@ namespace gfx
 
 		VkInstance instance = create_instance(params.appname, params.apiVersion, extensions, layers);
 
-		VkSurfaceKHR surface = VK_NULL_HANDLE;
+		VkSurfaceKHR surface = VK_NULL_HANDLE; // TODO: support windowless?
 
-		std::vector<Window*> windows(params.windows.size());
-		for (uint32_t i = 0; i < params.windows.size(); i++) {
-			windows[i] = detail::create_window(instance, params.windows[i]);
-			surface = windows[i]->surface;
+		for (auto& window : params.windows) {
+			detail::init_window(instance, window);
+			surface = window->surface;
 		}
 
-		// always add swapchain extension
-		deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+		// add swapchain extension if we have a surface
+		if(surface) {
+			deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+		}
 
 		VkPhysicalDevice physicalDevice = pick_physical_device(instance, deviceExtensions, surface);
 		VkSampleCountFlagBits maxMsaaSamples = get_max_usable_sample_count(physicalDevice); // TODO: incorporate desired MSAA samples in device choice?
@@ -395,15 +403,15 @@ namespace gfx
 			.enableDepth = params.enableDepth
 		};
 
-		for (uint32_t i = 0; i < windows.size(); i++) {
-			windows[i]->swapchain = create_swapchain(pDevice, windows[i], params.swapchainFormat);
+		for (Window* window : params.windows) {
+			window->swapchain = create_swapchain(pDevice, window, params.swapchainFormat);
 		}
 
 		pDevice->commandPool = create_command_pool(pDevice, graphicsQueue.familyIndex);
 		pDevice->transientPool = create_command_pool(pDevice, graphicsQueue.familyIndex, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 		pDevice->renderPass = create_render_pass(pDevice);
 
-		for (Window* window : windows) {
+		for (Window* window : params.windows) {
 			std::vector<VkCommandBuffer> commandBuffers = detail::create_command_buffers(pDevice, pDevice->commandPool, params.framesInFlight);
 			window->frames.resize(params.framesInFlight);
 			for (uint32_t i = 0; i < params.framesInFlight; i++) {
@@ -416,8 +424,6 @@ namespace gfx
 			}
 			window->renderTarget = create_render_target(pDevice, window, pDevice->renderPass);
 		}
-
-		pDevice->windows = windows;
 
 		if (params.resourcePool.max_sets > 0) {
 			pDevice->resourcePool = create_resource_pool(pDevice, params.resourcePool);
@@ -439,21 +445,9 @@ namespace gfx
 			destroy_resource_pool(device, device->resourcePool);
 		}
 
-		for (uint32_t i = 0; i < device->windows.size(); i++) {
-			for (uint32_t j = 0; j < device->windows[i]->frames.size(); j++) {
-				destroy_semaphore(device, &device->windows[i]->frames[j].imageAvailable);
-				destroy_fence(device, &device->windows[i]->frames[j].inFlightFence);
-			}
-			destroy_render_target(device, device->windows[i]->renderTarget);
-		}
-
 		vkDestroyCommandPool(device->device, device->transientPool, nullptr);
 		vkDestroyCommandPool(device->device, device->commandPool, nullptr);
 		destroy_render_pass(device, device->renderPass);
-
-		for (uint32_t i = 0; i < device->windows.size(); i++) {
-			detail::destroy_window(device, device->windows[i]);
-		}
 
 		vkDestroyDevice(device->device, nullptr);
 

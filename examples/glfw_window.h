@@ -8,10 +8,11 @@
 #include <string>
 #include <gfx/window.h>
 
+
 struct Window
 {
-	GLFWwindow* window;
-	gfx::WindowCallbacks callbacks;
+	GLFWwindow* glfwWindow;
+	gfx::Window* vkWindow;
 };
 
 Window create_window(std::uint32_t width, std::uint32_t height, const std::string& title);

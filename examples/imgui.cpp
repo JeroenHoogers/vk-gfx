@@ -51,28 +51,17 @@ int main() {
 	std::string appName = "imgui example";
 	Window window = create_window(width, height, appName);
 
-	// TODO: specify pool size: IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE
-
 	gfx::DeviceInit deviceInit = gfx::create_device({
 		.appname = appName,
 		.extensions = {},
 		.swapchainFormat = VK_FORMAT_B8G8R8A8_SRGB,
-		.windows = {&window.callbacks},
+		.windows = {window.vkWindow},
 		.enableValidation = enableValidationLayers
 	});
 
 	gfx::Device* device = deviceInit.device;
-	gfx::Window* mainWindow = device->windows[0];
 
-	// gfx::ResourcePool* imguiResourcePool = gfx::create_resource_pool(device, {
-	// 	.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
-	// 	.sizes =  { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024 },
-	// 	.max_sets = 1,
-	// });
-
-	glfwSetWindowUserPointer(window.window, mainWindow); // TODO: get window
-
-	init_imgui(device, window.window);
+	init_imgui(device, window.glfwWindow);
 	// if () { // TODO: error handling
 		// gfx::destroy_device(device);
 		// close_window(window);
@@ -88,7 +77,7 @@ int main() {
 		ImGui::NewFrame();
 		ImGui::ShowDemoWindow();
 
-		const gfx::SwapchainFrame frame = gfx::acquire(device, mainWindow);
+		const gfx::SwapchainFrame frame = gfx::acquire(device, window.vkWindow);
 		gfx::CommandBuffer* commands = gfx::begin_commands(frame.window);
 		gfx::begin_render_pass(device, commands, &frame);
 		gfx::bind_pipeline(pipeline, commands, frame.dynamicState);
@@ -109,6 +98,7 @@ int main() {
 	ImGui::DestroyContext();
 
 	gfx::destroy_pipeline(device, pipeline);
+	gfx::destroy_window(device, window.vkWindow);
 	gfx::destroy_device(device);
 	close_window(window);
 

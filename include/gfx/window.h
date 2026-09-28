@@ -44,16 +44,20 @@ namespace gfx
 	};
 
 	struct Window {
-		WindowCallbacks* callbacks;
-		VkSurfaceKHR surface;
+		WindowCallbacks callbacks;
+		VkSurfaceKHR surface = VK_NULL_HANDLE;
 		Swapchain* swapchain = nullptr;
 		RenderTarget* renderTarget = nullptr;
 		std::vector<Frame> frames = {};
+		uint32_t width = 0;
+		uint32_t height = 0;
 		uint32_t currentFrame = 0;
 	};
 
 	namespace detail {
-		Window* create_window(VkInstance instance, WindowCallbacks* callbacks);
-		void destroy_window(Device* device, Window* window);
+		void init_window(VkInstance instance, Window* window);
 	}
+
+	Window* create_window(WindowCallbacks callbacks);
+	void destroy_window(Device* device, Window* window);
 }

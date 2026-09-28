@@ -78,7 +78,7 @@ int main()
 		.features = features,
 		.enableDepth = true,
 		.msaaSamples = VK_SAMPLE_COUNT_4_BIT,
-		.windows = {&window.callbacks},
+		.windows = {window.vkWindow},
 		.resourcePool = {
 			.sizes = {
 				{.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = static_cast<uint32_t>(10)},
@@ -94,8 +94,6 @@ int main()
 	// gfx::destroy_device(device);
 	// close_window(window);
 	// }
-	gfx::Window* mainWindow = device->windows[0];
-	glfwSetWindowUserPointer(window.window, mainWindow);
 
 	gfx::Texture* texture = load_image(device, TEXTURE_PATH);
 	gfx::Mesh model = load_model(device, MODEL_PATH);
@@ -149,7 +147,7 @@ int main()
 	};
 
 	while (poll_window_events(window)) {
-		const gfx::SwapchainFrame frame = gfx::acquire(device, mainWindow);
+		const gfx::SwapchainFrame frame = gfx::acquire(device, window.vkWindow);
 		updateUniformBuffer(ubo, frame);
 		gfx::CommandBuffer* commands = gfx::begin_commands(frame.window);
 		gfx::begin_render_pass(device, commands, &frame);
@@ -170,6 +168,7 @@ int main()
 	gfx::destroy_resource_set_layouts(device, {uboResourceLayout, materialResourceLayout});
 	gfx::destroy_uniform_buffer(device, ubo);
 	gfx::destroy_texture(device, texture);
+	gfx::destroy_window(device, window.vkWindow);
 	gfx::destroy_device(device);
 	close_window(window);
 

@@ -57,8 +57,8 @@ Window create_window(std::uint32_t width, std::uint32_t height, const std::strin
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	// glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-	GLFWwindow* window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
-	glfwSetFramebufferSizeCallback(window, glfw_resize_callback);
+	GLFWwindow* glfwWindow = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
+	glfwSetFramebufferSizeCallback(glfwWindow, glfw_resize_callback);
 
 	if (!glfwVulkanSupported()) {
 		std::printf("GLFW: Vulkan Not Supported\n");
@@ -69,24 +69,28 @@ Window create_window(std::uint32_t width, std::uint32_t height, const std::strin
 		.get_required_instance_extensions = glfw_get_required_instance_extensions,
 		.get_framebuffer_size = glfw_get_framebuffer_size,
 		.create_surface = glfw_create_surface,
-		.user_data = window
+		.user_data = glfwWindow
 	};
 
+	// provide vk window ptr as userdata to glfwWindow for framebuffer resize callback
+	gfx::Window* vkWindow = gfx::create_window(windowCallbacks);
+	glfwSetWindowUserPointer(glfwWindow, vkWindow);
+
 	return Window{
-		.window = window,
-		.callbacks = windowCallbacks
+		.glfwWindow = glfwWindow,
+		.vkWindow = vkWindow
 	};
 }
 
 bool poll_window_events(Window& window) {
-	if (glfwWindowShouldClose(window.window))
+	if (glfwWindowShouldClose(window.glfwWindow))
 		return false;
 
 	// pauze while minimized
 	int width = 0, height = 0;
-	glfwGetFramebufferSize(window.window, &width, &height);
+	glfwGetFramebufferSize(window.glfwWindow, &width, &height);
 	while (width == 0 || height == 0) {
-		glfwGetFramebufferSize(window.window, &width, &height);
+		glfwGetFramebufferSize(window.glfwWindow, &width, &height);
 		glfwWaitEvents();
 	}
 
@@ -96,8 +100,8 @@ bool poll_window_events(Window& window) {
 }
 
 void close_window(Window& window) {
-	glfwDestroyWindow(window.window);
+	glfwDestroyWindow(window.glfwWindow);
 	glfwTerminate();
 
-	window.window = nullptr;
+	window.glfwWindow = nullptr;
 }

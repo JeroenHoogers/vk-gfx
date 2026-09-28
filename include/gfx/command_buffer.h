@@ -35,7 +35,8 @@ namespace gfx
 
 	void draw_indirect(CommandBuffer* commands, Mesh* mesh, Buffer* indirectBuffer, uint32_t drawCount, uint32_t offset = 0);
 	void draw_indexed_indirect(CommandBuffer* commands, Mesh* mesh, Buffer* indirectBuffer, uint32_t drawCount, uint32_t offset = 0);
-	void submit(Device* device, CommandBuffer* commands); // TODO:
+
+	// void submit(Device* device, CommandBuffer* commands); // TODO: add support for submit without presenting
 
 	// TODO: allow for multiple command buffers
 	void submit_and_present(Device* device, Window* window, const CommandBuffer* commands);

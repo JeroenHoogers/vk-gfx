@@ -15,13 +15,11 @@ int main() {
 		.appname = appName,
 		.extensions = {},
 		.swapchainFormat = VK_FORMAT_B8G8R8A8_SRGB,
-		.windows = {&window.callbacks},
+		.windows = {window.vkWindow},
 		.enableValidation = enableValidationLayers
 	});
 
 	gfx::Device* device = deviceInit.device;
-	gfx::Window* mainWindow = device->windows[0];
-	glfwSetWindowUserPointer(window.window, mainWindow); // TODO: get window
 
 	// if () { // TODO: error handling
 		// gfx::destroy_device(device);
@@ -33,7 +31,7 @@ int main() {
 	});
 
 	while (poll_window_events(window)) {
-		const gfx::SwapchainFrame frame = gfx::acquire(device, mainWindow);
+		const gfx::SwapchainFrame frame = gfx::acquire(device, window.vkWindow);
 		gfx::CommandBuffer* commands = gfx::begin_commands(frame.window);
 		gfx::begin_render_pass(device, commands, &frame);
 		gfx::bind_pipeline(pipeline, commands, frame.dynamicState);
@@ -46,6 +44,7 @@ int main() {
 	gfx::wait_idle(device);
 
 	gfx::destroy_pipeline(device, pipeline);
+	gfx::destroy_window(device, window.vkWindow);
 	gfx::destroy_device(device);
 	close_window(window);
 
