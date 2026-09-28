@@ -51,6 +51,7 @@ namespace gfx
 		std::vector<Frame> frames = {};
 		uint32_t width = 0;
 		uint32_t height = 0;
+		float scaling = 1.0f;
 		uint32_t currentFrame = 0;
 	};
 
