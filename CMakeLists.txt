@@ -5,7 +5,7 @@ project(vk-gfx
   LANGUAGES C CXX
 )
 
-option(BUILD_EXAMPLES "Build examples" OFF)
+option(VKGFX_BUILD_EXAMPLES "Build vk-gfx examples" OFF)
 
 # export compile commands for IDE
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -73,7 +73,7 @@ target_include_directories(vk-gfx
 )
 
 # Example executable
-if(BUILD_EXAMPLES)
+if(VKGFX_BUILD_EXAMPLES)
   find_package(glfw3 3.3 REQUIRED)
   find_package(glm REQUIRED)
 
@@ -155,7 +155,7 @@ if(BUILD_EXAMPLES)
       ${COMPILED_FRAGMENT_SHADERS}
   )
 
-  add_custom_target(compile_shaders ALL
+  add_custom_target(vkgfx_compile_shaders ALL
       DEPENDS ${COMPILED_SHADERS}
   )
 
@@ -165,12 +165,12 @@ if(BUILD_EXAMPLES)
   include_directories(${INCLUDE_DIR} ${EXAMPLES_DIR}/thirdparty)
   add_executable(triangle-example ${SRC_EXAMPLES} ${EXAMPLES_DIR}/triangle.cpp)
   target_link_libraries(triangle-example PRIVATE ${EXAMPLE_LIBS})
-  add_dependencies(triangle-example compile_shaders)
+  add_dependencies(triangle-example vkgfx_compile_shaders)
 
   # cube
   add_executable(cube-example ${SRC_EXAMPLES} ${EXAMPLES_DIR}/cube.cpp)
   target_link_libraries(cube-example PRIVATE ${EXAMPLE_LIBS})
-  add_dependencies(cube-example compile_shaders)
+  add_dependencies(cube-example vkgfx_compile_shaders)
 
   add_custom_command(TARGET cube-example POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -185,7 +185,7 @@ if(BUILD_EXAMPLES)
 
   add_executable(text-example ${SRC_EXAMPLES} ${EXAMPLES_DIR}/text.cpp)
   target_link_libraries(text-example PRIVATE draft_type ${EXAMPLE_LIBS})
-  add_dependencies(text-example compile_shaders)
+  add_dependencies(text-example vkgfx_compile_shaders)
 
   add_custom_command(TARGET text-example POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -209,5 +209,5 @@ if(BUILD_EXAMPLES)
 
   add_executable(imgui-example ${SRC_EXAMPLES} ${SRC_IMGUI} ${EXAMPLES_DIR}/imgui.cpp)
   target_link_libraries(imgui-example PRIVATE ${EXAMPLE_LIBS})
-  add_dependencies(imgui-example compile_shaders)
-endif(BUILD_EXAMPLES)
+  add_dependencies(imgui-example vkgfx_compile_shaders)
+endif(VKGFX_BUILD_EXAMPLES)

@@ -348,12 +348,12 @@ namespace gfx
 		// add window instance extensions
 		if (params.windows.size() > 0) {
 			std::uint32_t windowExtensionCount = 0;
-			VkResult result = (*params.windows.begin())->callbacks.get_required_instance_extensions(&windowExtensionCount, nullptr, nullptr);
+			VkResult result = (*params.windows.begin()).window->callbacks.get_required_instance_extensions(&windowExtensionCount, nullptr, nullptr);
 			VK_ASSERT(result);
 
 			// TODO: extend params vector and write into the offset?
 			std::vector<const char*> windowExtensions(windowExtensionCount);
-			result = (*params.windows.begin())->callbacks.get_required_instance_extensions(&windowExtensionCount, windowExtensions.data(), nullptr);
+			result = (*params.windows.begin()).window->callbacks.get_required_instance_extensions(&windowExtensionCount, windowExtensions.data(), nullptr);
 			VK_ASSERT(result);
 
 			for (std::uint32_t i = 0; i < windowExtensionCount; i++) {
@@ -366,7 +366,8 @@ namespace gfx
 
 		VkSurfaceKHR surface = VK_NULL_HANDLE; // TODO: support windowless?
 
-		for (auto& window : params.windows) {
+		for (auto& windowParams : params.windows) {
+			Window* window = windowParams.window;
 			detail::init_window(instance, window);
 			surface = window->surface;
 		}
@@ -403,15 +404,17 @@ namespace gfx
 			.enableDepth = params.enableDepth
 		};
 
-		for (Window* window : params.windows) {
-			window->swapchain = create_swapchain(pDevice, window, params.swapchainFormat);
+		for (const auto& windowParams : params.windows) {
+			Window* window = windowParams.window;
+			window->swapchain = create_swapchain(pDevice, window, windowParams.swapchain);
 		}
 
 		pDevice->commandPool = create_command_pool(pDevice, graphicsQueue.familyIndex);
 		pDevice->transientPool = create_command_pool(pDevice, graphicsQueue.familyIndex, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 		pDevice->renderPass = create_render_pass(pDevice);
 
-		for (Window* window : params.windows) {
+		for (const auto& windowParams : params.windows) {
+			Window* window = windowParams.window;
 			std::vector<VkCommandBuffer> commandBuffers = detail::create_command_buffers(pDevice, pDevice->commandPool, params.framesInFlight);
 			window->frames.resize(params.framesInFlight);
 			for (uint32_t i = 0; i < params.framesInFlight; i++) {

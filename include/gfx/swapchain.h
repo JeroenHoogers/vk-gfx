@@ -34,8 +34,15 @@ namespace gfx
 		VkSwapchainKHR swapchain;
 		VkExtent2D extent;
 		VkFormat format;
+		VkCompositeAlphaFlagBitsKHR compositeAlpha;
 		uint32_t imageIndex = 0;
 		std::vector<SwapchainImage> images;
+	};
+
+	struct SwapchainDesc
+	{
+		VkFormat format;
+		VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	};
 
 	namespace detail
@@ -55,7 +62,7 @@ namespace gfx
 
 	} // namespace detail
 
-	[[nodiscard]] Swapchain* create_swapchain(Device* device, Window* window, VkFormat swapchainFormat);
+	[[nodiscard]] Swapchain* create_swapchain(Device* device, Window* window, const SwapchainDesc& params);
 	void recreate_swapchain(Device* device, Window* window);
 	void destroy_swapchain(Device* device, Swapchain* swapchain);
 	[[nodiscard]] SwapchainFrame acquire(Device* device, Window* window);

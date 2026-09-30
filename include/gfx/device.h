@@ -5,7 +5,8 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 #include <vulkan/vk_enum_string_helper.h>
-#include "resource.h"
+#include "resource.h" // required for ResourcePoolDesc
+#include "swapchain.h" // required for SwapchainDesc
 
 namespace gfx
 {
@@ -47,6 +48,11 @@ namespace gfx
 		RenderPass* renderPass = nullptr;
 	};
 
+	struct WindowDesc {
+		Window* window;
+		SwapchainDesc swapchain;
+	};
+
 	struct DeviceCreateParams
 	{
 		std::string appname = "vulkan app";
@@ -55,13 +61,11 @@ namespace gfx
 		std::vector<const char*> deviceExtensions{};
 		std::vector<const char*> layers{};
 		uint32_t framesInFlight = 2;
-		VkFormat swapchainFormat = VK_FORMAT_UNDEFINED; // TODO: move vulkan out of public API?
 		VkPhysicalDeviceFeatures features{};
 		bool enableDepth = false;
 		VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT; // 1 bit means no MSAA
-		std::vector<Window*> windows {};
+		std::vector<WindowDesc> windows {};
 		ResourcePoolDesc resourcePool {};
-		// WindowCallbacks* windowCallbacks = nullptr;
 		bool enableValidation = false;
 	};
 

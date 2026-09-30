@@ -6,6 +6,7 @@
 #include "gfx/window.h"
 #include <algorithm>
 #include <limits>
+#include <vulkan/vk_enum_string_helper.h>
 
 namespace gfx
 {
@@ -90,17 +91,37 @@ namespace gfx
 
 	} // namespace detail
 
-	Swapchain* create_swapchain(Device* device, Window* window, VkFormat desiredFormat)
+	Swapchain* create_swapchain(Device* device, Window* window, const SwapchainDesc& params)
 	{
 		auto swapchainSupport = detail::query_swapchain_support(device->physicalDevice, window->surface);
 		VkPresentModeKHR presentMode = detail::choose_swap_present_mode(swapchainSupport.presentModes);
 		window->callbacks.get_framebuffer_size(&window->width, &window->height, window->callbacks.user_data);
-		VkExtent2D extent = detail::choose_swap_extent(swapchainSupport.capabilities, window->width, window->height);
-		VkSurfaceFormatKHR surfaceFormat = detail::choose_swap_surface_format(swapchainSupport.formats, desiredFormat);
 
-		uint32_t imageCount = swapchainSupport.capabilities.minImageCount + 1;
-		if (swapchainSupport.capabilities.maxImageCount > 0 && imageCount > swapchainSupport.capabilities.maxImageCount) {
-			imageCount = swapchainSupport.capabilities.maxImageCount;
+		const VkSurfaceCapabilitiesKHR& caps = swapchainSupport.capabilities;
+		VkExtent2D extent = detail::choose_swap_extent(caps, window->width, window->height);
+		VkSurfaceFormatKHR surfaceFormat = detail::choose_swap_surface_format(swapchainSupport.formats, params.format);
+
+		uint32_t imageCount = caps.minImageCount + 1;
+		if (caps.maxImageCount > 0 && imageCount > caps.maxImageCount) {
+			imageCount = caps.maxImageCount;
+		}
+
+		VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_FLAG_BITS_MAX_ENUM_KHR;
+		if (caps.supportedCompositeAlpha & params.compositeAlpha) {
+			compositeAlpha = params.compositeAlpha;
+		} else if (caps.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR) {
+			compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+		} else if (caps.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR) {
+			compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
+		}
+
+		if (compositeAlpha != params.compositeAlpha) {
+			if(compositeAlpha == VK_COMPOSITE_ALPHA_FLAG_BITS_MAX_ENUM_KHR) {
+				printf("Unable to create swapchain. No suitable composite alpha mode found.\n");
+				abort();
+			}
+
+			printf("The requested composite alpha mode: %s is not supported. Falling back to: %s.\n", string_VkCompositeAlphaFlagBitsKHR(params.compositeAlpha), string_VkCompositeAlphaFlagBitsKHR(compositeAlpha));
 		}
 
 		VkSwapchainCreateInfoKHR createInfo{
@@ -117,8 +138,8 @@ namespace gfx
 			.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
 			.queueFamilyIndexCount = 0,
 			.pQueueFamilyIndices = nullptr,
-			.preTransform = swapchainSupport.capabilities.currentTransform,
-			.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+			.preTransform = caps.currentTransform,
+			.compositeAlpha = compositeAlpha,
 			.presentMode = presentMode,
 			.clipped = VK_TRUE,
 			.oldSwapchain = VK_NULL_HANDLE
@@ -158,6 +179,7 @@ namespace gfx
 			.swapchain = swapchain,
 			.extent = extent,
 			.format = surfaceFormat.format,
+			.compositeAlpha = compositeAlpha,
 			.images = std::move(images)
 		};
 
@@ -167,12 +189,16 @@ namespace gfx
 	void recreate_swapchain(Device* device, Window* window)
 	{
 		VkFormat format = window->swapchain->format;
+		VkCompositeAlphaFlagBitsKHR compositeAlpha = window->swapchain->compositeAlpha;
 		vkDeviceWaitIdle(device->device);
 
 		destroy_render_target(device, window->renderTarget);
 		destroy_swapchain(device, window->swapchain);
 
-		window->swapchain = create_swapchain(device, window, format);
+		window->swapchain = create_swapchain(device, window, {
+			.format = format,
+			.compositeAlpha = compositeAlpha
+		});
 		window->renderTarget = create_render_target(device, window, device->renderPass);
 	}
 

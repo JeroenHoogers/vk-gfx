@@ -54,8 +54,9 @@ int main() {
 	gfx::DeviceInit deviceInit = gfx::create_device({
 		.appname = appName,
 		.extensions = {},
-		.swapchainFormat = VK_FORMAT_B8G8R8A8_SRGB,
-		.windows = {window.vkWindow},
+		.windows = {
+			{ .window = window.vkWindow, .swapchain = { .format = VK_FORMAT_B8G8R8A8_SRGB }}
+		},
 		.enableValidation = enableValidationLayers
 	});
 
