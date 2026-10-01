@@ -11,18 +11,15 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <map>
 
 namespace gfx
 {
 	namespace
 	{
-		struct QueueFamilyIndices
-		{
-			std::uint32_t graphicsFamily;
-			std::uint32_t presentFamily;
-			std::uint32_t transferFamily;
-
-			std::uint32_t queueFamilyCount;
+		struct QueueAssignment {
+			uint32_t familyIndex = VK_QUEUE_FAMILY_IGNORED;
+			uint32_t queueIndex = 0;
 		};
 
 		VkSampleCountFlagBits get_max_usable_sample_count(VkPhysicalDevice physicalDevice) {
@@ -40,34 +37,54 @@ namespace gfx
 			return VK_SAMPLE_COUNT_1_BIT;
 		}
 
-		bool find_queue_families(VkPhysicalDevice physicalDevice, QueueFamilyIndices& indices, VkSurfaceKHR surface)
+		bool is_queue_suitable(VkPhysicalDevice physicalDevice, VkQueueFamilyProperties familyProperties, uint32_t familyIndex, QueueFlags requestedFlags, VkSurfaceKHR surface = VK_NULL_HANDLE)
 		{
-			vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &indices.queueFamilyCount, nullptr);
+			QueueFlags familyFlags = QueueFlags::None;
 
-			std::vector<VkQueueFamilyProperties> queueFamilies(indices.queueFamilyCount);
-			vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &indices.queueFamilyCount, queueFamilies.data());
-
-			for (std::uint32_t i = 0; i < indices.queueFamilyCount; i++) {
-				bool hasGraphics = false;
-				if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-					indices.graphicsFamily = i;
-					hasGraphics = true;
-				}
-
-				VkBool32 presentSupport = !surface;
-				if (surface) {
-					vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &presentSupport);
-
-					if (presentSupport) {
-						indices.presentFamily = i;
-					}
-				}
-
-				if (hasGraphics && presentSupport)
-					return true;
+			if(familyProperties.queueFlags & VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT) {
+				familyFlags |= QueueFlags::Graphics;
+			}
+			if(familyProperties.queueFlags & VkQueueFlagBits::VK_QUEUE_COMPUTE_BIT) {
+				familyFlags |= QueueFlags::Compute;
+			}
+			if(familyProperties.queueFlags & VkQueueFlagBits::VK_QUEUE_TRANSFER_BIT) {
+				familyFlags |= QueueFlags::Transfer;
 			}
 
-			return false;
+			if (surface) {
+				VkBool32 presentSupport;
+				vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, familyIndex, surface, &presentSupport);
+
+				if(presentSupport) {
+					familyFlags |= QueueFlags::Present;
+				}
+			}
+
+			return (familyFlags & requestedFlags) == requestedFlags;
+		}
+
+		std::vector<QueueAssignment> find_queue_families(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, const std::vector<QueueRequest>& requestedQueues)
+		{
+			std::vector<QueueAssignment> assignments;
+			assignments.reserve(requestedQueues.size());
+
+			uint32_t queueFamilyCount;
+			vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
+
+			std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+			vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
+
+			for (uint32_t i = 0; i < requestedQueues.size(); i++) {
+				for (std::uint32_t j = 0; j < queueFamilyCount; j++) {
+					// TODO: this greedy approach may not always work, safer to find all candidates per request and then decide
+					if(is_queue_suitable(physicalDevice, queueFamilies[j], j, requestedQueues[i].flags, surface)) {
+						assignments.push_back( { .familyIndex = j, .queueIndex = 0 }); // TODO: support multiple queues for the same family
+						break;
+					}
+				}
+			}
+
+			return assignments;
 		}
 
 		// TODO: allow user callback instead
@@ -177,12 +194,26 @@ namespace gfx
 			return true;
 		}
 
-		bool is_device_suitable(VkPhysicalDevice physicalDevice, const std::vector<const char*>& extensions, VkSurfaceKHR surface)
+		bool check_device_features(const VkPhysicalDeviceFeatures& requested, const VkPhysicalDeviceFeatures& supported)
 		{
-			// check queue families
-			QueueFamilyIndices indices;
-			bool has_queue_families = find_queue_families(physicalDevice, indices, surface);
+			constexpr size_t count = sizeof(VkPhysicalDeviceFeatures) / sizeof(VkBool32);
 
+			VkBool32 requestedBools[count];
+			VkBool32 supportedBools[count];
+
+			std::memcpy(requestedBools, &requested, sizeof requestedBools);
+			std::memcpy(supportedBools, &supported, sizeof supportedBools);
+
+			for (std::size_t i = 0; i < count; ++i) {
+				if (requestedBools[i] && !supportedBools[i]) {
+					return false;
+				}
+			}
+			return true;
+		}
+
+		bool is_device_suitable(VkPhysicalDevice physicalDevice, const std::vector<const char*>& extensions, const DeviceCreateParams& params, VkSurfaceKHR surface)
+		{
 			// check required extensions
 			std::uint32_t extensionCount;
 			vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
@@ -214,12 +245,20 @@ namespace gfx
 			// vkGetPhysicalDeviceProperties(physicalDevice, &properties);
 			// properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
 
+			// check queue families
+			// TODO: inefficient to repeatedly query this, we should probably save these assignments after querying them once
+			std::vector<QueueAssignment> assignments = find_queue_families(physicalDevice, surface, params.queues);
+			bool has_queue_families = assignments.size() == params.queues.size();
+
 			VkPhysicalDeviceFeatures supportedFeatures;
 			vkGetPhysicalDeviceFeatures(physicalDevice, &supportedFeatures);
-			return has_queue_families && has_extensions && present_adequate && supportedFeatures.samplerAnisotropy;
+			bool features_supported = check_device_features(params.features, supportedFeatures);
+			// TODO: check supported features against provided features
+
+			return has_queue_families && has_extensions && present_adequate && features_supported;
 		}
 
-		VkPhysicalDevice pick_physical_device(VkInstance instance, const std::vector<const char*>& extensions, VkSurfaceKHR surface)
+		VkPhysicalDevice pick_physical_device(VkInstance instance, const std::vector<const char*>& extensions, const DeviceCreateParams& params, VkSurfaceKHR surface)
 		{
 			std::uint32_t deviceCount = 0;
 			VkResult result = vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
@@ -238,7 +277,7 @@ namespace gfx
 				VkPhysicalDeviceProperties deviceProperties;
 				vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
 
-				if (is_device_suitable(physicalDevice, extensions, surface)) {
+				if (is_device_suitable(physicalDevice, extensions, params, surface)) {
 					printf("Found suitable physical device: %s \n", deviceProperties.deviceName);
 					return physicalDevice;
 				}
@@ -248,40 +287,38 @@ namespace gfx
 			abort();
 		}
 
-		VkDevice create_logical_device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, const std::vector<const char*>& extensions, const VkPhysicalDeviceFeatures& features, Queue& graphicsQueue, Queue& presentQueue)
+		VkDevice create_logical_device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, const std::vector<const char*>& extensions, const DeviceCreateParams& params, Queue& graphicsQueue, Queue& presentQueue, Queue& computeQueue)
 		{
-			QueueFamilyIndices indices;
-			if (!find_queue_families(physicalDevice, indices, surface)) {
+			std::vector<QueueAssignment> queueAssignments = find_queue_families(physicalDevice, surface, params.queues);
+			if (queueAssignments.size() != params.queues.size()) {
 				fprintf(stderr, "failed to find required queue families!");
 			}
 
 			// make queue create infos
-			std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-			{
 				// TODO: this assumes all queues are required, should be adapted
-				std::vector<std::uint32_t> queueFamilies = {indices.graphicsFamily};
-				if(surface) {
-					queueFamilies.push_back(indices.presentFamily);
-				}
-				std::vector<bool> exists(indices.queueFamilyCount, false);
+				// std::vector<std::uint32_t> queueFamilies = {indices.graphicsFamily};
+				// if(surface) {
+				// 	queueFamilies.push_back(indices.presentFamily);
+				// }
+			std::map<uint32_t, uint32_t> queueCounts;
 
-				float queuePriority = 1.0f;
-				for (uint32_t queueFamily : queueFamilies) {
-					if (exists[queueFamily]) {
-						continue;
-					}
-					VkDeviceQueueCreateInfo queueCreateInfo{
-						.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-						.pNext = nullptr,
-						.flags = 0,
-						.queueFamilyIndex = queueFamily,
-						.queueCount = 1,
-						.pQueuePriorities = &queuePriority
-					};
-					queueCreateInfos.push_back(queueCreateInfo);
+			float queuePriority = 1.0f;
+			for (const auto& assignment : queueAssignments) {
+				queueCounts[assignment.familyIndex] = std::max(queueCounts[assignment.familyIndex], assignment.queueIndex + 1);
+			}
+			std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+			queueCreateInfos.reserve(queueCounts.size());
 
-					exists[queueFamily] = true;
-				}
+			for (const auto& [familyIndex, queueCount] : queueCounts) {
+				VkDeviceQueueCreateInfo queueCreateInfo{
+					.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+					.pNext = nullptr,
+					.flags = 0,
+					.queueFamilyIndex = familyIndex,
+					.queueCount = queueCount,
+					.pQueuePriorities = &queuePriority
+				};
+				queueCreateInfos.push_back(queueCreateInfo);
 			}
 
 			VkDeviceCreateInfo createInfo{
@@ -294,20 +331,32 @@ namespace gfx
 				.ppEnabledLayerNames = {},
 				.enabledExtensionCount = static_cast<std::uint32_t>(extensions.size()),
 				.ppEnabledExtensionNames = extensions.data(),
-				.pEnabledFeatures = &features
+				.pEnabledFeatures = &params.features
 			};
 
 			VkDevice device;
 			VkResult result = vkCreateDevice(physicalDevice, &createInfo, nullptr, &device);
 			VK_ASSERT(result);
 
-			graphicsQueue.familyIndex = indices.graphicsFamily;
-			presentQueue.familyIndex = indices.presentFamily;
-
-			vkGetDeviceQueue(device, graphicsQueue.familyIndex, graphicsQueue.queueIndex, &graphicsQueue.handle);
-			if(surface) {
-				vkGetDeviceQueue(device, presentQueue.familyIndex, presentQueue.queueIndex, &presentQueue.handle);
+			// TODO: store list of queues instead and store a mapping to them
+			for (uint32_t i = 0; i < params.queues.size(); i++) {
+				if ((params.queues[i].flags & QueueFlags::Graphics) == QueueFlags::Graphics) {
+					graphicsQueue.familyIndex = queueAssignments[i].familyIndex;
+					graphicsQueue.queueIndex = queueAssignments[i].queueIndex;
+					vkGetDeviceQueue(device, graphicsQueue.familyIndex, graphicsQueue.queueIndex, &graphicsQueue.handle);
+				}
+				if ((params.queues[i].flags & QueueFlags::Present) == QueueFlags::Present) {
+					presentQueue.familyIndex = queueAssignments[i].familyIndex;
+					presentQueue.queueIndex = queueAssignments[i].queueIndex;
+					vkGetDeviceQueue(device, presentQueue.familyIndex, presentQueue.queueIndex, &presentQueue.handle);
+				}
+				if ((params.queues[i].flags & QueueFlags::Compute) == QueueFlags::Compute) {
+					computeQueue.familyIndex = queueAssignments[i].familyIndex;
+					computeQueue.queueIndex = queueAssignments[i].queueIndex;
+					vkGetDeviceQueue(device, computeQueue.familyIndex, computeQueue.queueIndex, &computeQueue.handle);
+				}
 			}
+
 			return device;
 		}
 
@@ -325,7 +374,6 @@ namespace gfx
 			VK_ASSERT(result);
 			return commandPool;
 		}
-
 	} // namespace
 
 	DeviceInit create_device(const DeviceCreateParams& params)
@@ -377,7 +425,7 @@ namespace gfx
 			deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 		}
 
-		VkPhysicalDevice physicalDevice = pick_physical_device(instance, deviceExtensions, surface);
+		VkPhysicalDevice physicalDevice = pick_physical_device(instance, deviceExtensions, params, surface);
 		VkSampleCountFlagBits maxMsaaSamples = get_max_usable_sample_count(physicalDevice); // TODO: incorporate desired MSAA samples in device choice?
 		VkSampleCountFlagBits msaaSamples = std::clamp(params.msaaSamples, VK_SAMPLE_COUNT_1_BIT, maxMsaaSamples);
 
@@ -386,7 +434,8 @@ namespace gfx
 
 		Queue graphicsQueue = {};
 		Queue presentQueue = {};
-		VkDevice device = create_logical_device(physicalDevice, surface, deviceExtensions, params.features, graphicsQueue, presentQueue);
+		Queue computeQueue = {};
+		VkDevice device = create_logical_device(physicalDevice, surface, deviceExtensions, params, graphicsQueue, presentQueue, computeQueue);
 
 		VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
 		if (params.enableValidation) {

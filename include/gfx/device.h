@@ -7,6 +7,7 @@
 #include <vulkan/vk_enum_string_helper.h>
 #include "resource.h" // required for ResourcePoolDesc
 #include "swapchain.h" // required for SwapchainDesc
+#include "detail/bitflags.h"
 
 namespace gfx
 {
@@ -24,10 +25,27 @@ namespace gfx
 	struct CommandBuffer;
 	struct Image;
 
+	// consider moving queue logic to a separate file?
 	struct Queue {
 		VkQueue handle = VK_NULL_HANDLE;
 		uint32_t familyIndex = VK_QUEUE_FAMILY_IGNORED;
 		uint32_t queueIndex = 0;
+	};
+
+	enum class QueueFlags : uint8_t {
+		None     = 0,
+		Graphics = 1 << 0,
+		Present  = 1 << 1,
+		Compute  = 1 << 2,
+		Transfer = 1 << 3,
+	};
+
+	template <>
+	struct detail::enable_bitmask_operators<QueueFlags> : std::true_type {};
+
+	struct QueueRequest {
+		QueueFlags flags;
+		bool preferDedicated = false;
 	};
 
 	struct Device
@@ -36,9 +54,11 @@ namespace gfx
 		VkPhysicalDevice physicalDevice;
 		VkDevice device;
 		VkDebugUtilsMessengerEXT debugMessenger;
+		// TODO: consider creating a list of queues instead matching the queue requests?
 		Queue graphicsQueue = {};
 		Queue presentQueue = {};
 		Queue transferQueue = {};
+		Queue computeQueue = {};
 		VkCommandPool commandPool = VK_NULL_HANDLE;
 		VkCommandPool transientPool = VK_NULL_HANDLE;
 		ResourcePool* resourcePool = nullptr;
@@ -60,6 +80,7 @@ namespace gfx
 		std::vector<const char*> extensions{};
 		std::vector<const char*> deviceExtensions{};
 		std::vector<const char*> layers{};
+		std::vector<QueueRequest> queues{ QueueRequest{ .flags = QueueFlags::Graphics | QueueFlags::Present }};
 		uint32_t framesInFlight = 2;
 		VkPhysicalDeviceFeatures features{};
 		bool enableDepth = false;

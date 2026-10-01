@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <vulkan/vulkan.h>
+#include "detail/bitflags.h"
 
 namespace gfx
 {
@@ -15,19 +16,8 @@ namespace gfx
 		LineWidth = 1 << 5
 	};
 
-	constexpr DynamicStateFlags operator&(DynamicStateFlags lhs, DynamicStateFlags rhs)
-	{
-		return static_cast<DynamicStateFlags>(
-			static_cast<uint32_t>(lhs) & static_cast<uint32_t>(rhs)
-		);
-	}
-
-	constexpr DynamicStateFlags operator|(DynamicStateFlags lhs, DynamicStateFlags rhs)
-	{
-		return static_cast<DynamicStateFlags>(
-			static_cast<uint32_t>(lhs) | static_cast<uint32_t>(rhs)
-		);
-	}
+	template <>
+	struct detail::enable_bitmask_operators<DynamicStateFlags> : std::true_type {};
 
 	struct DynamicState
 	{
