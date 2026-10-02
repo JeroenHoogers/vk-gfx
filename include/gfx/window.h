@@ -53,6 +53,7 @@ namespace gfx
 		uint32_t height = 0;
 		float scaling = 1.0f;
 		uint32_t currentFrame = 0;
+		void* userData = nullptr;
 	};
 
 	namespace detail {

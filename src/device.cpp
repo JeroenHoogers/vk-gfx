@@ -461,7 +461,7 @@ namespace gfx
 
 		pDevice->commandPool = create_command_pool(pDevice, graphicsQueue.familyIndex);
 		pDevice->transientPool = create_command_pool(pDevice, graphicsQueue.familyIndex, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
-		pDevice->renderPass = create_render_pass(pDevice);
+		pDevice->renderPass = create_render_pass(pDevice, params.renderPass);
 
 		for (const auto& windowParams : params.windows) {
 			Window* window = windowParams.window;

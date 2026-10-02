@@ -110,6 +110,8 @@ namespace gfx
 
 		RenderPass* pRenderPass = new RenderPass{
 			.renderPass = renderPass,
+			.colors = desc.colors,
+			.depth = desc.depth
 		};
 
 		return pRenderPass;
@@ -117,10 +119,12 @@ namespace gfx
 
 	void begin_render_pass(Device* device, CommandBuffer* commands, const SwapchainFrame* frame)
 	{
+		// TODO: allow renderpass to be supplied, otherwise take default from device
+		RenderPass* renderpass = device->renderPass;
 		// TODO: provide these?
 		std::vector<VkClearValue> clearValues{
-			VkClearValue {.color = {{0.0f, 0.0f, 0.0f, 1.0f}}},
-			VkClearValue {.depthStencil = {1.0f, 0}}
+			renderpass->colors.clearColor,
+			renderpass->depth.clearColor
 		};
 
 		VkRenderPassBeginInfo renderPassInfo{

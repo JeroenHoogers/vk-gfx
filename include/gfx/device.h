@@ -8,6 +8,7 @@
 #include "resource.h" // required for ResourcePoolDesc
 #include "swapchain.h" // required for SwapchainDesc
 #include "detail/bitflags.h"
+#include "render_pass.h" // required for RenderPassDesc
 
 namespace gfx
 {
@@ -83,6 +84,7 @@ namespace gfx
 		std::vector<QueueRequest> queues{ QueueRequest{ .flags = QueueFlags::Graphics | QueueFlags::Present }};
 		uint32_t framesInFlight = 2;
 		VkPhysicalDeviceFeatures features{};
+		RenderPassDesc renderPass{};
 		bool enableDepth = false;
 		VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT; // 1 bit means no MSAA
 		std::vector<WindowDesc> windows {};

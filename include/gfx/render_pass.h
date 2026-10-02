@@ -7,11 +7,6 @@ namespace gfx
 	struct CommandBuffer;
 	struct SwapchainFrame;
 
-	struct RenderPass
-	{
-		VkRenderPass renderPass;
-	};
-
 	struct ColorAttachment
 	{
 		VkFormat format = VK_FORMAT_B8G8R8A8_SRGB;
@@ -26,6 +21,13 @@ namespace gfx
 		VkAttachmentLoadOp loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		VkAttachmentStoreOp storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		VkClearValue clearColor = {{{1.0f, 0.0f}}};
+	};
+
+	struct RenderPass
+	{
+		VkRenderPass renderPass;
+		ColorAttachment colors = {}; // TODO: allow more than one
+		DepthAttachment depth = {};
 	};
 
 	struct RenderPassDesc
