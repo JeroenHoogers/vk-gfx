@@ -125,6 +125,25 @@ namespace gfx
 		VK_ASSERT(result);
 	}
 
+	// TODO: supply queue and sync objects?
+	void submit(Device* device, const CommandBuffer* commands)
+	{
+		VkSubmitInfo submitInfo{
+			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+			.pNext = nullptr,
+			.waitSemaphoreCount = 0,
+			.pWaitSemaphores = nullptr,
+			.pWaitDstStageMask = nullptr,
+			.commandBufferCount = 1,
+			.pCommandBuffers = &commands->commandBuffer,
+			.signalSemaphoreCount = 0,
+			.pSignalSemaphores = nullptr
+		};
+
+		VkResult result = vkQueueSubmit(device->computeQueue.handle, 1, &submitInfo, nullptr);
+		VK_ASSERT(result);
+	}
+
 	void submit_and_present(Device* device, Window* window, const CommandBuffer* commands)
 	{
 		Frame& frame = window->frames[window->currentFrame];
@@ -155,6 +174,10 @@ namespace gfx
 
 		// TODO: should frames in flight be per window?
 		window->currentFrame = (window->currentFrame + 1) % static_cast<uint32_t>(window->frames.size());
+	}
+
+	void dispatch(CommandBuffer* commands, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) {
+		vkCmdDispatch(commands->commandBuffer, groupCountX, groupCountY, groupCountZ);
 	}
 
 	void draw(CommandBuffer* commands, Mesh* mesh, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)

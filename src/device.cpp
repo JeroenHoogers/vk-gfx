@@ -449,6 +449,7 @@ namespace gfx
 			.debugMessenger = debugMessenger,
 			.graphicsQueue = graphicsQueue,
 			.presentQueue = presentQueue,
+			.computeQueue = computeQueue,
 			.msaaSamples = msaaSamples,
 			.enableDepth = params.enableDepth
 		};

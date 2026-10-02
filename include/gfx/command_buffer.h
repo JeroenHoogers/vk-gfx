@@ -29,6 +29,7 @@ namespace gfx
 	[[nodiscard]] CommandBuffer* begin_commands(Window* window);
 	void end_commands(CommandBuffer* commands);
 
+	void dispatch(CommandBuffer* commands, uint32_t groupCountX, uint32_t groupCountY = 1, uint32_t groupCountZ = 1);
 	void draw(CommandBuffer* commands, Mesh* mesh, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0);
 
 	void draw_indexed(CommandBuffer* commands, Mesh* mesh, uint32_t indexCount, uint32_t instanceCount = 1, uint32_t firstIndex = 0, int32_t vertexOffset = 0, uint32_t firstInstance = 0);
@@ -36,7 +37,7 @@ namespace gfx
 	void draw_indirect(CommandBuffer* commands, Mesh* mesh, Buffer* indirectBuffer, uint32_t drawCount, uint32_t offset = 0);
 	void draw_indexed_indirect(CommandBuffer* commands, Mesh* mesh, Buffer* indirectBuffer, uint32_t drawCount, uint32_t offset = 0);
 
-	// void submit(Device* device, CommandBuffer* commands); // TODO: add support for submit without presenting
+	void submit(Device* device, const CommandBuffer* commands);
 
 	// TODO: allow for multiple command buffers
 	void submit_and_present(Device* device, Window* window, const CommandBuffer* commands);

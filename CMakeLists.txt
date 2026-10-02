@@ -95,6 +95,7 @@ if(VKGFX_BUILD_EXAMPLES)
       "${SHADER_SRC_DIR}/triangle.slang"
       "${SHADER_SRC_DIR}/textured.slang"
       "${SHADER_SRC_DIR}/text.slang" # will be compiled to spirv_1_3 instead of 1_0 since it uses SV_InstanceID
+      "${SHADER_SRC_DIR}/compute.slang"
   )
 
   set(FRAGMENT_SHADERS
@@ -102,6 +103,11 @@ if(VKGFX_BUILD_EXAMPLES)
       "${SHADER_SRC_DIR}/triangle.slang"
       "${SHADER_SRC_DIR}/textured.slang"
       "${SHADER_SRC_DIR}/text.slang"
+      "${SHADER_SRC_DIR}/compute.slang"
+  )
+
+  set(COMPUTE_SHADERS
+      "${SHADER_SRC_DIR}/compute.slang"
   )
 
   function(compile_slang_stage OUTPUTS_VAR STAGE ENTRY)
@@ -150,9 +156,17 @@ if(VKGFX_BUILD_EXAMPLES)
       ${FRAGMENT_SHADERS}
   )
 
+  compile_slang_stage(
+      COMPILED_COMPUTE_SHADERS
+      compute
+      computeMain
+      ${COMPUTE_SHADERS}
+  )
+
   set(COMPILED_SHADERS
       ${COMPILED_VERTEX_SHADERS}
       ${COMPILED_FRAGMENT_SHADERS}
+      ${COMPILED_COMPUTE_SHADERS}
   )
 
   add_custom_target(vkgfx_compile_shaders ALL
@@ -177,6 +191,11 @@ if(VKGFX_BUILD_EXAMPLES)
               "${CMAKE_SOURCE_DIR}/assets"
               "$<TARGET_FILE_DIR:cube-example>/assets"
   )
+
+  # compute
+  add_executable(compute-example ${SRC_EXAMPLES} ${EXAMPLES_DIR}/compute.cpp)
+  target_link_libraries(compute-example PRIVATE ${EXAMPLE_LIBS})
+  add_dependencies(compute-example vkgfx_compile_shaders)
 
   # text
   set(DRAFT_TYPE_DIR ${EXAMPLES_DIR}/thirdparty/draft-type)

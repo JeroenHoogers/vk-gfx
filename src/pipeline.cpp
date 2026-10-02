@@ -34,12 +34,36 @@ namespace gfx
 
 			return dynamicStates;
 		}
+
+		VkPipelineShaderStageCreateInfo create_shader_stage(VkShaderModule module, VkShaderStageFlagBits stage){
+			return VkPipelineShaderStageCreateInfo {
+				.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+				.pNext = nullptr,
+				.flags = 0,
+				.stage = stage,
+				.module = module,
+				.pName = "main",
+				.pSpecializationInfo = nullptr
+			};
+		}
+
+		void add_shader_stage(VkShaderModule module, VkShaderStageFlagBits stage, std::vector<VkPipelineShaderStageCreateInfo>& stages) {
+			if(module == VK_NULL_HANDLE) {
+				return;
+			}
+
+			stages.push_back(create_shader_stage(module, stage));
+		}
 	} // namespace
 
 	namespace detail
 	{
 		VkShaderModule create_shader_module(Device* device, const std::vector<char>& shader)
 		{
+			if (shader.empty()) {
+				return VK_NULL_HANDLE;
+			}
+
 			VkShaderModuleCreateInfo createInfo{
 				.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
 				.pNext = nullptr,
@@ -55,48 +79,16 @@ namespace gfx
 		}
 	} // namespace detail
 
-	Pipeline* create_graphics_pipeline(Device* device, const PipelineParams& params)
+	Pipeline* create_graphics_pipeline(Device* device, const GraphicsPipelineParams& params)
 	{
 		VkShaderModule vertShaderModule = detail::create_shader_module(device, params.vertex_shader);
 		VkShaderModule fragShaderModule = detail::create_shader_module(device, params.fragment_shader);
-		VkShaderModule geomShaderModule = VK_NULL_HANDLE;
+		VkShaderModule geomShaderModule = detail::create_shader_module(device, params.geometry_shader);
 
-		VkPipelineShaderStageCreateInfo vertShaderStageInfo{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-			.pNext = nullptr,
-			.flags = 0,
-			.stage = VK_SHADER_STAGE_VERTEX_BIT,
-			.module = vertShaderModule,
-			.pName = "main",
-			.pSpecializationInfo = nullptr
-		};
-
-		VkPipelineShaderStageCreateInfo fragShaderStageInfo{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-			.pNext = nullptr,
-			.flags = 0,
-			.stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-			.module = fragShaderModule,
-			.pName = "main",
-			.pSpecializationInfo = nullptr
-		};
-
-		std::vector<VkPipelineShaderStageCreateInfo> shaderStages = {vertShaderStageInfo, fragShaderStageInfo};
-
-		if (!params.geometry_shader.empty()) {
-			geomShaderModule = detail::create_shader_module(device, params.geometry_shader);
-
-			VkPipelineShaderStageCreateInfo geomShaderStageInfo{
-				.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-				.pNext = nullptr,
-				.flags = 0,
-				.stage = VK_SHADER_STAGE_GEOMETRY_BIT,
-				.module = geomShaderModule,
-				.pName = "main",
-				.pSpecializationInfo = nullptr
-			};
-			shaderStages.push_back(geomShaderStageInfo);
-		}
+		std::vector<VkPipelineShaderStageCreateInfo> shaderStages{};
+		add_shader_stage(vertShaderModule, VK_SHADER_STAGE_VERTEX_BIT, shaderStages);
+		add_shader_stage(fragShaderModule, VK_SHADER_STAGE_FRAGMENT_BIT, shaderStages);
+		add_shader_stage(geomShaderModule, VK_SHADER_STAGE_GEOMETRY_BIT, shaderStages);
 
 		// Dynamic state
 		std::vector<VkDynamicState> dynamicStates = get_dynamic_states(params.dynamic_states);
@@ -319,6 +311,72 @@ namespace gfx
 		}
 
 		return pPipeline;
+	}
+
+	Pipeline* create_compute_pipeline(Device* device, const ComputePipelineParams& params)
+	{
+		VkShaderModule computeShaderModule = detail::create_shader_module(device, params.compute_shader);
+
+		VkPipelineShaderStageCreateInfo computeShaderStageInfo = create_shader_stage(computeShaderModule, VK_SHADER_STAGE_COMPUTE_BIT);
+
+		std::vector<VkDescriptorSetLayout> setLayouts(params.resource_set_layouts.size());
+		for (uint32_t i = 0; i < params.resource_set_layouts.size(); i++) {
+			setLayouts[i] = params.resource_set_layouts[i]->descriptorSetLayout;
+		}
+
+		std::vector<VkPushConstantRange> pushConstantRanges(params.push_constants.size());
+		for (uint32_t i = 0; i < params.push_constants.size(); i++) {
+			pushConstantRanges[i] = {
+				.stageFlags = params.push_constants[i].stages,
+				.offset = params.push_constants[i].offset,
+				.size = params.push_constants[i].size
+			};
+		}
+
+		VkPipelineLayoutCreateInfo pipelineLayoutInfo{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = 0,
+			.setLayoutCount = static_cast<uint32_t>(setLayouts.size()),
+			.pSetLayouts = setLayouts.data(),
+			.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size()),
+			.pPushConstantRanges = pushConstantRanges.data()
+		};
+
+		VkPipelineLayout pipelineLayout;
+		VkResult result = vkCreatePipelineLayout(device->device, &pipelineLayoutInfo, nullptr, &pipelineLayout);
+		VK_ASSERT(result);
+
+		VkComputePipelineCreateInfo pipelineInfo{
+			.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = 0,
+			.stage = computeShaderStageInfo,
+			.layout = pipelineLayout,
+			.basePipelineHandle = VK_NULL_HANDLE,
+			.basePipelineIndex = 0
+		};
+
+		VkPipeline computePipeline;
+		result = vkCreateComputePipelines(device->device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &computePipeline);
+		VK_ASSERT(result);
+
+		Pipeline* pPipeline = new Pipeline{
+			.pipeline = computePipeline,
+			.pipelineLayout = pipelineLayout,
+			.pushConstantRanges = params.push_constants, // TODO: we could std::move() this if we know the pipeline params are not re-used (maybe add a && overload?)
+			.bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE,
+			.dynamicStates = DynamicStateFlags::None
+		};
+
+		vkDestroyShaderModule(device->device, computeShaderModule, nullptr);
+
+		return pPipeline;
+	}
+
+
+	void bind_pipeline(Pipeline* pipeline, CommandBuffer* commands) {
+		vkCmdBindPipeline(commands->commandBuffer, pipeline->bindPoint, pipeline->pipeline);
 	}
 
 	void bind_pipeline(Pipeline* pipeline, CommandBuffer* commands, const DynamicState& dynamicState)

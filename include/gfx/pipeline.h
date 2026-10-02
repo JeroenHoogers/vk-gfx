@@ -43,7 +43,7 @@ namespace gfx
 	};
 
 	// TODO: support separation of pipeline and layout (ability to re-use pipeline layout)
-	struct PipelineParams
+	struct GraphicsPipelineParams
 	{
 		std::vector<char> vertex_shader = {};
 		std::vector<char> fragment_shader = {};
@@ -60,6 +60,14 @@ namespace gfx
 		// TODO: allow more customization
 	};
 
+	struct ComputePipelineParams
+	{
+		std::vector<char> compute_shader = {};
+		VertexLayout* vertex_layout = nullptr;
+		std::vector<ResourceSetLayout*> resource_set_layouts = {};
+		std::vector<PushConstantRange> push_constants = {};
+	};
+
 	struct Pipeline
 	{
 		VkPipeline pipeline;
@@ -71,9 +79,10 @@ namespace gfx
 	};
 
 	// TODO: allow dynamic state changes outside of the bind pipeline call
-
-	Pipeline* create_graphics_pipeline(Device* device, const PipelineParams& params);
+	Pipeline* create_graphics_pipeline(Device* device, const GraphicsPipelineParams& params);
+	Pipeline* create_compute_pipeline(Device* device, const ComputePipelineParams& params);
 	void bind_pipeline(Pipeline* pipeline, CommandBuffer* commands, const DynamicState& dynamicState);
+	void bind_pipeline(Pipeline* pipeline, CommandBuffer* commands);
 
 	void push_constants(CommandBuffer* commands, Pipeline* pipeline, uint32_t rangeIndex, void* data);
 
