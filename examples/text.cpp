@@ -25,8 +25,8 @@ void updateUniformBuffer(gfx::UniformBuffer* uniformBuffer, const gfx::Swapchain
 }
 
 struct TextBuffer {
-	gfx::Buffer* glyphInstanceBuffer;
-	gfx::Buffer* indirectBuffer;
+	gfx::Buffer glyphInstanceBuffer;
+	gfx::Buffer indirectBuffer;
 };
 
 TextBuffer createTextBuffer(gfx::Device* device, const drafttype::HersheyFont& font, const drafttype::GPUFont& gpuFont, const std::string& text, glm::vec2 pos, drafttype::LayoutOptions opts) {
@@ -67,7 +67,7 @@ TextBuffer createTextBuffer(gfx::Device* device, const drafttype::HersheyFont& f
 		})
 	};
 
-	printf("created text buffer with: %lu commands (%lu) and %lu instances (%lu)\n", commands.size(), textBuffer.indirectBuffer->size, glyphInstances.size(), textBuffer.glyphInstanceBuffer->size);
+	printf("created text buffer with: %lu commands (%lu) and %lu instances (%lu)\n", commands.size(), textBuffer.indirectBuffer.size, glyphInstances.size(), textBuffer.glyphInstanceBuffer.size);
 
 	return textBuffer;
 }
@@ -222,7 +222,7 @@ int main()
 	const auto bounds = drafttype::measure(font, text, textLayoutOpts);
 	TextBuffer textBuffers = createTextBuffer(device, font, gpuFont, text, glm::vec2(0.0f, -(bounds.bottom + bounds.top) * 0.5f), textLayoutOpts);
 	gfx::ResourceSet glyphInstancesResourceSet = gfx::create_resource_set(device, glyphInstancesResourceLayout, {
-		{.type = gfx::ResourceType::StorageBuffer, .storageBuffer = textBuffers.glyphInstanceBuffer}
+		{.type = gfx::ResourceType::StorageBuffer, .storageBuffer = &textBuffers.glyphInstanceBuffer}
 	});
 
 	gfx::Pipeline* linePipeline = gfx::create_graphics_pipeline(device, {
@@ -249,7 +249,7 @@ int main()
 		gfx::bind_pipeline(textPipeline, commands, frame.dynamicState);
 		gfx::bind_resource_sets(commands, textPipeline, { uboResources[frame.index], glyphInstancesResourceSet });
 
-		uint32_t count = textBuffers.indirectBuffer->size / sizeof(VkDrawIndexedIndirectCommand);
+		uint32_t count = textBuffers.indirectBuffer.size / sizeof(VkDrawIndexedIndirectCommand);
 		gfx::draw_indexed_indirect(commands, &fontMesh, textBuffers.indirectBuffer, count, 0);
 
 		// draw axes

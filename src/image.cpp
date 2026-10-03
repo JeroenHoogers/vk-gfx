@@ -319,23 +319,23 @@ namespace gfx
 
 	Image* create_image(Device* device, void* pixels, uint64_t size, const ImageDesc& params)
 	{
-		Buffer* staging = create_buffer(device, {
+		Buffer staging = create_buffer(device, {
 			.size = size,
 			.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			.properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 		});
 
 		void* data;
-		vkMapMemory(device->device, staging->memory, 0, size, 0, &data);
+		vkMapMemory(device->device, staging.memory, 0, size, 0, &data);
 		memcpy(data, pixels, static_cast<size_t>(size));
-		vkUnmapMemory(device->device, staging->memory);
+		vkUnmapMemory(device->device, staging.memory);
 
 		VkDeviceMemory imageMemory;
 		VkImage image = detail::create_image(device, params, imageMemory);
 
 		// TODO OPTIMIZE THIS: put these all into a single command buffer and flush
 		detail::transition_image_layout(device, image, params.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, params.mipLevels);
-		copy_buffer_to_image(device, staging->buffer, image, params.extent.width, params.extent.height);
+		copy_buffer_to_image(device, staging.buffer, image, params.extent.width, params.extent.height);
 
 		// generate_mipmaps also transfers layout to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 		// TODO: also support loading mipmaps instead of generating them at runtime

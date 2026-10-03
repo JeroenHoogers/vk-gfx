@@ -1,5 +1,6 @@
 #pragma once
 #include <vulkan/vulkan.h>
+#include <vector>
 
 namespace gfx {
 	struct Device;
@@ -9,11 +10,15 @@ namespace gfx {
 	}
 
 	struct Buffer {
-		VkBuffer buffer;
-		VkDeviceMemory memory;
-		VkDeviceSize size;
+		VkBuffer buffer = VK_NULL_HANDLE;
+		VkDeviceMemory memory = VK_NULL_HANDLE;
+		VkDeviceSize size = 0;
 		// VkDeviceSize count;
 		// uint32_t stride;
+	};
+
+	struct MultiBuffer {
+		std::vector<Buffer> buffers;
 	};
 
 	struct BufferDesc{
@@ -24,10 +29,14 @@ namespace gfx {
 		VkSharingMode sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	};
 
-	Buffer* create_buffer(Device* device, const BufferDesc& params);
-	Buffer* create_and_upload_buffer(Device* device, const void* data, const BufferDesc& params);
+	Buffer create_buffer(Device* device, const BufferDesc& params);
+	Buffer create_and_upload_buffer(Device* device, const void* data, const BufferDesc& params);
 
-	void copy_buffer(Device* device, Buffer* src, Buffer* dst);
+	MultiBuffer create_buffers(Device* device, const BufferDesc& params, uint32_t count);
+	MultiBuffer create_and_upload_buffers(Device* device, const void* data, const BufferDesc& params, uint32_t count);
 
-	void destroy_buffer(Device* device, Buffer* buffer);
+	void copy_buffer(Device* device, const Buffer& src, const Buffer& dst);
+
+	void destroy_buffer(Device* device, const Buffer& buffer);
+	void destroy_buffer(Device* device, const MultiBuffer& buffer);
 }

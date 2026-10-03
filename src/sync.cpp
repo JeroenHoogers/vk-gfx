@@ -15,7 +15,7 @@ namespace gfx
 		VkResult result = vkCreateSemaphore(device->device, &semaphoreInfo, nullptr, &semaphore);
 		VK_ASSERT(result);
 
-		return Semaphore{.semaphore = semaphore};
+		return semaphore; //Semaphore{.semaphore = semaphore};
 	}
 
 	Fence create_fence(Device* device, bool signaled)
@@ -32,26 +32,26 @@ namespace gfx
 		VkResult result = vkCreateFence(device->device, &fenceInfo, nullptr, &fence);
 		VK_ASSERT(result);
 
-		return Fence{.fence = fence};
+		return fence; //Fence{.fence = fence};
 	}
 
-	void wait_for_fence(Device* device, Fence* fence, uint64_t timeout)
+	void wait_for_fence(Device* device, Fence fence, uint64_t timeout)
 	{
-		vkWaitForFences(device->device, 1, &fence->fence, VK_TRUE, timeout);
+		vkWaitForFences(device->device, 1, &fence, VK_TRUE, timeout);
 	}
 
-	void reset_fence(Device* device, Fence* fence)
+	void reset_fence(Device* device, Fence fence)
 	{
-		vkResetFences(device->device, 1, &fence->fence);
+		vkResetFences(device->device, 1, &fence);
 	}
 
-	void destroy_semaphore(Device* device, Semaphore* semaphore)
+	void destroy_semaphore(Device* device, Semaphore semaphore)
 	{
-		vkDestroySemaphore(device->device, semaphore->semaphore, nullptr);
+		vkDestroySemaphore(device->device, semaphore, nullptr);
 	}
 
-	void destroy_fence(Device* device, Fence* fence)
+	void destroy_fence(Device* device, Fence fence)
 	{
-		vkDestroyFence(device->device, fence->fence, nullptr);
+		vkDestroyFence(device->device, fence, nullptr);
 	}
 } // namespace gfx

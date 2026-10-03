@@ -6,7 +6,6 @@
 namespace gfx
 {
 	struct Device;
-	struct Semaphore;
 	struct Window;
 
 	struct SwapchainImage {

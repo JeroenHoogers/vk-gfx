@@ -1,26 +1,31 @@
 struct Particle {
-  [[vk::location(0)]] float2 position : POSITION;
+  float2 position;
   float2 velocity;
-  [[vk::location(1)]] float4 color : COLOR;
+  float4 color;
 };
 
-[[vk::binding(0, 1)]]
+[[vk::binding(1, 0)]]
 StructuredBuffer<Particle> particlesIn;
 
-[[vk::binding(0, 2)]]
+[[vk::binding(2, 0)]]
 RWStructuredBuffer<Particle> particlesOut;
 
 struct VertexInput
 {
     float2 position : POSITION;
-    float3 color : COLOR;
+    float4 color : COLOR;
 };
 
 struct VertexOutput
 {
     float4 position : SV_Position;
-    float pointSize : PSIZE;
-    float2 pointCoord : TEXCOORD0;
+    float pointSize : SV_PointSize;
+    float3 color : COLOR;
+};
+
+struct FragmentInput
+{
+    float2 pointCoord : SV_PointCoord;
     float3 color : COLOR;
 };
 
@@ -61,13 +66,12 @@ VertexOutput vertexMain(VertexInput input)
     VertexOutput output;
     output.position = float4(input.position, 1.0, 1.0);
     output.pointSize = 14.0;
-    output.color = input.color;
+    output.color = input.color.rgb;
     return output;
 }
 
-
 [shader("fragment")]
-float4 fragmentMain(VertexOutput input) : SV_Target0
+float4 fragmentMain(FragmentInput input) : SV_Target0
 {
     float2 coord = input.pointCoord - float2(0.5);
     return float4(input.color, 0.5 - length(coord));

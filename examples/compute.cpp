@@ -19,9 +19,11 @@ constexpr uint32_t PARTICLE_COUNT = 1000;
 constexpr std::uint32_t WIDTH = 800;
 constexpr std::uint32_t HEIGHT = 600;
 
+constexpr uint32_t FRAMES_IN_FLIGHT = 2;
+
 static float lastFrameTime = 0.0f;
 
-gfx::Buffer* createParticleBuffer(gfx::Device* device) {
+gfx::MultiBuffer createParticleBuffer(gfx::Device* device) {
 	// Initialize particles
     std::default_random_engine rndEngine((unsigned)time(nullptr));
     std::uniform_real_distribution<float> rndDist(0.0f, 1.0f);
@@ -38,13 +40,13 @@ gfx::Buffer* createParticleBuffer(gfx::Device* device) {
         particle.color = glm::vec4(rndDist(rndEngine), rndDist(rndEngine), rndDist(rndEngine), 1.0f);
     }
 
-	gfx::Buffer* particleBuffer = gfx::create_and_upload_buffer(device, particles.data(), {
+	gfx::MultiBuffer particleBuffers = gfx::create_and_upload_buffers(device, particles.data(), {
 		.size = particles.size() * sizeof(Particle),
 		.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 		.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-	});
+	}, FRAMES_IN_FLIGHT);
 
-	return particleBuffer;
+	return particleBuffers;
 }
 
 void updateUniformBuffer(gfx::UniformBuffer* uniformBuffer,  const gfx::SwapchainFrame& frame) {
@@ -69,22 +71,24 @@ int main()
 		}
 	}});
 
-	constexpr uint32_t framesInFlight = 2;
+	VkPhysicalDeviceFeatures features{};
+	features.largePoints = VK_TRUE;
 
 	gfx::DeviceInit deviceInit = gfx::create_device({
 		.appname = appName,
 		.extensions = {},
 		.queues = {gfx::QueueRequest{ .flags = gfx::QueueFlags::Graphics | gfx::QueueFlags::Present | gfx::QueueFlags::Compute }},
-		.framesInFlight = framesInFlight,
+		.framesInFlight = FRAMES_IN_FLIGHT,
+		.features = features,
 		.windows = {
 			{ .window = window.vkWindow, .swapchain = { .format = VK_FORMAT_B8G8R8A8_SRGB }}
 		},
 		.resourcePool = {
 			.sizes = {
-				{.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = framesInFlight},
-				{.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .descriptorCount = framesInFlight * 2}
+				{.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = FRAMES_IN_FLIGHT},
+				{.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .descriptorCount = FRAMES_IN_FLIGHT * 2}
 			},
-			.max_sets = framesInFlight,
+			.max_sets = FRAMES_IN_FLIGHT,
 		},
 		.enableValidation = enableValidationLayers
 	});
@@ -95,12 +99,7 @@ int main()
 		// gfx::destroy_device(device);
 		// close_window(window);
 	// }
-	gfx::Buffer* lastParticles = createParticleBuffer(device);
-	gfx::Buffer* particles = gfx::create_buffer(device, {
-		.size = lastParticles->size,
-		.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-		.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-	});
+	gfx::MultiBuffer particles = createParticleBuffer(device);
 
 	gfx::UniformBuffer* ubo = gfx::create_uniform_buffer(device, sizeof(UBO));
 
@@ -112,14 +111,17 @@ int main()
 
 	std::vector<gfx::ResourceSet> resources = gfx::create_resource_sets(device, resourceLayout, {
 		{.type = gfx::ResourceType::UniformBuffer, .uniformBuffer = ubo},
-		{.type = gfx::ResourceType::StorageBuffer, .storageBuffer = lastParticles},
-		{.type = gfx::ResourceType::StorageBuffer, .storageBuffer = particles},
+		{.type = gfx::ResourceType::StorageBuffer, .storageBuffer = &particles.buffers[0]},
+		{.type = gfx::ResourceType::StorageBuffer, .storageBuffer = &particles.buffers[1]},
 	}, device->framesInFlight);
 
 	gfx::Pipeline* gfxPipeline = gfx::create_graphics_pipeline(device, {
 		.vertex_shader = load_shader("shaders/compute.vertex.spv"),
 		.fragment_shader = load_shader("shaders/compute.fragment.spv"),
 		.vertex_layout = &vertexLayout,
+		.inputAssembly {
+			.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST
+		}
 	});
 
 	gfx::Pipeline* computePipeline = gfx::create_compute_pipeline(device, {
@@ -127,32 +129,56 @@ int main()
 		.resource_set_layouts = { resourceLayout }
 	});
 
+	std::vector<gfx::Semaphore> computeFinishedSemaphores(FRAMES_IN_FLIGHT, gfx::create_semaphore(device));
+	std::vector<gfx::Fence> computeInFlightFences(FRAMES_IN_FLIGHT, gfx::create_fence(device));
+	std::vector<gfx::CommandBuffer> computeCommandBuffers(FRAMES_IN_FLIGHT, gfx::create_command_buffer(device));
+
 	while (poll_window_events(window)) {
 		const gfx::SwapchainFrame frame = gfx::acquire(device, window.vkWindow);
+
+		gfx::wait_for_fence(device, computeInFlightFences[frame.index]);
 		updateUniformBuffer(ubo, frame);
+		gfx::reset_fence(device, computeInFlightFences[frame.index]);
 
-		// // compute
+		// compute
+		gfx::CommandBuffer* commands = gfx::begin_commands(&computeCommandBuffers[frame.index]);
+		gfx::bind_pipeline(computePipeline, commands);
+		gfx::bind_resource_set(commands, computePipeline, 0, resources[frame.index]);
+		gfx::dispatch(commands, PARTICLE_COUNT / 256);
+		gfx::end_commands(commands);
+		gfx::submit(commands, {
+			.queue = device->computeQueue,
+			.signalSemaphores = {computeFinishedSemaphores[frame.index]}
+		});
+
+		// TODO: sync
+		// drawing
 		// gfx::CommandBuffer* commands = gfx::begin_commands(frame.window);
-		// gfx::bind_pipeline(computePipeline, commands);
-		// gfx::end_commands(commands);
-		// gfx::submit(device, commands);
+		commands = gfx::begin_commands(frame.window);
+		gfx::bind_pipeline(gfxPipeline, commands, frame.dynamicState);
+		gfx::begin_render_pass(device, commands, &frame);
 
-		// // TODO: sync
-		// // drawing
-		// commands = gfx::begin_commands(frame.window);
-		// gfx::begin_render_pass(device, commands, &frame);
-		// gfx::dispatch(commands, PARTICLE_COUNT / 256);
-		// gfx::bind_pipeline(gfxPipeline, commands, frame.dynamicState);
-		// gfx::draw(commands, {}, 3);
-		// gfx::end_render_pass(commands);
-		// gfx::end_commands(commands);
-		// gfx::submit_and_present(device, frame.window, commands);
+		gfx::Mesh mesh {
+			.vertexBuffer = particles.buffers[frame.index],
+			.vertexCount = PARTICLE_COUNT
+		};
+
+		gfx::draw(commands, &mesh, PARTICLE_COUNT);
+		gfx::end_render_pass(commands);
+		gfx::end_commands(commands);
+		gfx::submit_and_present(device, frame.window, commands);
 	}
 
 	gfx::wait_idle(device);
 
+	gfx::destroy_uniform_buffer(device, ubo);
+	gfx::destroy_buffer(device, particles);
+
+	gfx::destroy_resource_set_layout(device, resourceLayout);
+
 	gfx::destroy_pipeline(device, computePipeline);
 	gfx::destroy_pipeline(device, gfxPipeline);
+
 	gfx::destroy_window(device, window.vkWindow);
 	gfx::destroy_device(device);
 	close_window(window);

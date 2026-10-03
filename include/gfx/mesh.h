@@ -2,11 +2,11 @@
 #include <cstdint>
 #include <vector>
 #include <vulkan/vulkan.h>
+#include "buffer.h" // Required for Buffer
 
 namespace gfx
 {
 	struct Device;
-	struct Buffer;
 
 	struct VertexAttribute
 	{
@@ -28,8 +28,8 @@ namespace gfx
 
 	struct Mesh
 	{
-		Buffer* vertexBuffer = nullptr;
-		Buffer* indexBuffer = nullptr;
+		Buffer vertexBuffer = {};
+		Buffer indexBuffer = {};
 		uint32_t indexCount = 0;
 		uint32_t vertexCount = 0;
 		VkIndexType indexType = VK_INDEX_TYPE_UINT16;

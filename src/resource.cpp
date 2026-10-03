@@ -48,7 +48,7 @@ namespace gfx
 			return descriptorSetLayout;
 		}
 
-		VkDescriptorBufferInfo get_buffer_descriptor_info(Buffer* buffer)
+		VkDescriptorBufferInfo get_buffer_descriptor_info(const Buffer* buffer)
 		{
 			return VkDescriptorBufferInfo{
 				.buffer = buffer->buffer,
@@ -157,18 +157,27 @@ namespace gfx
 			.pSetLayouts = layouts.data()
 		};
 
+		std::vector<VkWriteDescriptorSet> writes(count * resources.size());
+
+		// we need to allocate these outside the loop so they don't invalidate before we call vkUpdateDescriptorSets,
+		// note that only one of the 2 will be used the other will be left empty
+		std::vector<VkDescriptorBufferInfo> bufferInfos(writes.size());
+		std::vector<VkDescriptorImageInfo> imageInfos(writes.size());
+
 		std::vector<VkDescriptorSet> descriptorSets(count);
 		VkResult result = vkAllocateDescriptorSets(device->device, &allocInfo, descriptorSets.data());
 		VK_ASSERT(result);
 
 		for (uint32_t i = 0; i < count; i++) {
-			std::vector<VkWriteDescriptorSet> writes(resources.size());
-			for (uint32_t j = 0; j < resources.size(); j++) {
-				// TODO: maybe create these inside the switch to avoid unnesessary initialization
-				VkDescriptorBufferInfo bufferInfo{};
-				VkDescriptorImageInfo imageInfo{};
+			constexpr uint32_t MAX_BINDINGS = 8;
 
-				writes[j] = VkWriteDescriptorSet{
+			assert(resources.size() <= MAX_BINDINGS);
+
+			for (uint32_t j = 0; j < resources.size(); j++) {
+				const uint32_t index = i * resources.size() + j;
+
+				auto& write = writes[index];
+				write = VkWriteDescriptorSet{
 					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 					.pNext = nullptr,
 					.dstSet = descriptorSets[i],
@@ -183,21 +192,22 @@ namespace gfx
 
 				switch (resources[j].type) {
 				case ResourceType::UniformBuffer:
-					bufferInfo = detail::get_buffer_descriptor_info(resources[j].uniformBuffer->buffers[i]);
-					writes[j].pBufferInfo = &bufferInfo;
+					bufferInfos[index] = detail::get_buffer_descriptor_info(&resources[j].uniformBuffer->buffers[i]);
+					write.pBufferInfo = &bufferInfos[index];
 					break;
 				case ResourceType::CombinedImageSampler:
-					imageInfo = detail::get_texture_sampler_descriptor_info(resources[j].texture);
-					writes[j].pImageInfo = &imageInfo;
+					imageInfos[index] = detail::get_texture_sampler_descriptor_info(resources[j].texture);
+					write.pImageInfo = &imageInfos[index];
 					break;
 				case ResourceType::StorageBuffer:
-					bufferInfo = detail::get_buffer_descriptor_info(resources[j].storageBuffer);
-					writes[j].pBufferInfo = &bufferInfo;
+					bufferInfos[index] = detail::get_buffer_descriptor_info(resources[j].storageBuffer);
+					write.pBufferInfo = &bufferInfos[index];
 					break;
 				}
 			}
-			vkUpdateDescriptorSets(device->device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 		}
+
+		vkUpdateDescriptorSets(device->device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 
 		std::vector<ResourceSet> resourceSets(count, {VK_NULL_HANDLE});
 		for (uint32_t i = 0; i < descriptorSets.size(); i++) {

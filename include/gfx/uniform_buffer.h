@@ -9,9 +9,10 @@ namespace gfx {
 	struct Pipeline;
 	struct CommandBuffer;
 
+	// turn into multibuffer?
 	struct UniformBuffer{
 		std::vector<void*> mappedMemory;
-		std::vector<Buffer*> buffers;
+		std::vector<Buffer> buffers;
 	};
 
 	UniformBuffer* create_uniform_buffer(Device* device, uint32_t size);

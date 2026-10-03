@@ -30,8 +30,8 @@ namespace gfx
 	void destroy_window(Device* device, Window* window)
 	{
 		for (uint32_t i = 0; i < window->frames.size(); i++) {
-			destroy_semaphore(device, &window->frames[i].imageAvailable);
-			destroy_fence(device, &window->frames[i].inFlightFence);
+			destroy_semaphore(device, window->frames[i].imageAvailable);
+			destroy_fence(device, window->frames[i].inFlightFence);
 		}
 		destroy_render_target(device, window->renderTarget);
 

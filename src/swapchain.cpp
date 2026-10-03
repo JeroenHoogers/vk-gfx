@@ -171,7 +171,7 @@ namespace gfx
 			images[i] = {
 				.image = swapchainImages[i],
 				.imageView = swapchainImageViews[i],
-				.renderFinished = create_semaphore(device).semaphore
+				.renderFinished = create_semaphore(device)
 			};
 		}
 
@@ -219,8 +219,8 @@ namespace gfx
 		// if no window specified use main window
 		const Frame& frame = window->frames[window->currentFrame];
 
-		vkWaitForFences(device->device, 1, &frame.inFlightFence.fence, VK_TRUE, UINT64_MAX);
-		VkResult result = vkAcquireNextImageKHR(device->device, window->swapchain->swapchain, UINT64_MAX, frame.imageAvailable.semaphore, VK_NULL_HANDLE, &window->swapchain->imageIndex);
+		vkWaitForFences(device->device, 1, &frame.inFlightFence, VK_TRUE, UINT64_MAX);
+		VkResult result = vkAcquireNextImageKHR(device->device, window->swapchain->swapchain, UINT64_MAX, frame.imageAvailable, VK_NULL_HANDLE, &window->swapchain->imageIndex);
 
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			recreate_swapchain(device, window);
@@ -230,7 +230,7 @@ namespace gfx
 			std::fprintf(stderr, "Vulkan error aquiring next image: %d\n", static_cast<int>(result));
 		}
 
-		vkResetFences(device->device, 1, &frame.inFlightFence.fence);
+		vkResetFences(device->device, 1, &frame.inFlightFence);
 
 		// create dynamic state object
 		VkViewport defaultViewport{

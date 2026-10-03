@@ -12,13 +12,13 @@ namespace gfx
 
 	Mesh create_mesh(Device* device, const MeshData& meshData)
 	{
-		Buffer* vertexBuffer = create_and_upload_buffer(device, meshData.vertices.data, {
+		Buffer vertexBuffer = create_and_upload_buffer(device, meshData.vertices.data, {
 			.size = meshData.vertices.size,
 			.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		});
 
-		Buffer* indexBuffer = nullptr;
+		Buffer indexBuffer = {};
 
 		VkIndexType indexType = VK_INDEX_TYPE_NONE_KHR;
 		if (meshData.indices.data) {
@@ -55,7 +55,7 @@ namespace gfx
 	{
 		destroy_buffer(device, mesh->vertexBuffer);
 
-		if (mesh->indexBuffer) {
+		if (mesh->indexBuffer.buffer) {
 			destroy_buffer(device, mesh->indexBuffer);
 		}
 	}

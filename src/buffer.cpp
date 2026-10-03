@@ -23,7 +23,7 @@ namespace gfx
 		}
 	} // namespace
 
-	Buffer* create_buffer(Device* device, const BufferDesc& params)
+	Buffer create_buffer(Device* device, const BufferDesc& params)
 	{
 		VkBufferCreateInfo bufferInfo{
 			.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -57,22 +57,22 @@ namespace gfx
 		result = vkBindBufferMemory(device->device, buffer, deviceMemory, 0);
 		VK_ASSERT(result);
 
-		return new Buffer{.buffer = buffer, .memory = deviceMemory, .size = params.size};
+		return Buffer{.buffer = buffer, .memory = deviceMemory, .size = params.size};
 	}
 
-	Buffer* create_and_upload_buffer(Device* device, const void* data, const BufferDesc& params)
+	Buffer create_and_upload_buffer(Device* device, const void* data, const BufferDesc& params)
 	{
 		// TODO: cache staging buffer? (user provided)
 		// TODO: re-use command buffer
-		Buffer* staging = create_buffer(device, {.size = params.size, .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT, .properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT});
+		Buffer staging = create_buffer(device, {.size = params.size, .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT, .properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT});
 
 		void* mapped;
-		VkResult result = vkMapMemory(device->device, staging->memory, 0, staging->size, 0, &mapped);
+		VkResult result = vkMapMemory(device->device, staging.memory, 0, staging.size, 0, &mapped);
 		VK_ASSERT(result);
-		memcpy(mapped, data, static_cast<size_t>(staging->size));
-		vkUnmapMemory(device->device, staging->memory);
+		memcpy(mapped, data, static_cast<size_t>(staging.size));
+		vkUnmapMemory(device->device, staging.memory);
 
-		Buffer* buffer = create_buffer(device, {.size = params.size, .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | params.usage, .properties = params.properties});
+		Buffer buffer = create_buffer(device, {.size = params.size, .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | params.usage, .properties = params.properties});
 
 		copy_buffer(device, staging, buffer);
 
@@ -81,27 +81,71 @@ namespace gfx
 		return buffer;
 	}
 
-	void copy_buffer(Device* device, Buffer* src, Buffer* dst)
+	MultiBuffer create_buffers(Device* device, const BufferDesc& params, uint32_t count)
+	{
+		MultiBuffer multiBuffer {
+			.buffers = std::vector<Buffer>(count)
+		};
+
+		for (size_t i = 0; i < count; i++) {
+			multiBuffer.buffers[i] = create_buffer(device, {.size = params.size, .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | params.usage, .properties = params.properties});
+		}
+
+		return multiBuffer;
+	}
+
+	MultiBuffer create_and_upload_buffers(Device* device, const void* data, const BufferDesc& params, uint32_t count){
+		// TODO: cache staging buffer? (user provided)
+		// TODO: re-use command buffer
+		Buffer staging = create_buffer(device, {.size = params.size, .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT, .properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT});
+
+		void* mapped;
+		VkResult result = vkMapMemory(device->device, staging.memory, 0, staging.size, 0, &mapped);
+		VK_ASSERT(result);
+		memcpy(mapped, data, static_cast<size_t>(staging.size));
+		vkUnmapMemory(device->device, staging.memory);
+
+		MultiBuffer multiBuffer {
+			.buffers = std::vector<Buffer>(count)
+		};
+
+		for (size_t i = 0; i < count; i++) {
+			multiBuffer.buffers[i] = create_buffer(device, {.size = params.size, .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | params.usage, .properties = params.properties});
+			copy_buffer(device, staging, multiBuffer.buffers[i]);
+		}
+		destroy_buffer(device, staging);
+
+		return multiBuffer;
+	}
+
+	void copy_buffer(Device* device, const Buffer& src, const Buffer& dst)
 	{
 		VkCommandBuffer commands = detail::begin_one_time_commands(device);
 
 		VkBufferCopy copyRegion{
 			.srcOffset = 0,
 			.dstOffset = 0,
-			.size = src->size
+			.size = src.size
 		};
 
-		vkCmdCopyBuffer(commands, src->buffer, dst->buffer, 1, &copyRegion);
+		vkCmdCopyBuffer(commands, src.buffer, dst.buffer, 1, &copyRegion);
 		detail::end_one_time_commands(device, commands);
 	}
 
-	void destroy_buffer(Device* device, Buffer* buffer)
+	void destroy_buffer(Device* device, const Buffer& buffer)
 	{
-		vkDestroyBuffer(device->device, buffer->buffer, nullptr);
-		vkFreeMemory(device->device, buffer->memory, nullptr);
+		vkDestroyBuffer(device->device, buffer.buffer, nullptr);
+		vkFreeMemory(device->device, buffer.memory, nullptr);
 
-		delete buffer;
-		buffer = nullptr;
+		// delete buffer;
+		// buffer = nullptr;
+	}
+
+	void destroy_buffer(Device* device, const MultiBuffer& buffer)
+	{
+		for (size_t i = 0; i < buffer.buffers.size(); i++) {
+			destroy_buffer(device, buffer.buffers[i]);
+		}
 	}
 
 } // namespace gfx
