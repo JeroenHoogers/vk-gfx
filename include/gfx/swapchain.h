@@ -2,6 +2,7 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 #include "dynamic_state.h"
+#include "types.h"
 
 namespace gfx
 {
@@ -21,6 +22,7 @@ namespace gfx
 		Window* window;
 		DynamicState dynamicState;
 		VkFramebuffer frameBuffer;
+		Semaphore renderFinished;
 		VkExtent2D extent;
 		// CommandBuffer* commandBuffer; // TODO: could be added here
 		uint32_t index = 0;

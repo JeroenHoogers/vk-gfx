@@ -22,14 +22,15 @@ namespace gfx
 	}
 
 	struct SubmitParams { // TODO: avoid vector allocs?
-		Queue queue = {};
+		Queue queue;
 		std::vector<Semaphore> waitSemaphores = {};
+		std::vector<VkPipelineStageFlags> waitStages = {};
 		std::vector<Semaphore> signalSemaphores = {};
-		std::vector<VkPipelineStageFlagBits> waitStages = {};
-		std::vector<Fence> completedFence = {};
+		Fence completedFence = nullptr;
 	};
 
 	[[nodiscard]] CommandBuffer create_command_buffer(Device* device);
+	[[nodiscard]] std::vector<CommandBuffer> create_command_buffers(Device* device, uint32_t count);
 	[[nodiscard]] CommandBuffer begin_commands(Window* window);
 	CommandBuffer begin_commands(CommandBuffer commandBuffer);
 	void end_commands(CommandBuffer commands);
@@ -45,6 +46,7 @@ namespace gfx
 	void submit(const CommandBuffer commands, const SubmitParams& params);
 
 	// TODO: allow for multiple command buffers
-	void submit_and_present(Device* device, Window* window, const CommandBuffer commands, const SubmitParams& params = {});
+	void submit_and_present(Device* device, const SwapchainFrame& frame, const CommandBuffer commands);
+	void submit_and_present(Device* device, const SwapchainFrame& frame, const CommandBuffer commands, const SubmitParams& params);
 
 } // namespace gfx

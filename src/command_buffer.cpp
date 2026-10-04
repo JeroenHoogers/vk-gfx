@@ -10,16 +10,16 @@ namespace gfx
 {
 	namespace
 	{
-		void present(Device* device, Window* window, VkSemaphore signalSemaphore)
+		void present(Device* device, Window* window, VkSemaphore waitSemaphore)
 		{
-			VkSemaphore signalSemaphores[] = {signalSemaphore};
+			VkSemaphore waitSemaphores[] = {waitSemaphore};
 			VkSwapchainKHR swapChains[] = {window->swapchain->swapchain};
 
 			VkPresentInfoKHR presentInfo{
 				.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
 				.pNext = nullptr,
 				.waitSemaphoreCount = 1,
-				.pWaitSemaphores = signalSemaphores,
+				.pWaitSemaphores = waitSemaphores,
 				.swapchainCount = 1,
 				.pSwapchains = swapChains,
 				.pImageIndices = &window->swapchain->imageIndex,
@@ -141,7 +141,6 @@ namespace gfx
 		VK_ASSERT(result);
 	}
 
-	// TODO: supply queue and sync objects?
 	void submit(const CommandBuffer commands, const SubmitParams& params)
 	{
 		VkSubmitInfo submitInfo{
@@ -149,26 +148,32 @@ namespace gfx
 			.pNext = nullptr,
 			.waitSemaphoreCount = static_cast<uint32_t>(params.waitSemaphores.size()),
 			.pWaitSemaphores = params.waitSemaphores.data(),
-			.pWaitDstStageMask = nullptr,
+			.pWaitDstStageMask = params.waitStages.data(),
 			.commandBufferCount = 1,
 			.pCommandBuffers = &commands,
 			.signalSemaphoreCount = static_cast<uint32_t>(params.signalSemaphores.size()),
 			.pSignalSemaphores = params.signalSemaphores.data()
 		};
 
-		VkResult result = vkQueueSubmit(params.queue.handle, 1, &submitInfo, nullptr);
+		VkResult result = vkQueueSubmit(params.queue.handle, 1, &submitInfo, params.completedFence);
 		VK_ASSERT(result);
 	}
 
-	void submit_and_present(Device* device, Window* window, const CommandBuffer commands, const SubmitParams& params)
+	void submit_and_present(Device* device, const SwapchainFrame& frame, const CommandBuffer commands, const SubmitParams& params)
 	{
-		Frame& frame = window->frames[window->currentFrame];
+		submit(commands, params);
+		present(device, frame.window, params.signalSemaphores[0]); // TODO: signal semaphore 0 is assumed to be render finished
 
-		uint32_t imageIndex = window->swapchain->imageIndex;
-		VkSemaphore signalSemaphore = window->swapchain->images[imageIndex].renderFinished;
+		frame.window->currentFrame = (frame.index + 1) % static_cast<uint32_t>(frame.window->frames.size());
+	}
+
+	void submit_and_present(Device* device, const SwapchainFrame& frame, const CommandBuffer commands)
+	{
+		Frame& frameInFlight = frame.window->frames[frame.index];
+
+		VkSemaphore signalSemaphore = frame.renderFinished;
 		VkSemaphore signalSemaphores[] = {signalSemaphore};
-		VkSemaphore waitSemaphores[] = {frame.imageAvailable};
-		// std::vector<VkSemaphore> waitSemaphores =
+		VkSemaphore waitSemaphores[] = {frameInFlight.imageAvailable};
 
 		VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
@@ -184,12 +189,12 @@ namespace gfx
 			.pSignalSemaphores = signalSemaphores
 		};
 
-		VkResult result = vkQueueSubmit(device->graphicsQueue.handle, 1, &submitInfo, frame.inFlightFence);
+		VkResult result = vkQueueSubmit(device->graphicsQueue.handle, 1, &submitInfo, frameInFlight.inFlightFence);
 		VK_ASSERT(result);
 
-		present(device, window, signalSemaphore);
+		present(device, frame.window, signalSemaphore);
 
-		window->currentFrame = (window->currentFrame + 1) % static_cast<uint32_t>(window->frames.size());
+		frame.window->currentFrame = (frame.index + 1) % static_cast<uint32_t>(frame.window->frames.size());
 	}
 
 	void dispatch(CommandBuffer commands, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) {

@@ -16,7 +16,7 @@ struct UBO {
 	float deltaTime;
 };
 
-constexpr uint32_t PARTICLE_COUNT = 1000;
+constexpr uint32_t PARTICLE_COUNT = 8192;
 constexpr std::uint32_t WIDTH = 800;
 constexpr std::uint32_t HEIGHT = 600;
 
@@ -120,23 +120,33 @@ int main()
 		{.type = gfx::ResourceType::StorageBuffers, .storageBuffers = &particles}, // curr (out)
 	}, device->framesInFlight);
 
+	gfx::Pipeline* computePipeline = gfx::create_compute_pipeline(device, {
+		.compute_shader = load_shader("shaders/compute.compute.spv"),
+		.resource_set_layouts = { resourceLayout }
+	});
+
 	gfx::Pipeline* gfxPipeline = gfx::create_graphics_pipeline(device, {
 		.vertex_shader = load_shader("shaders/compute.vertex.spv"),
 		.fragment_shader = load_shader("shaders/compute.fragment.spv"),
 		.vertex_layout = &vertexLayout,
 		.inputAssembly {
 			.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST
+		},
+		.blending = {
+			.enable_blend = VK_TRUE
 		}
 	});
 
-	gfx::Pipeline* computePipeline = gfx::create_compute_pipeline(device, {
-		.compute_shader = load_shader("shaders/compute.compute.spv"),
-		.resource_set_layouts = { resourceLayout }
-	});
+	// create compute sync objects and commandbuffers
+	std::vector<gfx::Semaphore> computeFinishedSemaphores(FRAMES_IN_FLIGHT);
+	std::vector<gfx::Fence> computeInFlightFences(FRAMES_IN_FLIGHT);
 
-	std::vector<gfx::Semaphore> computeFinishedSemaphores(FRAMES_IN_FLIGHT, gfx::create_semaphore(device));
-	std::vector<gfx::Fence> computeInFlightFences(FRAMES_IN_FLIGHT, gfx::create_fence(device));
-	std::vector<gfx::CommandBuffer> computeCommandBuffers(FRAMES_IN_FLIGHT, gfx::create_command_buffer(device));
+	for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
+		computeFinishedSemaphores[i] = gfx::create_semaphore(device);
+		computeInFlightFences[i] = gfx::create_fence(device);
+	}
+
+	std::vector<gfx::CommandBuffer> computeCommandBuffers = gfx::create_command_buffers(device, FRAMES_IN_FLIGHT);
 
 	while (poll_window_events(window)) {
 		uint32_t frameIndex = window.vkWindow->currentFrame;
@@ -152,7 +162,8 @@ int main()
 		gfx::end_commands(commands);
 		gfx::submit(commands, {
 			.queue = device->computeQueue,
-			.signalSemaphores = {computeFinishedSemaphores[frameIndex]}
+			.signalSemaphores = {computeFinishedSemaphores[frameIndex]},
+			.completedFence = computeInFlightFences[frameIndex]
 		});
 
 		// TODO: sync
@@ -171,12 +182,15 @@ int main()
 		gfx::draw(commands, &mesh, PARTICLE_COUNT);
 		gfx::end_render_pass(commands);
 		gfx::end_commands(commands);
-		gfx::submit_and_present(device, frame.window, commands, {
-			.waitSemaphores = { computeFinishedSemaphores[frame.index] },
-			.waitStages = { VK_PIPELINE_STAGE_VERTEX_INPUT_BIT }
+		gfx::Frame& frameInFlight = frame.window->frames[frame.index];
+		gfx::submit_and_present(device, frame, commands, {
+			.queue = device->graphicsQueue,
+			.waitSemaphores = { computeFinishedSemaphores[frame.index], frameInFlight.imageAvailable },
+			.waitStages = { VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT },
+			.signalSemaphores = { frame.renderFinished },
+			.completedFence = frameInFlight.inFlightFence
 		});
 
-		printf("frame\n");
         double currentTime = glfwGetTime();
         lastFrameTime = (currentTime - lastTime) * 1000.0;
         lastTime = currentTime;
@@ -188,9 +202,13 @@ int main()
 	gfx::destroy_buffer(device, particles);
 
 	gfx::destroy_resource_set_layout(device, resourceLayout);
-
 	gfx::destroy_pipeline(device, computePipeline);
 	gfx::destroy_pipeline(device, gfxPipeline);
+
+	for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
+		gfx::destroy_semaphore(device, computeFinishedSemaphores[i]);
+		gfx::destroy_fence(device, computeInFlightFences[i]);
+	}
 
 	gfx::destroy_window(device, window.vkWindow);
 	gfx::destroy_device(device);

@@ -40,7 +40,7 @@ int main() {
 		gfx::draw(commands, {}, 3);
 		gfx::end_render_pass(commands);
 		gfx::end_commands(commands);
-		gfx::submit_and_present(device, frame.window, commands);
+		gfx::submit_and_present(device, frame, commands);
 	}
 
 	gfx::wait_idle(device);

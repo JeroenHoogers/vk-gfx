@@ -217,10 +217,10 @@ namespace gfx
 	SwapchainFrame acquire(Device* device, Window* window)
 	{
 		// if no window specified use main window
-		const Frame& frame = window->frames[window->currentFrame];
+		const Frame& frameInFlight = window->frames[window->currentFrame];
 
-		vkWaitForFences(device->device, 1, &frame.inFlightFence, VK_TRUE, UINT64_MAX);
-		VkResult result = vkAcquireNextImageKHR(device->device, window->swapchain->swapchain, UINT64_MAX, frame.imageAvailable, VK_NULL_HANDLE, &window->swapchain->imageIndex);
+		vkWaitForFences(device->device, 1, &frameInFlight.inFlightFence, VK_TRUE, UINT64_MAX);
+		VkResult result = vkAcquireNextImageKHR(device->device, window->swapchain->swapchain, UINT64_MAX, frameInFlight.imageAvailable, VK_NULL_HANDLE, &window->swapchain->imageIndex);
 
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			recreate_swapchain(device, window);
@@ -230,7 +230,7 @@ namespace gfx
 			std::fprintf(stderr, "Vulkan error aquiring next image: %d\n", static_cast<int>(result));
 		}
 
-		vkResetFences(device->device, 1, &frame.inFlightFence);
+		vkResetFences(device->device, 1, &frameInFlight.inFlightFence);
 
 		// create dynamic state object
 		VkViewport defaultViewport{
@@ -252,14 +252,16 @@ namespace gfx
 			.scissor = defaultScissor,
 		};
 
+		const uint32_t imageIndex = window->swapchain->imageIndex;
 		SwapchainFrame swapchainFrame {
-			.image = window->swapchain->images[window->swapchain->imageIndex],
+			.image = window->swapchain->images[imageIndex],
 			.window = window,
 			.dynamicState = dynamicState,
-			.frameBuffer = window->renderTarget->framebuffers[window->swapchain->imageIndex],
+			.frameBuffer = window->renderTarget->framebuffers[imageIndex],
+			.renderFinished = window->swapchain->images[imageIndex].renderFinished,
 			.extent = window->swapchain->extent,
 			.index = window->currentFrame,
-			.swapImageIndex = window->swapchain->imageIndex,
+			.swapImageIndex = imageIndex,
 		};
 
 		return swapchainFrame;
