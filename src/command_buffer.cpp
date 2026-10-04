@@ -111,35 +111,38 @@ namespace gfx
 	} // namespace detail
 
 	CommandBuffer create_command_buffer(Device* device) {
-		VkCommandBuffer commandBuffer = detail::create_command_buffer(device, device->commandPool);
-		return CommandBuffer{ .commandBuffer = commandBuffer };
+		return detail::create_command_buffer(device, device->commandPool);
 	}
 
-	CommandBuffer* begin_commands(Window* window)
+	std::vector<CommandBuffer> create_command_buffers(Device* device, uint32_t count) {
+		return detail::create_command_buffers(device, device->commandPool, count);
+	}
+
+	CommandBuffer begin_commands(Window* window)
 	{
-		CommandBuffer* commandBuffer = window->frames[window->currentFrame].commands;
-		vkResetCommandBuffer(commandBuffer->commandBuffer, 0);
-		detail::begin_commands(commandBuffer->commandBuffer);
+		CommandBuffer commandBuffer = window->frames[window->currentFrame].commands;
+		vkResetCommandBuffer(commandBuffer, 0);
+		detail::begin_commands(commandBuffer);
 
 		return commandBuffer;
 	};
 
-	CommandBuffer* begin_commands(CommandBuffer* commandBuffer)
+	CommandBuffer begin_commands(CommandBuffer commandBuffer)
 	{
-		vkResetCommandBuffer(commandBuffer->commandBuffer, 0);
-		detail::begin_commands(commandBuffer->commandBuffer);
+		vkResetCommandBuffer(commandBuffer, 0);
+		detail::begin_commands(commandBuffer);
 
 		return commandBuffer;
 	};
 
-	void end_commands(CommandBuffer* commands)
+	void end_commands(CommandBuffer commands)
 	{
-		VkResult result = vkEndCommandBuffer(commands->commandBuffer);
+		VkResult result = vkEndCommandBuffer(commands);
 		VK_ASSERT(result);
 	}
 
 	// TODO: supply queue and sync objects?
-	void submit(const CommandBuffer* commands, const SubmitParams& params)
+	void submit(const CommandBuffer commands, const SubmitParams& params)
 	{
 		VkSubmitInfo submitInfo{
 			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -148,7 +151,7 @@ namespace gfx
 			.pWaitSemaphores = params.waitSemaphores.data(),
 			.pWaitDstStageMask = nullptr,
 			.commandBufferCount = 1,
-			.pCommandBuffers = &commands->commandBuffer,
+			.pCommandBuffers = &commands,
 			.signalSemaphoreCount = static_cast<uint32_t>(params.signalSemaphores.size()),
 			.pSignalSemaphores = params.signalSemaphores.data()
 		};
@@ -157,7 +160,7 @@ namespace gfx
 		VK_ASSERT(result);
 	}
 
-	void submit_and_present(Device* device, Window* window, const CommandBuffer* commands)
+	void submit_and_present(Device* device, Window* window, const CommandBuffer commands, const SubmitParams& params)
 	{
 		Frame& frame = window->frames[window->currentFrame];
 
@@ -165,6 +168,7 @@ namespace gfx
 		VkSemaphore signalSemaphore = window->swapchain->images[imageIndex].renderFinished;
 		VkSemaphore signalSemaphores[] = {signalSemaphore};
 		VkSemaphore waitSemaphores[] = {frame.imageAvailable};
+		// std::vector<VkSemaphore> waitSemaphores =
 
 		VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
@@ -175,7 +179,7 @@ namespace gfx
 			.pWaitSemaphores = waitSemaphores,
 			.pWaitDstStageMask = waitStages,
 			.commandBufferCount = 1,
-			.pCommandBuffers = &commands->commandBuffer,
+			.pCommandBuffers = &commands,
 			.signalSemaphoreCount = 1,
 			.pSignalSemaphores = signalSemaphores
 		};
@@ -185,55 +189,54 @@ namespace gfx
 
 		present(device, window, signalSemaphore);
 
-		// TODO: should frames in flight be per window?
 		window->currentFrame = (window->currentFrame + 1) % static_cast<uint32_t>(window->frames.size());
 	}
 
-	void dispatch(CommandBuffer* commands, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) {
-		vkCmdDispatch(commands->commandBuffer, groupCountX, groupCountY, groupCountZ);
+	void dispatch(CommandBuffer commands, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) {
+		vkCmdDispatch(commands, groupCountX, groupCountY, groupCountZ);
 	}
 
-	void draw(CommandBuffer* commands, const Mesh* mesh, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+	void draw(CommandBuffer commands, const Mesh* mesh, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
 	{
 		// bind mesh
 		if (mesh != nullptr) {
 			VkBuffer vertexBuffers[] = {mesh->vertexBuffer.buffer};
 			VkDeviceSize offsets[] = {0};
-			vkCmdBindVertexBuffers(commands->commandBuffer, 0, 1, vertexBuffers, offsets);
+			vkCmdBindVertexBuffers(commands, 0, 1, vertexBuffers, offsets);
 		}
 
-		vkCmdDraw(commands->commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
+		vkCmdDraw(commands, vertexCount, instanceCount, firstVertex, firstInstance);
 	}
 
-	void draw_indexed(CommandBuffer* commands, const Mesh* mesh, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
+	void draw_indexed(CommandBuffer commands, const Mesh* mesh, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
 	{
 		// bind mesh
 		VkBuffer vertexBuffers[] = {mesh->vertexBuffer.buffer};
 		VkDeviceSize offsets[] = {0};
-		vkCmdBindVertexBuffers(commands->commandBuffer, 0, 1, vertexBuffers, offsets);
+		vkCmdBindVertexBuffers(commands, 0, 1, vertexBuffers, offsets);
 
-		vkCmdBindIndexBuffer(commands->commandBuffer, mesh->indexBuffer.buffer, 0, mesh->indexType);
-		vkCmdDrawIndexed(commands->commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+		vkCmdBindIndexBuffer(commands, mesh->indexBuffer.buffer, 0, mesh->indexType);
+		vkCmdDrawIndexed(commands, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 	}
 
-	void draw_indirect(CommandBuffer* commands, const Mesh* mesh, const Buffer& indirectBuffer, uint32_t drawCount, uint32_t offset)
+	void draw_indirect(CommandBuffer commands, const Mesh* mesh, const Buffer& indirectBuffer, uint32_t drawCount, uint32_t offset)
 	{
 		// bind mesh
 		VkBuffer vertexBuffers[] = {mesh->vertexBuffer.buffer};
 		VkDeviceSize offsets[] = {0};
-		vkCmdBindVertexBuffers(commands->commandBuffer, 0, 1, vertexBuffers, offsets);
+		vkCmdBindVertexBuffers(commands, 0, 1, vertexBuffers, offsets);
 
-		vkCmdDrawIndirect(commands->commandBuffer, indirectBuffer.buffer, offset, drawCount, sizeof(VkDrawIndirectCommand));
+		vkCmdDrawIndirect(commands, indirectBuffer.buffer, offset, drawCount, sizeof(VkDrawIndirectCommand));
 	}
 
-	void draw_indexed_indirect(CommandBuffer* commands, const Mesh* mesh, const Buffer& indirectBuffer, uint32_t drawCount, uint32_t offset)
+	void draw_indexed_indirect(CommandBuffer commands, const Mesh* mesh, const Buffer& indirectBuffer, uint32_t drawCount, uint32_t offset)
 	{
 		// bind mesh
 		VkBuffer vertexBuffers[] = {mesh->vertexBuffer.buffer};
 		VkDeviceSize offsets[] = {0};
-		vkCmdBindVertexBuffers(commands->commandBuffer, 0, 1, vertexBuffers, offsets);
-		vkCmdBindIndexBuffer(commands->commandBuffer, mesh->indexBuffer.buffer, 0, mesh->indexType);
+		vkCmdBindVertexBuffers(commands, 0, 1, vertexBuffers, offsets);
+		vkCmdBindIndexBuffer(commands, mesh->indexBuffer.buffer, 0, mesh->indexType);
 
-		vkCmdDrawIndexedIndirect(commands->commandBuffer, indirectBuffer.buffer, offset, drawCount, sizeof(VkDrawIndexedIndirectCommand));
+		vkCmdDrawIndexedIndirect(commands, indirectBuffer.buffer, offset, drawCount, sizeof(VkDrawIndexedIndirectCommand));
 	}
 } // namespace gfx

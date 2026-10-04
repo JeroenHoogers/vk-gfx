@@ -2,14 +2,13 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 #include "dynamic_state.h"
+#include "types.h"
 
 namespace gfx
 {
 	struct Device;
-	struct CommandBuffer;
 	struct VertexLayout;
 	struct UniformBuffer;
-	struct ResourceSet;
 	struct ResourceSetLayout;
 
 	struct RasterizerParams
@@ -81,10 +80,10 @@ namespace gfx
 	// TODO: allow dynamic state changes outside of the bind pipeline call
 	Pipeline* create_graphics_pipeline(Device* device, const GraphicsPipelineParams& params);
 	Pipeline* create_compute_pipeline(Device* device, const ComputePipelineParams& params);
-	void bind_pipeline(Pipeline* pipeline, CommandBuffer* commands, const DynamicState& dynamicState);
-	void bind_pipeline(Pipeline* pipeline, CommandBuffer* commands);
+	void bind_pipeline(Pipeline* pipeline, CommandBuffer commands, const DynamicState& dynamicState);
+	void bind_pipeline(Pipeline* pipeline, CommandBuffer commands);
 
-	void push_constants(CommandBuffer* commands, Pipeline* pipeline, uint32_t rangeIndex, void* data);
+	void push_constants(CommandBuffer commands, Pipeline* pipeline, uint32_t rangeIndex, void* data);
 
 	void destroy_pipeline(Device* device, Pipeline* pipeline);
 } // namespace gfx

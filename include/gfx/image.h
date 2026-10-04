@@ -1,12 +1,13 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
-#include "resource.h"
+#include "types.h" // Needed for ResourceSet
 
 namespace gfx
 {
 	struct Buffer;
 	struct Device;
+	struct ResourceSetLayout;
 
 	struct ImageDesc
 	{
@@ -42,6 +43,12 @@ namespace gfx
 	struct Texture {
 		Image* image;
 		VkSampler sampler;
+	};
+
+
+	struct TextureResource {
+		Texture* texture;
+		ResourceSet resourceSet;
 	};
 
 	Image* create_image(Device* device, const ImageDesc& params);

@@ -150,7 +150,7 @@ int main()
 	while (poll_window_events(window)) {
 		const gfx::SwapchainFrame frame = gfx::acquire(device, window.vkWindow);
 		updateUniformBuffer(ubo, frame);
-		gfx::CommandBuffer* commands = gfx::begin_commands(frame.window);
+		gfx::CommandBuffer commands = gfx::begin_commands(frame.window);
 		gfx::begin_render_pass(device, commands, &frame);
 		gfx::bind_pipeline(pipeline, commands, frame.dynamicState);
 		gfx::bind_resource_sets(commands, pipeline, { uboResources[frame.index], materialResourceSet });

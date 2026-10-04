@@ -375,46 +375,46 @@ namespace gfx
 	}
 
 
-	void bind_pipeline(Pipeline* pipeline, CommandBuffer* commands) {
-		vkCmdBindPipeline(commands->commandBuffer, pipeline->bindPoint, pipeline->pipeline);
+	void bind_pipeline(Pipeline* pipeline, CommandBuffer commands) {
+		vkCmdBindPipeline(commands, pipeline->bindPoint, pipeline->pipeline);
 	}
 
-	void bind_pipeline(Pipeline* pipeline, CommandBuffer* commands, const DynamicState& dynamicState)
+	void bind_pipeline(Pipeline* pipeline, CommandBuffer commands, const DynamicState& dynamicState)
 	{
-		vkCmdBindPipeline(commands->commandBuffer, pipeline->bindPoint, pipeline->pipeline);
+		vkCmdBindPipeline(commands, pipeline->bindPoint, pipeline->pipeline);
 
 		// set dynamic states
 		if ((pipeline->dynamicStates & DynamicStateFlags::Viewport) != DynamicStateFlags::None) {
-			vkCmdSetViewport(commands->commandBuffer, 0, 1, &dynamicState.viewport);
+			vkCmdSetViewport(commands, 0, 1, &dynamicState.viewport);
 		}
 
 		if ((pipeline->dynamicStates & DynamicStateFlags::Scissor) != DynamicStateFlags::None) {
-			vkCmdSetScissor(commands->commandBuffer, 0, 1, &dynamicState.scissor);
+			vkCmdSetScissor(commands, 0, 1, &dynamicState.scissor);
 		}
 
 		if ((pipeline->dynamicStates & DynamicStateFlags::CullMode) != DynamicStateFlags::None) {
-			vkCmdSetCullMode(commands->commandBuffer, dynamicState.cullMode);
+			vkCmdSetCullMode(commands, dynamicState.cullMode);
 		}
 
 		if ((pipeline->dynamicStates & DynamicStateFlags::FrontFace) != DynamicStateFlags::None) {
-			vkCmdSetFrontFace(commands->commandBuffer, dynamicState.frontFace);
+			vkCmdSetFrontFace(commands, dynamicState.frontFace);
 		}
 
 		if ((pipeline->dynamicStates & DynamicStateFlags::PrimitiveTopology) != DynamicStateFlags::None) {
-			vkCmdSetPrimitiveTopology(commands->commandBuffer, dynamicState.primitiveTopology);
+			vkCmdSetPrimitiveTopology(commands, dynamicState.primitiveTopology);
 		}
 
 		if ((pipeline->dynamicStates & DynamicStateFlags::LineWidth) != DynamicStateFlags::None) {
-			vkCmdSetLineWidth(commands->commandBuffer, dynamicState.lineWidth);
+			vkCmdSetLineWidth(commands, dynamicState.lineWidth);
 		}
 	}
 
-	void push_constants(CommandBuffer* commands, Pipeline* pipeline, uint32_t rangeIndex, void* data){
+	void push_constants(CommandBuffer commands, Pipeline* pipeline, uint32_t rangeIndex, void* data){
 		// TODO: add bounds checking or return a safe handle?
 		const PushConstantRange& range = pipeline->pushConstantRanges[rangeIndex];
 
 		vkCmdPushConstants(
-		    commands->commandBuffer,
+		    commands,
 		    pipeline->pipelineLayout,
 		    range.stages, range.offset, range.size,
 		    data

@@ -3,13 +3,13 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 #include "sync.h"
+#include "types.h"
 
 namespace gfx
 {
 	struct Device;
 	struct Swapchain;
 	struct RenderTarget;
-	struct CommandBuffer;
 	struct Image;
 
 	struct WindowCallbacks {
@@ -37,7 +37,7 @@ namespace gfx
 	};
 
 	struct Frame {
-		CommandBuffer* commands;
+		CommandBuffer commands;
 		Image* depthImage = nullptr;
 		Fence inFlightFence;
 		Semaphore imageAvailable;

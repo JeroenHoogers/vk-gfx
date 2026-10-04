@@ -469,7 +469,7 @@ namespace gfx
 			window->frames.resize(params.framesInFlight);
 			for (uint32_t i = 0; i < params.framesInFlight; i++) {
 				window->frames[i] = Frame{
-					.commands = new CommandBuffer{.commandBuffer = commandBuffers[i]},
+					.commands = commandBuffers[i],
 					.depthImage = nullptr,
 					.inFlightFence = create_fence(pDevice),
 					.imageAvailable = create_semaphore(pDevice)

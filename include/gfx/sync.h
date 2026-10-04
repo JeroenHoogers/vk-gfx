@@ -1,12 +1,10 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include "types.h"
 
 namespace gfx {
 	struct Device;
-
-	typedef VkSemaphore Semaphore;
-	typedef VkFence Fence;
 
 	[[nodiscard]] Semaphore create_semaphore(Device* device);
 	[[nodiscard]] Fence create_fence(Device* device, bool signaled = true);

@@ -53,7 +53,8 @@ int main() {
 
 	gfx::DeviceInit deviceInit = gfx::create_device({
 		.appname = appName,
-		.extensions = {},
+		.apiVersion = VK_API_VERSION_1_1, // slang compilation of a vertex shader using SV_VertexID doesn't compile to spirv_1_0 so we need to raise API version
+		.deviceExtensions = { VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME }, // Required by SV_VertexID
 		.windows = {
 			{ .window = window.vkWindow, .swapchain = { .format = VK_FORMAT_B8G8R8A8_SRGB }}
 		},
@@ -79,13 +80,13 @@ int main() {
 		ImGui::ShowDemoWindow();
 
 		const gfx::SwapchainFrame frame = gfx::acquire(device, window.vkWindow);
-		gfx::CommandBuffer* commands = gfx::begin_commands(frame.window);
+		gfx::CommandBuffer commands = gfx::begin_commands(frame.window);
 		gfx::begin_render_pass(device, commands, &frame);
 		gfx::bind_pipeline(pipeline, commands, frame.dynamicState);
 		gfx::draw(commands, {}, 3);
 
 		ImGui::Render();
-		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commands->commandBuffer);
+		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commands);
 
 		gfx::end_render_pass(commands);
 		gfx::end_commands(commands);

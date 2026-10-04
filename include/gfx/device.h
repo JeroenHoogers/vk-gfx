@@ -23,7 +23,6 @@ namespace gfx
 
 	struct RenderPass;
 	struct RenderTarget;
-	struct CommandBuffer;
 	struct Image;
 
 	// consider moving queue logic to a separate file?

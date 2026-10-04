@@ -4,6 +4,7 @@
 #include <vk_gfx.h>
 #include <cstring>
 #include <random>
+#include <algorithm>
 
 struct Particle {
 	glm::vec2 position;
@@ -21,7 +22,8 @@ constexpr std::uint32_t HEIGHT = 600;
 
 constexpr uint32_t FRAMES_IN_FLIGHT = 2;
 
-static float lastFrameTime = 0.0f;
+float lastFrameTime = 0.0f;
+double lastTime = 0.0f;
 
 gfx::MultiBuffer createParticleBuffer(gfx::Device* device) {
 	// Initialize particles
@@ -49,11 +51,11 @@ gfx::MultiBuffer createParticleBuffer(gfx::Device* device) {
 	return particleBuffers;
 }
 
-void updateUniformBuffer(gfx::UniformBuffer* uniformBuffer,  const gfx::SwapchainFrame& frame) {
+void updateUniformBuffer(gfx::UniformBuffer* uniformBuffer, uint32_t frameIndex) {
 	UBO ubo{};
 	ubo.deltaTime = lastFrameTime * 2.0f;
 
-	memcpy(uniformBuffer->mappedMemory[frame.index], &ubo, sizeof(ubo));
+	memcpy(uniformBuffer->mappedMemory[frameIndex], &ubo, sizeof(ubo));
 }
 
 int main()
@@ -99,20 +101,23 @@ int main()
 		// gfx::destroy_device(device);
 		// close_window(window);
 	// }
+
 	gfx::MultiBuffer particles = createParticleBuffer(device);
+	gfx::MultiBuffer lastParticles = particles;
+	std::rotate(lastParticles.buffers.begin(), lastParticles.buffers.end() - 1, lastParticles.buffers.end()); // rotate buffers right by 1 to get last frame
 
 	gfx::UniformBuffer* ubo = gfx::create_uniform_buffer(device, sizeof(UBO));
 
 	gfx::ResourceSetLayout* resourceLayout = gfx::create_resource_set_layout(device, {
 		{.type = gfx::ResourceType::UniformBuffer, .stages = VK_SHADER_STAGE_COMPUTE_BIT},
-		{.type = gfx::ResourceType::StorageBuffer, .stages = VK_SHADER_STAGE_COMPUTE_BIT},
-		{.type = gfx::ResourceType::StorageBuffer, .stages = VK_SHADER_STAGE_COMPUTE_BIT},
+		{.type = gfx::ResourceType::StorageBuffer, .stages = VK_SHADER_STAGE_COMPUTE_BIT}, // last (in)
+		{.type = gfx::ResourceType::StorageBuffer, .stages = VK_SHADER_STAGE_COMPUTE_BIT}, // curr (out)
 	});
 
 	std::vector<gfx::ResourceSet> resources = gfx::create_resource_sets(device, resourceLayout, {
 		{.type = gfx::ResourceType::UniformBuffer, .uniformBuffer = ubo},
-		{.type = gfx::ResourceType::StorageBuffer, .storageBuffer = &particles.buffers[0]},
-		{.type = gfx::ResourceType::StorageBuffer, .storageBuffer = &particles.buffers[1]},
+		{.type = gfx::ResourceType::StorageBuffers, .storageBuffers = &lastParticles}, // last (in)
+		{.type = gfx::ResourceType::StorageBuffers, .storageBuffers = &particles}, // curr (out)
 	}, device->framesInFlight);
 
 	gfx::Pipeline* gfxPipeline = gfx::create_graphics_pipeline(device, {
@@ -134,26 +139,26 @@ int main()
 	std::vector<gfx::CommandBuffer> computeCommandBuffers(FRAMES_IN_FLIGHT, gfx::create_command_buffer(device));
 
 	while (poll_window_events(window)) {
-		const gfx::SwapchainFrame frame = gfx::acquire(device, window.vkWindow);
-
-		gfx::wait_for_fence(device, computeInFlightFences[frame.index]);
-		updateUniformBuffer(ubo, frame);
-		gfx::reset_fence(device, computeInFlightFences[frame.index]);
+		uint32_t frameIndex = window.vkWindow->currentFrame;
+		gfx::wait_for_fence(device, computeInFlightFences[frameIndex]);
+		updateUniformBuffer(ubo, frameIndex);
+		gfx::reset_fence(device, computeInFlightFences[frameIndex]);
 
 		// compute
-		gfx::CommandBuffer* commands = gfx::begin_commands(&computeCommandBuffers[frame.index]);
+		gfx::CommandBuffer commands = gfx::begin_commands(computeCommandBuffers[frameIndex]);
 		gfx::bind_pipeline(computePipeline, commands);
-		gfx::bind_resource_set(commands, computePipeline, 0, resources[frame.index]);
+		gfx::bind_resource_set(commands, computePipeline, 0, resources[frameIndex]);
 		gfx::dispatch(commands, PARTICLE_COUNT / 256);
 		gfx::end_commands(commands);
 		gfx::submit(commands, {
 			.queue = device->computeQueue,
-			.signalSemaphores = {computeFinishedSemaphores[frame.index]}
+			.signalSemaphores = {computeFinishedSemaphores[frameIndex]}
 		});
 
 		// TODO: sync
 		// drawing
 		// gfx::CommandBuffer* commands = gfx::begin_commands(frame.window);
+		const gfx::SwapchainFrame frame = gfx::acquire(device, window.vkWindow);
 		commands = gfx::begin_commands(frame.window);
 		gfx::bind_pipeline(gfxPipeline, commands, frame.dynamicState);
 		gfx::begin_render_pass(device, commands, &frame);
@@ -166,7 +171,15 @@ int main()
 		gfx::draw(commands, &mesh, PARTICLE_COUNT);
 		gfx::end_render_pass(commands);
 		gfx::end_commands(commands);
-		gfx::submit_and_present(device, frame.window, commands);
+		gfx::submit_and_present(device, frame.window, commands, {
+			.waitSemaphores = { computeFinishedSemaphores[frame.index] },
+			.waitStages = { VK_PIPELINE_STAGE_VERTEX_INPUT_BIT }
+		});
+
+		printf("frame\n");
+        double currentTime = glfwGetTime();
+        lastFrameTime = (currentTime - lastTime) * 1000.0;
+        lastTime = currentTime;
 	}
 
 	gfx::wait_idle(device);

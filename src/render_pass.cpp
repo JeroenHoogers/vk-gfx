@@ -117,7 +117,7 @@ namespace gfx
 		return pRenderPass;
 	}
 
-	void begin_render_pass(Device* device, CommandBuffer* commands, const SwapchainFrame* frame)
+	void begin_render_pass(Device* device, CommandBuffer commands, const SwapchainFrame* frame)
 	{
 		// TODO: allow renderpass to be supplied, otherwise take default from device
 		RenderPass* renderpass = device->renderPass;
@@ -140,12 +140,12 @@ namespace gfx
 			.pClearValues = clearValues.data()
 		};
 
-		vkCmdBeginRenderPass(commands->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBeginRenderPass(commands, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 	}
 
-	void end_render_pass(CommandBuffer* commands)
+	void end_render_pass(CommandBuffer commands)
 	{
-		vkCmdEndRenderPass(commands->commandBuffer);
+		vkCmdEndRenderPass(commands);
 	}
 
 	void destroy_render_pass(Device* device, RenderPass* renderPass)

@@ -7,7 +7,6 @@ namespace gfx {
 	struct Window;
 	struct Buffer;
 	struct Pipeline;
-	struct CommandBuffer;
 
 	// turn into multibuffer?
 	struct UniformBuffer{
