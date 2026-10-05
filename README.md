@@ -96,14 +96,14 @@ make -j
   - [x] Textures Sampler creation
   - [x] Depth buffers
 - [x] Resources:
-  - [x] Define custom Resource layouts / sets
+  - [x] Resource layouts / sets
   - [x] Uniform buffers
   - [x] Structured Buffers
   - [x] Combined samplers
-  - [ ] Texture only
-  - [ ] Sampler only
+  - [ ] Texture
+  - [ ] Sampler
 - [ ] Windowing:
-  - [x] Platform / Windowing library agnostic (examples show glfw)
+  - [x] Platform / Windowing library agnostic
   - [x] Swapchain management
   - [x] Rendertarget / Framebuffers
   - [x] Multiple windows
@@ -122,20 +122,21 @@ make -j
   - [x] Cullmode
   - [x] FrontFace
   - [x] Primitive Topology
-  - [ ] Custom / user defined
+  - [ ] Others
 
 ## Examples:
 
+Examples require GLFW for windowing and GLM for mathematics.
+
 ### Triangle
 
-- Window creation
-- Device creation
-- Graphics Pipeline
-
-  ![image](assets/images/triangle.png)
-  _triangle example_
+![image](assets/images/triangle.png)
 
 ### Cube
+
+![image](assets/images/cube.png)
+
+**Features:**
 
 - Indexed Mesh binding
 - Depth buffering
@@ -145,16 +146,16 @@ make -j
 - Push Constants
 - MSAA
 
-  ![image](assets/images/cube.png)
-
 ### Compute Particles
+
+![image](assets/images/compute-particles.png)
+
+**Features:**
 
 - Compute + Graphics pipeline
 - Uniform Buffers
-- Structured Buffers
+- Storage Buffers
 - Advanced Synchronization
-
-<img src="assets/images/compute-particles.gif" width="100%">
 
 ### Thirdparty Integrations:
 
@@ -162,12 +163,14 @@ make -j
 
 (requires [draft-type](https://github.com/JeroenHoogers/draft-type))
 
+![image](assets/images/instanced-text.png)
+
+**Features:**
+
 - Uniform buffers
 - Storage buffers
 - Indirect drawing
 - Instanced drawing
-
-![image](assets/images/instanced-text.png)
 
 ### ImGui
 
@@ -182,6 +185,7 @@ make -j
 - [ ] Dynamic rendering (Vulkan>= 1.2)
 - [ ] Ray-tracing support
 - [ ] User defined dynamic state
+- [ ] Multiple render passes
 - [ ] Timeline semaphores
 - [ ] Async Compute
 - [ ] Pipeline Caching
