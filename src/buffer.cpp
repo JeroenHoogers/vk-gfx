@@ -1,3 +1,6 @@
+// Copyright(c) 2026, Jeroen Hoogers
+// Distributed under the MIT License (http://opensource.org/licenses/MIT)
+
 #include "gfx/buffer.h"
 #include "gfx/device.h"
 #include "gfx/command_buffer.h"
@@ -136,9 +139,6 @@ namespace gfx
 	{
 		vkDestroyBuffer(device->device, buffer.buffer, nullptr);
 		vkFreeMemory(device->device, buffer.memory, nullptr);
-
-		// delete buffer;
-		// buffer = nullptr;
 	}
 
 	void destroy_buffer(Device* device, const MultiBuffer& buffer)

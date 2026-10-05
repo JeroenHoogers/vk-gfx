@@ -1,3 +1,6 @@
+// Copyright(c) 2026, Jeroen Hoogers
+// Distributed under the MIT License (http://opensource.org/licenses/MIT)
+
 #include "gfx/device.h"
 #include "gfx/command_buffer.h"
 #include "gfx/image.h"
@@ -376,7 +379,7 @@ namespace gfx
 		}
 	} // namespace
 
-	DeviceInit create_device(const DeviceCreateParams& params)
+	Device* create_device(const DeviceCreateParams& params)
 	{
 		constexpr const char* validationLayers = "VK_LAYER_KHRONOS_validation";
 		std::vector<const char*> deviceExtensions = params.deviceExtensions;
@@ -482,9 +485,7 @@ namespace gfx
 			pDevice->resourcePool = create_resource_pool(pDevice, params.resourcePool);
 		}
 
-		return DeviceInit{
-			.device = pDevice
-		};
+		return pDevice;
 	}
 
 	void wait_idle(Device* device)

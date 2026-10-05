@@ -1,3 +1,6 @@
+// Copyright(c) 2026, Jeroen Hoogers
+// Distributed under the MIT License (http://opensource.org/licenses/MIT)
+
 #include "common.h"
 #include "glfw_window.h"
 #include <chrono>
@@ -74,9 +77,15 @@ TextBuffer createTextBuffer(gfx::Device* device, const drafttype::HersheyFont& f
 
 int main()
 {
+	#ifdef DEBUG
+		constexpr bool enableValidationLayers = true;
+	#else
+		constexpr bool enableValidationLayers = false;
+	#endif
+
 	constexpr std::uint32_t width = 800;
 	constexpr std::uint32_t height = 600;
-	constexpr bool enableValidationLayers = true;
+
 	std::string appName = "Instanced Text example";
 	Window window = create_window(width, height, appName);
 
@@ -88,7 +97,7 @@ int main()
 	deviceFeatures.wideLines = VK_TRUE;
 	deviceFeatures.drawIndirectFirstInstance = VK_TRUE;
 
-	gfx::DeviceInit deviceInit = gfx::create_device({
+	gfx::Device* device = gfx::create_device({
 		.appname = appName,
 		.apiVersion = VK_API_VERSION_1_1, // slang compilation of a vertex shader using SV_InstanceID doesn't compile to spirv_1_0 so we need to raise API version
 		.deviceExtensions = { VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME }, // required by SV_InstanceID
@@ -128,13 +137,6 @@ int main()
 		.horizontalAlign = drafttype::HorizontalAlign::Center,
 		.verticalAlign = drafttype::VerticalAlign::Middle
 	};
-
-	gfx::Device* device = deviceInit.device;
-
-	// if () { // TODO: error handling
-	// gfx::destroy_device(device);
-	// close_window(window);
-	// }
 
 	constexpr float AXIS_SIZE = 10.0f;
 	const std::vector<Vertex> vertices = {
@@ -192,11 +194,11 @@ int main()
 		}
 	});
 
-	gfx::ResourceSetLayout* uboResourceLayout = gfx::create_resource_set_layout(device, {
+	gfx::ResourceSetLayout uboResourceLayout = gfx::create_resource_set_layout(device, {
 		{.type = gfx::ResourceType::UniformBuffer, .stages = VK_SHADER_STAGE_VERTEX_BIT}
 	});
 
-	gfx::ResourceSetLayout* glyphInstancesResourceLayout = gfx::create_resource_set_layout(device, {
+	gfx::ResourceSetLayout glyphInstancesResourceLayout = gfx::create_resource_set_layout(device, {
 		{.type = gfx::ResourceType::StorageBuffer, .stages = VK_SHADER_STAGE_VERTEX_BIT}
 	});
 

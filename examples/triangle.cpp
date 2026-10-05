@@ -1,17 +1,25 @@
+// Copyright(c) 2026, Jeroen Hoogers
+// Distributed under the MIT License (http://opensource.org/licenses/MIT)
+
 #include <cstdint>
 #include "glfw_window.h"
 #include "common.h"
 #include <vk_gfx.h>
 
 int main() {
+	#ifdef DEBUG
+		constexpr bool enableValidationLayers = true;
+	#else
+		constexpr bool enableValidationLayers = false;
+	#endif
+
 	constexpr std::uint32_t width = 800;
 	constexpr std::uint32_t height = 600;
-	constexpr bool enableValidationLayers = true;
 
 	std::string appName = "triangle example";
 	Window window = create_window(width, height, appName);
 
-	gfx::DeviceInit deviceInit = gfx::create_device({
+	gfx::Device* device = gfx::create_device({
 		.appname = appName,
 		.apiVersion = VK_API_VERSION_1_1, // slang compilation of a vertex shader using SV_VertexID doesn't compile to spirv_1_0 so we need to raise API version
 		.deviceExtensions = { VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME }, // Required by SV_VertexID
@@ -21,12 +29,6 @@ int main() {
 		.enableValidation = enableValidationLayers
 	});
 
-	gfx::Device* device = deviceInit.device;
-
-	// if () { // TODO: error handling
-		// gfx::destroy_device(device);
-		// close_window(window);
-	// }
 	gfx::Pipeline* pipeline = gfx::create_graphics_pipeline(device, {
 		.vertex_shader = load_shader("shaders/triangle.vertex.spv"),
 		.fragment_shader = load_shader("shaders/triangle.fragment.spv"),

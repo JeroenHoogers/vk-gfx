@@ -1,3 +1,6 @@
+// Copyright(c) 2026, Jeroen Hoogers
+// Distributed under the MIT License (http://opensource.org/licenses/MIT)
+
 #include "gfx/render_pass.h"
 #include "gfx/command_buffer.h"
 #include "gfx/device.h"
@@ -20,7 +23,6 @@ namespace gfx
 			.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
 			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 			.finalLayout = enableMsaa ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-			// .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR  // No MSAA
 		};
 
 		std::vector<VkAttachmentDescription> attachments = { colorAttachment };
@@ -119,9 +121,9 @@ namespace gfx
 
 	void begin_render_pass(Device* device, CommandBuffer commands, const SwapchainFrame* frame)
 	{
-		// TODO: allow renderpass to be supplied, otherwise take default from device
+		// TODO: allow renderpass to be supplied, otherwise take the default renderpass from device
 		RenderPass* renderpass = device->renderPass;
-		// TODO: provide these?
+		// TODO: allow clearvalues to be supplied as arguments
 		std::vector<VkClearValue> clearValues{
 			renderpass->colors.clearColor,
 			renderpass->depth.clearColor

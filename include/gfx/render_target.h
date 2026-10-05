@@ -1,4 +1,8 @@
+// Copyright(c) 2026, Jeroen Hoogers
+// Distributed under the MIT License (http://opensource.org/licenses/MIT)
+
 #pragma once
+
 #include <vector>
 #include <vulkan/vulkan.h>
 
@@ -22,6 +26,6 @@ namespace gfx
 		std::vector<VkFramebuffer> framebuffers;
 	};
 
-	RenderTarget* create_render_target(Device* device, Window* window, RenderPass* renderPass);
+	[[nodiscard]] RenderTarget* create_render_target(Device* device, Window* window, RenderPass* renderPass);
 	void destroy_render_target(Device* device, RenderTarget* renderTarget);
 } // namespace gfx

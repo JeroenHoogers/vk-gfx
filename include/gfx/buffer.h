@@ -1,4 +1,8 @@
+// Copyright(c) 2026, Jeroen Hoogers
+// Distributed under the MIT License (http://opensource.org/licenses/MIT)
+
 #pragma once
+
 #include <vulkan/vulkan.h>
 #include <vector>
 
@@ -29,11 +33,11 @@ namespace gfx {
 		VkSharingMode sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	};
 
-	Buffer create_buffer(Device* device, const BufferDesc& params);
-	Buffer create_and_upload_buffer(Device* device, const void* data, const BufferDesc& params);
+	[[nodiscard]] Buffer create_buffer(Device* device, const BufferDesc& params);
+	[[nodiscard]] Buffer create_and_upload_buffer(Device* device, const void* data, const BufferDesc& params);
 
-	MultiBuffer create_buffers(Device* device, const BufferDesc& params, uint32_t count);
-	MultiBuffer create_and_upload_buffers(Device* device, const void* data, const BufferDesc& params, uint32_t count);
+	[[nodiscard]] MultiBuffer create_buffers(Device* device, const BufferDesc& params, uint32_t count);
+	[[nodiscard]] MultiBuffer create_and_upload_buffers(Device* device, const void* data, const BufferDesc& params, uint32_t count);
 
 	void copy_buffer(Device* device, const Buffer& src, const Buffer& dst);
 

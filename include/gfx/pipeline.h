@@ -1,4 +1,8 @@
+// Copyright(c) 2026, Jeroen Hoogers
+// Distributed under the MIT License (http://opensource.org/licenses/MIT)
+
 #pragma once
+
 #include <vector>
 #include <vulkan/vulkan.h>
 #include "dynamic_state.h"
@@ -9,7 +13,6 @@ namespace gfx
 	struct Device;
 	struct VertexLayout;
 	struct UniformBuffer;
-	struct ResourceSetLayout;
 
 	struct RasterizerParams
 	{
@@ -35,12 +38,6 @@ namespace gfx
 		VkBool32 enable_blend = VK_FALSE;
 	};
 
-	struct PushConstantRange {
-		uint32_t offset = 0;
-		uint32_t size;
-		VkShaderStageFlags stages;
-	};
-
 	// TODO: support separation of pipeline and layout (ability to re-use pipeline layout)
 	struct GraphicsPipelineParams
 	{
@@ -48,7 +45,7 @@ namespace gfx
 		std::vector<char> fragment_shader = {};
 		std::vector<char> geometry_shader = {};
 		VertexLayout* vertex_layout = nullptr;
-		std::vector<ResourceSetLayout*> resource_set_layouts = {};
+		std::vector<ResourceSetLayout> resource_set_layouts = {};
 		std::vector<PushConstantRange> push_constants = {};
 		RasterizerParams rasterizer = {};
 		MultisamplingParams multisampling = {};
@@ -63,7 +60,7 @@ namespace gfx
 	{
 		std::vector<char> compute_shader = {};
 		VertexLayout* vertex_layout = nullptr;
-		std::vector<ResourceSetLayout*> resource_set_layouts = {};
+		std::vector<ResourceSetLayout> resource_set_layouts = {};
 		std::vector<PushConstantRange> push_constants = {};
 	};
 
@@ -77,9 +74,9 @@ namespace gfx
 		DynamicStateFlags dynamicStates;
 	};
 
+	[[nodiscard]] Pipeline* create_graphics_pipeline(Device* device, const GraphicsPipelineParams& params);
+	[[nodiscard]] Pipeline* create_compute_pipeline(Device* device, const ComputePipelineParams& params);
 	// TODO: allow dynamic state changes outside of the bind pipeline call
-	Pipeline* create_graphics_pipeline(Device* device, const GraphicsPipelineParams& params);
-	Pipeline* create_compute_pipeline(Device* device, const ComputePipelineParams& params);
 	void bind_pipeline(Pipeline* pipeline, CommandBuffer commands, const DynamicState& dynamicState);
 	void bind_pipeline(Pipeline* pipeline, CommandBuffer commands);
 

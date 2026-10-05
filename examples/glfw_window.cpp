@@ -1,3 +1,6 @@
+// Copyright(c) 2026, Jeroen Hoogers
+// Distributed under the MIT License (http://opensource.org/licenses/MIT)
+
 #include "glfw_window.h"
 #include <vk_gfx.h>
 
@@ -45,8 +48,7 @@ static void glfw_get_framebuffer_size(uint32_t* width, uint32_t* height, void* d
 	*height = static_cast<uint32_t>(h);
 };
 
-static void glfw_resize_callback(GLFWwindow* window, int width, int height) {
-	std::printf("GLFW resized %d, %d\n", width, height);
+static void glfw_resize_callback(GLFWwindow* window, [[maybe_unused]] int width, [[maybe_unused]] int height) {
 	gfx::Window* gfx_window = reinterpret_cast<gfx::Window*>(glfwGetWindowUserPointer(window));
 	gfx_window->swapchain->resized = true;
 };

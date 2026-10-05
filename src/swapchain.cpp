@@ -1,3 +1,6 @@
+// Copyright(c) 2026, Jeroen Hoogers
+// Distributed under the MIT License (http://opensource.org/licenses/MIT)
+
 #include "gfx/swapchain.h"
 #include "gfx/device.h"
 #include "gfx/render_target.h"

@@ -1,3 +1,6 @@
+// Copyright(c) 2026, Jeroen Hoogers
+// Distributed under the MIT License (http://opensource.org/licenses/MIT)
+
 #include "gfx/uniform_buffer.h"
 #include "gfx/buffer.h"
 #include "gfx/command_buffer.h"

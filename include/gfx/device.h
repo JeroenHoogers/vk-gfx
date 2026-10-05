@@ -1,13 +1,17 @@
+// Copyright(c) 2026, Jeroen Hoogers
+// Distributed under the MIT License (http://opensource.org/licenses/MIT)
+
 #pragma once
+
 #include "window.h"
 #include <cstdint>
 #include <string>
 #include <vector>
 #include <vulkan/vulkan.h>
 #include <vulkan/vk_enum_string_helper.h>
+#include "detail/bitflags.h"
 #include "resource.h" // required for ResourcePoolDesc
 #include "swapchain.h" // required for SwapchainDesc
-#include "detail/bitflags.h"
 #include "render_pass.h" // required for RenderPassDesc
 
 namespace gfx
@@ -61,7 +65,7 @@ namespace gfx
 		Queue computeQueue = {};
 		VkCommandPool commandPool = VK_NULL_HANDLE;
 		VkCommandPool transientPool = VK_NULL_HANDLE;
-		ResourcePool* resourcePool = nullptr;
+		ResourcePool resourcePool = VK_NULL_HANDLE;
 		VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 		bool enableDepth = false;
 		uint32_t framesInFlight = 2;
@@ -91,13 +95,7 @@ namespace gfx
 		bool enableValidation = false;
 	};
 
-	struct DeviceInit
-	{
-		Device* device;
-		// TODO: add error handling
-	};
-
-	DeviceInit create_device(const DeviceCreateParams& init);
+	Device* create_device(const DeviceCreateParams& init);
 
 	void wait_idle(Device* device);
 

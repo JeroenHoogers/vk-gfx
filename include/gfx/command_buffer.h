@@ -1,4 +1,8 @@
+// Copyright(c) 2026, Jeroen Hoogers
+// Distributed under the MIT License (http://opensource.org/licenses/MIT)
+
 #pragma once
+
 #include <cstdint>
 #include <vector>
 #include <vulkan/vulkan.h>
@@ -36,6 +40,8 @@ namespace gfx
 	void end_commands(CommandBuffer commands);
 
 	void dispatch(CommandBuffer commands, uint32_t groupCountX, uint32_t groupCountY = 1, uint32_t groupCountZ = 1);
+	void dispatch_indirect(CommandBuffer commands, const Buffer& indirectBuffer, uint32_t offset = 0);
+
 	void draw(CommandBuffer commands, const Mesh* mesh, uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0);
 
 	void draw_indexed(CommandBuffer commands, const Mesh* mesh, uint32_t indexCount, uint32_t instanceCount = 1, uint32_t firstIndex = 0, int32_t vertexOffset = 0, uint32_t firstInstance = 0);

@@ -1,3 +1,6 @@
+// Copyright(c) 2026, Jeroen Hoogers
+// Distributed under the MIT License (http://opensource.org/licenses/MIT)
+
 #include "gfx/resource.h"
 #include "gfx/buffer.h"
 #include "gfx/command_buffer.h"
@@ -68,7 +71,7 @@ namespace gfx
 		}
 	} // namespace detail
 
-	ResourcePool* create_resource_pool(Device* device, const ResourcePoolDesc& params)
+	ResourcePool create_resource_pool(Device* device, const ResourcePoolDesc& params)
 	{
 		VkDescriptorPoolCreateInfo poolInfo{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
@@ -83,16 +86,12 @@ namespace gfx
 		VkResult result = vkCreateDescriptorPool(device->device, &poolInfo, nullptr, &descriptorPool);
 		VK_ASSERT(result);
 
-		return new ResourcePool{
-			.descriptorPool = descriptorPool
-		};
+		return descriptorPool;
 	}
 
-	void destroy_resource_pool(Device* device, ResourcePool* pool)
+	void destroy_resource_pool(Device* device, ResourcePool pool)
 	{
-		vkDestroyDescriptorPool(device->device, pool->descriptorPool, nullptr);
-		delete pool;
-		pool = nullptr;
+		vkDestroyDescriptorPool(device->device, pool, nullptr);
 	}
 
 	std::vector<VkDescriptorSet> create_descriptor_sets(Device* device, uint32_t count, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout)
@@ -113,7 +112,7 @@ namespace gfx
 		return descriptorSets;
 	}
 
-	ResourceSetLayout* create_resource_set_layout(Device* device, const std::vector<ResourceDesc>& layoutBindings)
+	ResourceSetLayout create_resource_set_layout(Device* device, const std::vector<ResourceDesc>& layoutBindings)
 	{
 		std::vector<VkDescriptorSetLayoutBinding> bindings(layoutBindings.size());
 
@@ -129,31 +128,33 @@ namespace gfx
 
 		VkDescriptorSetLayout layout = detail::create_descriptor_set_layout(device, bindings);
 
-		return new ResourceSetLayout{
-			.bindings = layoutBindings,
-			.descriptorSetLayout = layout
-		};
+		return layout;
 	}
 
-	void destroy_resource_set_layouts(Device* device, const std::vector<ResourceSetLayout*>& layouts)
+	void destroy_resource_set_layout(Device* device, ResourceSetLayout layout)
 	{
+		vkDestroyDescriptorSetLayout(device->device, layout, nullptr);
+	}
+
+	void destroy_resource_set_layouts(Device* device, const std::initializer_list<ResourceSetLayout>& layouts) {
 		for (auto& layout : layouts) {
-			vkDestroyDescriptorSetLayout(device->device, layout->descriptorSetLayout, nullptr);
+			vkDestroyDescriptorSetLayout(device->device, layout, nullptr);
 		}
 	}
 
-	void destroy_resource_set_layout(Device* device, ResourceSetLayout* layout)
-	{
-		vkDestroyDescriptorSetLayout(device->device, layout->descriptorSetLayout, nullptr);
+	void destroy_resource_set_layouts(Device* device, const std::span<ResourceSetLayout>& layouts) {
+		for (auto& layout : layouts) {
+			vkDestroyDescriptorSetLayout(device->device, layout, nullptr);
+		}
 	}
 
-	std::vector<ResourceSet> create_resource_sets(Device* device, ResourceSetLayout* layout, const std::vector<Resource>& resources, uint32_t count)
+	std::vector<ResourceSet> create_resource_sets(Device* device, ResourceSetLayout layout, const std::vector<Resource>& resources, uint32_t count)
 	{
-		std::vector<VkDescriptorSetLayout> layouts(count, layout->descriptorSetLayout);
+		std::vector<VkDescriptorSetLayout> layouts(count, layout);
 		VkDescriptorSetAllocateInfo allocInfo{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
 			.pNext = nullptr,
-			.descriptorPool = device->resourcePool->descriptorPool,
+			.descriptorPool = device->resourcePool,
 			.descriptorSetCount = static_cast<uint32_t>(count),
 			.pSetLayouts = layouts.data()
 		};
@@ -170,10 +171,6 @@ namespace gfx
 		VK_ASSERT(result);
 
 		for (uint32_t i = 0; i < count; i++) {
-			constexpr uint32_t MAX_BINDINGS = 8;
-
-			assert(resources.size() <= MAX_BINDINGS);
-
 			for (uint32_t j = 0; j < resources.size(); j++) {
 				const uint32_t index = i * resources.size() + j;
 
@@ -219,7 +216,7 @@ namespace gfx
 		return descriptorSets;
 	}
 
-	ResourceSet create_resource_set(Device* device, ResourceSetLayout* layout, const std::vector<Resource>& resources)
+	ResourceSet create_resource_set(Device* device, const ResourceSetLayout layout, const std::vector<Resource>& resources)
 	{
 		return create_resource_sets(device, layout, resources)[0];
 	}

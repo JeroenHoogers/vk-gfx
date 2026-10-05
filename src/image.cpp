@@ -1,3 +1,6 @@
+// Copyright(c) 2026, Jeroen Hoogers
+// Distributed under the MIT License (http://opensource.org/licenses/MIT)
+
 #include "gfx/image.h"
 #include "gfx/buffer.h"
 #include "gfx/command_buffer.h"
@@ -364,7 +367,7 @@ namespace gfx
 		};
 	}
 
-	TextureResource create_texture_resource(Device* device, void* pixels, uint64_t size, const ImageDesc& params, ResourceSetLayout* resourceLayout)
+	TextureResource create_texture_resource(Device* device, void* pixels, uint64_t size, const ImageDesc& params, const ResourceSetLayout resourceLayout)
 	{
 		Texture* texture = create_texture(device, pixels, size, params);
 		ResourceSet resourceSet = create_resource_set(device, resourceLayout, {Resource{.type = ResourceType::CombinedImageSampler, .texture = texture}});

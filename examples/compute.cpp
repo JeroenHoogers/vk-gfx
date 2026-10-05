@@ -1,3 +1,6 @@
+// Copyright(c) 2026, Jeroen Hoogers
+// Distributed under the MIT License (http://opensource.org/licenses/MIT)
+
 #include <cstdint>
 #include "glfw_window.h"
 #include "common.h"
@@ -16,7 +19,7 @@ struct UBO {
 	float deltaTime;
 };
 
-constexpr uint32_t PARTICLE_COUNT = 8192;
+constexpr uint32_t PARTICLE_COUNT = 8192; // multiple of 256 (local size in compute.slang)
 constexpr std::uint32_t WIDTH = 800;
 constexpr std::uint32_t HEIGHT = 600;
 
@@ -60,7 +63,11 @@ void updateUniformBuffer(gfx::UniformBuffer* uniformBuffer, uint32_t frameIndex)
 
 int main()
 {
+#ifdef DEBUG
 	constexpr bool enableValidationLayers = true;
+#else
+	constexpr bool enableValidationLayers = false;
+#endif
 
 	std::string appName = "compute example";
 	Window window = create_window(WIDTH, HEIGHT, appName);
@@ -76,7 +83,7 @@ int main()
 	VkPhysicalDeviceFeatures features{};
 	features.largePoints = VK_TRUE;
 
-	gfx::DeviceInit deviceInit = gfx::create_device({
+	gfx::Device* device = gfx::create_device({
 		.appname = appName,
 		.extensions = {},
 		.queues = {gfx::QueueRequest{ .flags = gfx::QueueFlags::Graphics | gfx::QueueFlags::Present | gfx::QueueFlags::Compute }},
@@ -95,20 +102,13 @@ int main()
 		.enableValidation = enableValidationLayers
 	});
 
-	gfx::Device* device = deviceInit.device;
-
-	// if () { // TODO: error handling
-		// gfx::destroy_device(device);
-		// close_window(window);
-	// }
-
 	gfx::MultiBuffer particles = createParticleBuffer(device);
 	gfx::MultiBuffer lastParticles = particles;
 	std::rotate(lastParticles.buffers.begin(), lastParticles.buffers.end() - 1, lastParticles.buffers.end()); // rotate buffers right by 1 to get last frame
 
 	gfx::UniformBuffer* ubo = gfx::create_uniform_buffer(device, sizeof(UBO));
 
-	gfx::ResourceSetLayout* resourceLayout = gfx::create_resource_set_layout(device, {
+	gfx::ResourceSetLayout resourceLayout = gfx::create_resource_set_layout(device, {
 		{.type = gfx::ResourceType::UniformBuffer, .stages = VK_SHADER_STAGE_COMPUTE_BIT},
 		{.type = gfx::ResourceType::StorageBuffer, .stages = VK_SHADER_STAGE_COMPUTE_BIT}, // last (in)
 		{.type = gfx::ResourceType::StorageBuffer, .stages = VK_SHADER_STAGE_COMPUTE_BIT}, // curr (out)
@@ -138,8 +138,8 @@ int main()
 	});
 
 	// create compute sync objects and commandbuffers
-	std::vector<gfx::Semaphore> computeFinishedSemaphores(FRAMES_IN_FLIGHT);
-	std::vector<gfx::Fence> computeInFlightFences(FRAMES_IN_FLIGHT);
+	gfx::Semaphore computeFinishedSemaphores[FRAMES_IN_FLIGHT];
+	gfx::Fence computeInFlightFences[FRAMES_IN_FLIGHT];
 
 	for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
 		computeFinishedSemaphores[i] = gfx::create_semaphore(device);
@@ -166,9 +166,7 @@ int main()
 			.completedFence = computeInFlightFences[frameIndex]
 		});
 
-		// TODO: sync
 		// drawing
-		// gfx::CommandBuffer* commands = gfx::begin_commands(frame.window);
 		const gfx::SwapchainFrame frame = gfx::acquire(device, window.vkWindow);
 		commands = gfx::begin_commands(frame.window);
 		gfx::bind_pipeline(gfxPipeline, commands, frame.dynamicState);

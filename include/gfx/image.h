@@ -1,13 +1,15 @@
+// Copyright(c) 2026, Jeroen Hoogers
+// Distributed under the MIT License (http://opensource.org/licenses/MIT)
+
 #pragma once
 
 #include <vulkan/vulkan.h>
-#include "types.h" // Needed for ResourceSet
+#include "types.h" // Needed for ResourceSet, ResourceSetLayout
 
 namespace gfx
 {
 	struct Buffer;
 	struct Device;
-	struct ResourceSetLayout;
 
 	struct ImageDesc
 	{

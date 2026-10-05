@@ -1,3 +1,6 @@
+// Copyright(c) 2026, Jeroen Hoogers
+// Distributed under the MIT License (http://opensource.org/licenses/MIT)
+
 #include "gfx/pipeline.h"
 #include "gfx/command_buffer.h"
 #include "gfx/resource.h"
@@ -240,28 +243,14 @@ namespace gfx
 			.blendConstants{0.0f, 0.0f, 0.0f, 0.0f}
 		};
 
-		std::vector<VkDescriptorSetLayout> setLayouts(params.resource_set_layouts.size());
-		for (uint32_t i = 0; i < params.resource_set_layouts.size(); i++) {
-			setLayouts[i] = params.resource_set_layouts[i]->descriptorSetLayout;
-		}
-
-		std::vector<VkPushConstantRange> pushConstantRanges(params.push_constants.size());
-		for (uint32_t i = 0; i < params.push_constants.size(); i++) {
-			pushConstantRanges[i] = {
-				.stageFlags = params.push_constants[i].stages,
-				.offset = params.push_constants[i].offset,
-				.size = params.push_constants[i].size
-			};
-		}
-
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 			.pNext = nullptr,
 			.flags = 0,
-			.setLayoutCount = static_cast<uint32_t>(setLayouts.size()),
-			.pSetLayouts = setLayouts.data(),
-			.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size()),
-			.pPushConstantRanges = pushConstantRanges.data()
+			.setLayoutCount = static_cast<uint32_t>(params.resource_set_layouts.size()),
+			.pSetLayouts = params.resource_set_layouts.data(),
+			.pushConstantRangeCount = static_cast<uint32_t>(params.push_constants.size()),
+			.pPushConstantRanges = params.push_constants.data()
 		};
 
 		VkPipelineLayout pipelineLayout;
@@ -319,28 +308,14 @@ namespace gfx
 
 		VkPipelineShaderStageCreateInfo computeShaderStageInfo = create_shader_stage(computeShaderModule, VK_SHADER_STAGE_COMPUTE_BIT);
 
-		std::vector<VkDescriptorSetLayout> setLayouts(params.resource_set_layouts.size());
-		for (uint32_t i = 0; i < params.resource_set_layouts.size(); i++) {
-			setLayouts[i] = params.resource_set_layouts[i]->descriptorSetLayout;
-		}
-
-		std::vector<VkPushConstantRange> pushConstantRanges(params.push_constants.size());
-		for (uint32_t i = 0; i < params.push_constants.size(); i++) {
-			pushConstantRanges[i] = {
-				.stageFlags = params.push_constants[i].stages,
-				.offset = params.push_constants[i].offset,
-				.size = params.push_constants[i].size
-			};
-		}
-
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 			.pNext = nullptr,
 			.flags = 0,
-			.setLayoutCount = static_cast<uint32_t>(setLayouts.size()),
-			.pSetLayouts = setLayouts.data(),
-			.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size()),
-			.pPushConstantRanges = pushConstantRanges.data()
+			.setLayoutCount = static_cast<uint32_t>(params.resource_set_layouts.size()),
+			.pSetLayouts = params.resource_set_layouts.data(),
+			.pushConstantRangeCount = static_cast<uint32_t>(params.push_constants.size()),
+			.pPushConstantRanges = params.push_constants.data()
 		};
 
 		VkPipelineLayout pipelineLayout;
@@ -416,7 +391,7 @@ namespace gfx
 		vkCmdPushConstants(
 		    commands,
 		    pipeline->pipelineLayout,
-		    range.stages, range.offset, range.size,
+		    range.stageFlags, range.offset, range.size,
 		    data
 		);
 	}

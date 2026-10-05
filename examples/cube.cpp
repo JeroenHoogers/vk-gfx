@@ -1,3 +1,6 @@
+// Copyright(c) 2026, Jeroen Hoogers
+// Distributed under the MIT License (http://opensource.org/licenses/MIT)
+
 #include "common.h"
 #include "glfw_window.h"
 #include <chrono>
@@ -27,31 +30,25 @@ struct Material {
 	glm::vec3 tint;
 };
 
+glm::vec3 interpolateColor(float t) {
+    glm::vec3 c[] = {{1,1,1},{1,0,0},{0,1,0},{0,0,1},{1,1,1}};
+    float x = glm::fract(t * 0.1f) * 4.0f;
+    return glm::mix(c[int(x)], c[int(x) + 1], glm::fract(x));
+}
+
 int main()
 {
+	#ifdef DEBUG
+		constexpr bool enableValidationLayers = true;
+	#else
+		constexpr bool enableValidationLayers = false;
+	#endif
+
 	constexpr std::uint32_t width = 800;
 	constexpr std::uint32_t height = 600;
-	constexpr bool enableValidationLayers = true;
 
-	// const std::vector<Vertex> vertices = {
-	// 	{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-	// 	{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-	// 	{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-	// 	{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-
-	// 	{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-	// 	{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-	// 	{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-	// 	{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
-	// };
-
-	// const std::vector<uint16_t> indices = {
-	// 	0, 1, 2, 2, 3, 0,
-	// 	4, 5, 6, 6, 7, 4
-	// };
-
-	const std::string MODEL_PATH = "assets/models/viking_room.obj";
-	const std::string TEXTURE_PATH = "assets/textures/viking_room.png";
+	const std::string MODEL_PATH = "assets/models/cube.obj";
+	const std::string TEXTURE_PATH = "assets/textures/texture.jpg";
 
 	gfx::VertexLayout vertexLayout = gfx::create_vertex_layout({{
 		.stride = sizeof(Vertex),
@@ -70,7 +67,7 @@ int main()
 	VkPhysicalDeviceFeatures features = {};
 	features.samplerAnisotropy = VK_TRUE;
 
-	gfx::DeviceInit deviceInit = gfx::create_device({
+	gfx::Device* device = gfx::create_device({
 		.appname = appName,
 		.extensions = {},
 		.framesInFlight = framesInFlight,
@@ -89,23 +86,16 @@ int main()
 		.enableValidation = enableValidationLayers,
 	});
 
-	gfx::Device* device = deviceInit.device;
-
-	// if () { // TODO: error handling
-	// gfx::destroy_device(device);
-	// close_window(window);
-	// }
-
 	gfx::Texture* texture = load_image(device, TEXTURE_PATH);
 	gfx::Mesh model = load_model(device, MODEL_PATH);
 
 	// gfx::Texture* texture = load_image(device, "../assets/textures/texture.jpg");
 	gfx::UniformBuffer* ubo = gfx::create_uniform_buffer(device, sizeof(UniformBufferObject));
-	gfx::ResourceSetLayout* uboResourceLayout = gfx::create_resource_set_layout(device, {
+	gfx::ResourceSetLayout uboResourceLayout = gfx::create_resource_set_layout(device, {
 		{.type = gfx::ResourceType::UniformBuffer, .stages = VK_SHADER_STAGE_VERTEX_BIT}
 	});
 
-	gfx::ResourceSetLayout* materialResourceLayout = gfx::create_resource_set_layout(device, {
+	gfx::ResourceSetLayout materialResourceLayout = gfx::create_resource_set_layout(device, {
 		{.type = gfx::ResourceType::CombinedImageSampler, .stages = VK_SHADER_STAGE_FRAGMENT_BIT}
 	});
 
@@ -123,31 +113,20 @@ int main()
 		.vertex_layout = &vertexLayout,
 		.resource_set_layouts = {uboResourceLayout, materialResourceLayout}, // allow create directly in pipeline?
 		.push_constants = {
-			{ .size = sizeof(Material), .stages = VK_SHADER_STAGE_FRAGMENT_BIT}
+			{ .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT, .offset = 0, .size = sizeof(Material) }
 		},
 		.rasterizer = {
 			.front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE
 		}
 	});
 
-	// gfx::Mesh cube = gfx::create_mesh(device, {
-	// 	.vertices {
-	// 		.data = vertices.data(),
-	// 		.size = sizeof(Vertex) * vertices.size(),
-	// 		.stride = sizeof(Vertex)
-	// 	},
-	// 	.indices {
-	// 		.data = indices.data(),
-	// 		.size = sizeof(uint16_t) * indices.size(),
-	// 		.stride = sizeof(uint16_t)
-	// 	}
-	// });
-
 	Material mat{
 		.tint = { 1.0f, 1.0f, 1.0f }
 	};
 
 	while (poll_window_events(window)) {
+		mat.tint = interpolateColor(glfwGetTime());
+
 		const gfx::SwapchainFrame frame = gfx::acquire(device, window.vkWindow);
 		updateUniformBuffer(ubo, frame);
 		gfx::CommandBuffer commands = gfx::begin_commands(frame.window);

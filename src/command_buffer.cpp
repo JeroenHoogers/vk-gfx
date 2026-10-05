@@ -1,3 +1,6 @@
+// Copyright(c) 2026, Jeroen Hoogers
+// Distributed under the MIT License (http://opensource.org/licenses/MIT)
+
 #include "gfx/command_buffer.h"
 #include "gfx/buffer.h"
 #include "gfx/device.h"
@@ -199,6 +202,10 @@ namespace gfx
 
 	void dispatch(CommandBuffer commands, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) {
 		vkCmdDispatch(commands, groupCountX, groupCountY, groupCountZ);
+	}
+
+	void dispatch_indirect(CommandBuffer commands, const Buffer& indirectBuffer, uint32_t offset) {
+		vkCmdDispatchIndirect(commands, indirectBuffer.buffer, offset);
 	}
 
 	void draw(CommandBuffer commands, const Mesh* mesh, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)

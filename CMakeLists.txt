@@ -23,7 +23,7 @@ set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DVK_PROTOTYPES")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_PROTOTYPES")
 
 if ( CMAKE_COMPILER_IS_GNUCC )
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wextra -Wuninitialized -Wpedantic -fPIC")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wextra -Wuninitialized -Wpedantic -fPIC -Wno-error=stringop-overflow")
   if(CMAKE_BUILD_TYPE MATCHES Debug)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=unused-variable -Wno-error=unused-function -Wno-error=unused-parameter")
   endif()
@@ -180,11 +180,13 @@ if(VKGFX_BUILD_EXAMPLES)
   add_executable(triangle-example ${SRC_EXAMPLES} ${EXAMPLES_DIR}/triangle.cpp)
   target_link_libraries(triangle-example PRIVATE ${EXAMPLE_LIBS})
   add_dependencies(triangle-example vkgfx_compile_shaders)
+  target_compile_definitions(triangle-example PRIVATE $<$<CONFIG:Debug>:DEBUG=1>)
 
   # cube
   add_executable(cube-example ${SRC_EXAMPLES} ${EXAMPLES_DIR}/cube.cpp)
   target_link_libraries(cube-example PRIVATE ${EXAMPLE_LIBS})
   add_dependencies(cube-example vkgfx_compile_shaders)
+  target_compile_definitions(cube-example PRIVATE $<$<CONFIG:Debug>:DEBUG=1>)
 
   add_custom_command(TARGET cube-example POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -196,6 +198,7 @@ if(VKGFX_BUILD_EXAMPLES)
   add_executable(compute-example ${SRC_EXAMPLES} ${EXAMPLES_DIR}/compute.cpp)
   target_link_libraries(compute-example PRIVATE ${EXAMPLE_LIBS})
   add_dependencies(compute-example vkgfx_compile_shaders)
+  target_compile_definitions(compute-example PRIVATE $<$<CONFIG:Debug>:DEBUG=1>)
 
   # text
   set(DRAFT_TYPE_DIR ${EXAMPLES_DIR}/thirdparty/draft-type)
@@ -205,6 +208,7 @@ if(VKGFX_BUILD_EXAMPLES)
   add_executable(text-example ${SRC_EXAMPLES} ${EXAMPLES_DIR}/text.cpp)
   target_link_libraries(text-example PRIVATE draft_type ${EXAMPLE_LIBS})
   add_dependencies(text-example vkgfx_compile_shaders)
+  target_compile_definitions(text-example PRIVATE $<$<CONFIG:Debug>:DEBUG=1>)
 
   add_custom_command(TARGET text-example POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -229,4 +233,5 @@ if(VKGFX_BUILD_EXAMPLES)
   add_executable(imgui-example ${SRC_EXAMPLES} ${SRC_IMGUI} ${EXAMPLES_DIR}/imgui.cpp)
   target_link_libraries(imgui-example PRIVATE ${EXAMPLE_LIBS})
   add_dependencies(imgui-example vkgfx_compile_shaders)
+  target_compile_definitions(imgui-example PRIVATE $<$<CONFIG:Debug>:DEBUG=1>)
 endif(VKGFX_BUILD_EXAMPLES)
