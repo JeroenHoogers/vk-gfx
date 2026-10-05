@@ -2,49 +2,6 @@
 
 A minimal Vulkan framework for rendering and compute.
 
-## Features:
-
-- [x] Device creation:
-  - [x] Instance / Device Features
-  - [x] Extensions
-  - [x] Validation Layers
-  - [x] Vulkan API version
-  - [x] Command pool sizes
-- [x] Graphics pipelines
-- [x] Compute pipelines
-- [x] Queue requests
-- [x] Images:
-  - [x] Textures Sampler creation
-  - [x] Depth buffers
-- [x] Resources:
-  - [x] Define custom Resource layouts / sets
-  - [x] Uniform buffers
-  - [x] Structured Buffers
-  - [x] Combined samplers
-  - [ ] Texture only
-  - [ ] Sampler only
-- [ ] Windowing:
-  - [x] Platform / Windowing library agnostic (examples show glfw)
-  - [x] Swapchain management
-  - [x] Rendertarget / Framebuffers
-  - [x] Multiple windows
-  - [ ] Headless compute / rendering support
-- [x] Synchronization (semaphores & fences)
-- [x] Renderpass creation
-- [x] Push constants
-- [x] MSAA
-- [x] Drawing:
-  - [x] Indexed
-  - [x] Instancing
-  - [x] Indirect drawing
-- [ ] Dynamic state
-  - [x] Viewport
-  - [x] Scissor
-  - [x] Cullmode
-  - [x] FrontFace
-  - [x] Primitive Topology
-  - [ ] Custom / user defined
-
 ## Usage:
 
 To include the library in your own project, add the following lines to your CMakeList.txt:
@@ -123,6 +80,49 @@ Building with Make:
 ```
 make -j
 ```
+
+## Features:
+
+- [x] Device creation:
+  - [x] Instance / Device Features
+  - [x] Extensions
+  - [x] Validation Layers
+  - [x] Vulkan API version
+  - [x] Command pool sizes
+- [x] Graphics pipelines
+- [x] Compute pipelines
+- [x] Queue requests
+- [x] Images:
+  - [x] Textures Sampler creation
+  - [x] Depth buffers
+- [x] Resources:
+  - [x] Define custom Resource layouts / sets
+  - [x] Uniform buffers
+  - [x] Structured Buffers
+  - [x] Combined samplers
+  - [ ] Texture only
+  - [ ] Sampler only
+- [ ] Windowing:
+  - [x] Platform / Windowing library agnostic (examples show glfw)
+  - [x] Swapchain management
+  - [x] Rendertarget / Framebuffers
+  - [x] Multiple windows
+  - [ ] Headless compute / rendering support
+- [x] Synchronization (semaphores & fences)
+- [x] Renderpass creation
+- [x] Push constants
+- [x] MSAA
+- [x] Drawing:
+  - [x] Indexed
+  - [x] Instancing
+  - [x] Indirect drawing
+- [ ] Dynamic state
+  - [x] Viewport
+  - [x] Scissor
+  - [x] Cullmode
+  - [x] FrontFace
+  - [x] Primitive Topology
+  - [ ] Custom / user defined
 
 ## Examples:
 
