@@ -2,7 +2,13 @@
 
 A minimal Vulkan framework for rendering and compute.
 
-## Usage:
+## Philosophy
+
+Vk-gfx simplifies Vulkan development with a clean, lightweight API centered around parameter structs with sensible defaults. It provides a straightforward starting point while remaining flexible and fully customizable.
+
+Rather than abstracting Vulkan away entirely, the framework stays close to its underlying design and philosophy. It removes much of the boilerplate without taking away control: Vulkan types remain directly accessible and raw Vulkan commands can be used whenever functionality is not (yet) exposed by the API.
+
+## Usage
 
 To include the library in your own project, add the following lines to your CMakeList.txt:
 (The library is located in `deps/vk-gfx`, adapt as needed)
@@ -17,7 +23,7 @@ include_directories(${VKGFX_DIR}/include)
 target_link_libraries(<your_target> PRIVATE vk-gfx)
 ```
 
-#### Minimal setup:
+### Minimal setup
 
 ```cpp
 #include <vk-gfx.h>
@@ -63,25 +69,7 @@ int main()
 }
 ```
 
-## Build and run examples:
-
-### Building with CMake
-
-Run the following commands to build the library + example:
-
-```
-mkdir build
-cd build
-cmake .. -DVKGFX-BUILD_EXAMPLES=1
-```
-
-Building with Make:
-
-```
-make -j
-```
-
-## Features:
+## Features
 
 - [x] Device creation:
   - [x] Instance / Device Features
@@ -103,7 +91,7 @@ make -j
   - [ ] Texture
   - [ ] Sampler
 - [ ] Windowing:
-  - [x] Platform / Windowing library agnostic
+  - [x] Windowing library agnostic
   - [x] Swapchain management
   - [x] Rendertarget / Framebuffers
   - [x] Multiple windows
@@ -124,15 +112,33 @@ make -j
   - [x] Primitive Topology
   - [ ] Others
 
-## Examples:
+## Examples
 
-Examples require GLFW for windowing and GLM for mathematics.
+### Building (CMake)
 
-### Triangle
+Examples require GLFW for windowing and GLM for mathematics, make sure CMake can find these on your system.
+
+Run the following commands to build the library + examples:
+
+```
+mkdir build
+cd build
+cmake .. -DVKGFX-BUILD_EXAMPLES=1
+```
+
+Building with Make:
+
+```
+make -j
+```
+
+### Showcase
+
+#### [Triangle](examples/triangle.cpp)
 
 ![image](assets/images/triangle.png)
 
-### Cube
+#### [Cube](examples/cube.cpp)
 
 ![image](assets/images/cube.png)
 
@@ -146,7 +152,7 @@ Examples require GLFW for windowing and GLM for mathematics.
 - Push Constants
 - MSAA
 
-### Compute Particles
+#### [Compute Particles](examples/compute.cpp)
 
 ![image](assets/images/compute-particles.png)
 
@@ -157,9 +163,9 @@ Examples require GLFW for windowing and GLM for mathematics.
 - Storage Buffers
 - Advanced Synchronization
 
-### Thirdparty Integrations:
+### Thirdparty Integration
 
-### Text
+#### [Text](examples/text.cpp)
 
 (requires [draft-type](https://github.com/JeroenHoogers/draft-type))
 
@@ -172,13 +178,71 @@ Examples require GLFW for windowing and GLM for mathematics.
 - Indirect drawing
 - Instanced drawing
 
-### ImGui
+#### [ImGui](examples/imgui.cpp)
 
 (requires [dear imgui](https://github.com/ocornut/imgui))
 
 ![image](assets/images/imgui.png)
 
-## Todo:
+## Integrating a custom Windowing system
+
+To integrate with your windowing library of choice, you need to fill a `gfx::WindowCallbacks` struct to provide vk-gfx with the information it needs to find the right surface extensions, create a `VkSurfaceKHR` and query window dimensions.
+
+```cpp
+// Alternatively you could pass these directly in the extensions list during device creation
+static VkResult glfw_get_required_instance_extensions(std::uint32_t* count, const char** names, void*) {
+	std::uint32_t glfw_count;
+	const char** glfw_names = glfwGetRequiredInstanceExtensions(&glfw_count);
+
+	for (uint32_t i = 0; i < glfw_count; ++i) {
+		names[i] = glfw_names[i];
+	}
+
+	return VK_SUCCESS;
+};
+
+static VkResult glfw_create_surface(VkInstance instance, VkSurfaceKHR* surface, void* user_data) {
+	GLFWwindow* window = (GLFWwindow*)user_data;
+	return glfwCreateWindowSurface(instance, window, nullptr, surface);
+};
+
+static void glfw_get_framebuffer_size(uint32_t* width, uint32_t* height, void* user_data) {
+	GLFWwindow* window = (GLFWwindow*)user_data;
+	int w, h;
+	glfwGetFramebufferSize(window, &w, &h);
+	*width = static_cast<uint32_t>(w);
+	*height = static_cast<uint32_t>(h);
+};
+
+static void glfw_resize_callback(GLFWwindow* window, [[maybe_unused]] int width, [[maybe_unused]] int height) {
+	gfx::Window* gfx_window = reinterpret_cast<gfx::Window*>(glfwGetWindowUserPointer(window));
+	gfx_window->swapchain->resized = true;
+};
+
+Window create_window(std::uint32_t width, std::uint32_t height, const std::string& title) {
+
+	// ... glfw init ...
+	GLFWwindow* glfwWindow = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
+	glfwSetFramebufferSizeCallback(glfwWindow, glfw_resize_callback);
+
+	gfx::WindowCallbacks windowCallbacks{
+		.get_required_instance_extensions = glfw_get_required_instance_extensions,
+		.get_framebuffer_size = glfw_get_framebuffer_size,
+		.create_surface = glfw_create_surface,
+		.user_data = glfwWindow // provide glfw window pointer to callbacks
+	};
+
+	// provide vk window ptr as userdata to glfwWindow for framebuffer resize callback
+	gfx::Window* vkWindow = gfx::create_window(windowCallbacks);
+	glfwSetWindowUserPointer(glfwWindow, vkWindow);
+
+  //...
+}
+```
+
+See [examples/glfw_window.cpp](examples/glfw_window.cpp) for more details.
+
+## Todo
 
 - [ ] Custom allocators
 - [ ] Offscreen rendering
@@ -189,3 +253,8 @@ Examples require GLFW for windowing and GLM for mathematics.
 - [ ] Timeline semaphores
 - [ ] Async Compute
 - [ ] Pipeline Caching
+
+## Acknowledgments
+
+- **Alexander Overvoorde** and **Sascha Willems**: For making the awesome [Vukan Tutorial](https://vulkan-tutorial.com/), which I followed to implement most of the features in this Libary. Also some of the examples are directly inspired by it.
+- **Sebastian Aaltonen**: For posting this [image](https://x.com/SebAaltonen/status/2095562458467287266/photo/1) which heavily inspired the API design of this library.

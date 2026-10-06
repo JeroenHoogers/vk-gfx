@@ -1,6 +1,8 @@
 // Copyright(c) 2026, Jeroen Hoogers
 // Distributed under the MIT License (http://opensource.org/licenses/MIT)
 
+// Example inspired by: https://vulkan-tutorial.com/Drawing_a_triangle (written by Alexander Overvoorde)
+
 #include <cstdint>
 #include "glfw_window.h"
 #include "common.h"

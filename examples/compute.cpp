@@ -1,6 +1,8 @@
 // Copyright(c) 2026, Jeroen Hoogers
 // Distributed under the MIT License (http://opensource.org/licenses/MIT)
 
+// Example inspired by: https://vulkan-tutorial.com/Compute_Shader (written by Sascha Willems)
+
 #include <cstdint>
 #include "glfw_window.h"
 #include "common.h"

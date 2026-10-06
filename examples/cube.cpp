@@ -1,6 +1,8 @@
 // Copyright(c) 2026, Jeroen Hoogers
 // Distributed under the MIT License (http://opensource.org/licenses/MIT)
 
+// Example inspired by: https://vulkan-tutorial.com/ (written by Alexander Overvoorde)
+
 #include "common.h"
 #include "glfw_window.h"
 #include <chrono>
