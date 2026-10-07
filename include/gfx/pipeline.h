@@ -3,10 +3,11 @@
 
 #pragma once
 
-#include <vector>
-#include <vulkan/vulkan.h>
 #include "dynamic_state.h"
 #include "types.h"
+#include <variant>
+#include <vector>
+#include <vulkan/vulkan.h>
 
 namespace gfx
 {
@@ -28,7 +29,8 @@ namespace gfx
 		float min_sample_shading = 1.0f;
 	};
 
-	struct InputAssemblyParams {
+	struct InputAssemblyParams
+	{
 		VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		VkBool32 restart_enable = VK_FALSE;
 	};
@@ -38,44 +40,65 @@ namespace gfx
 		VkBool32 enable_blend = VK_FALSE;
 	};
 
-	// TODO: support separation of pipeline and layout (ability to re-use pipeline layout)
+	typedef std::vector<uint32_t> SpirvCode;
+
+	struct PipelineLayoutDesc
+	{
+		std::vector<ResourceSetLayout> resourceSetLayouts = {};
+		std::vector<PushConstantRange> pushConstants = {};
+	};
+
+	struct PipelineLayout
+	{
+		VkPipelineLayout layout = VK_NULL_HANDLE;
+		std::vector<PushConstantRange> pushConstants = {};
+	};
+
+	using PipelineLayoutSrc = std::variant<PipelineLayout, PipelineLayoutDesc>;
+	using ShaderSrc = std::variant<ShaderModule, SpirvCode>;
+
 	struct GraphicsPipelineParams
 	{
-		std::vector<char> vertex_shader = {};
-		std::vector<char> fragment_shader = {};
-		std::vector<char> geometry_shader = {};
-		VertexLayout* vertex_layout = nullptr;
-		std::vector<ResourceSetLayout> resource_set_layouts = {};
-		std::vector<PushConstantRange> push_constants = {};
+		ShaderSrc vertexShader;
+		ShaderSrc fragmentShader;
+		ShaderSrc geometryShader = ShaderModule{VK_NULL_HANDLE};
+		PipelineLayoutSrc layout = PipelineLayoutDesc{};
+		VertexLayout* vertexLayout = nullptr;
 		RasterizerParams rasterizer = {};
 		MultisamplingParams multisampling = {};
 		InputAssemblyParams inputAssembly = {};
 		BlendParams blending = {};
-		DynamicStateFlags dynamic_states = DynamicStateFlags::Viewport | DynamicStateFlags::Scissor;
+		DynamicStateFlags dynamicStates = DynamicStateFlags::Viewport | DynamicStateFlags::Scissor;
 		// TODO: add color & depth formats?
 		// TODO: allow more customization
 	};
 
 	struct ComputePipelineParams
 	{
-		std::vector<char> compute_shader = {};
-		VertexLayout* vertex_layout = nullptr;
-		std::vector<ResourceSetLayout> resource_set_layouts = {};
-		std::vector<PushConstantRange> push_constants = {};
+		ShaderSrc computeShader;
+		PipelineLayoutSrc layout = PipelineLayoutDesc{};
 	};
 
 	struct Pipeline
 	{
 		VkPipeline pipeline;
-		VkPipelineLayout pipelineLayout;
-		std::vector<PushConstantRange> pushConstantRanges;
+		PipelineLayout layout;
+		// Set automatically at creation, if the user supplies the layout as an argument the user is repsponsible for destroying it.
+		// If the layout is created internally in `create_xxxxx_pipeline`, its lifetime will be tied to the pipeline
+		const bool ownsLayout = false;
+		// std::vector<PushConstantRange> pushConstantRanges;
 		VkPipelineBindPoint bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-
 		DynamicStateFlags dynamicStates;
 	};
 
+	[[nodiscard]] ShaderModule create_shader_module(Device* device, const SpirvCode& shader);
+	void destroy_shader_module(Device* device, ShaderModule shader_module);
+
+	[[nodiscard]] PipelineLayout create_pipeline_layout(Device* device, const PipelineLayoutDesc& params);
+
 	[[nodiscard]] Pipeline* create_graphics_pipeline(Device* device, const GraphicsPipelineParams& params);
 	[[nodiscard]] Pipeline* create_compute_pipeline(Device* device, const ComputePipelineParams& params);
+
 	// TODO: allow dynamic state changes outside of the bind pipeline call
 	void bind_pipeline(Pipeline* pipeline, CommandBuffer commands, const DynamicState& dynamicState);
 	void bind_pipeline(Pipeline* pipeline, CommandBuffer commands);

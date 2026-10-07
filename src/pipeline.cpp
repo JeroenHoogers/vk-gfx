@@ -9,7 +9,6 @@
 #include "gfx/render_pass.h"
 #include "gfx/swapchain.h"
 #include "gfx/uniform_buffer.h"
-#include <bit>
 
 namespace gfx
 {
@@ -59,42 +58,87 @@ namespace gfx
 		}
 	} // namespace
 
-	namespace detail
+	ShaderModule create_shader_module(Device* device, const SpirvCode& shader)
 	{
-		VkShaderModule create_shader_module(Device* device, const std::vector<char>& shader)
-		{
-			if (shader.empty()) {
-				return VK_NULL_HANDLE;
-			}
-
-			VkShaderModuleCreateInfo createInfo{
-				.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-				.pNext = nullptr,
-				.flags = 0,
-				.codeSize = shader.size(),
-				.pCode = reinterpret_cast<const uint32_t*>(shader.data())
-			};
-
-			VkShaderModule shaderModule;
-			VkResult result = vkCreateShaderModule(device->device, &createInfo, nullptr, &shaderModule);
-			VK_ASSERT(result);
-			return shaderModule;
+		if (shader.empty()) {
+			return VK_NULL_HANDLE;
 		}
-	} // namespace detail
+
+		VkShaderModuleCreateInfo createInfo{
+			.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = 0,
+			.codeSize = shader.size() * sizeof(uint32_t),
+			.pCode = shader.data()
+		};
+
+		VkShaderModule shaderModule;
+		VkResult result = vkCreateShaderModule(device->device, &createInfo, nullptr, &shaderModule);
+		VK_ASSERT(result);
+		return shaderModule;
+	}
+
+	void destroy_shader_module(Device* device, ShaderModule shader_module) {
+		vkDestroyShaderModule(device->device, shader_module, nullptr);
+	}
+
+	PipelineLayout create_pipeline_layout(Device* device, const PipelineLayoutDesc& params)
+	{
+		VkPipelineLayoutCreateInfo pipelineLayoutInfo{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = 0,
+			.setLayoutCount = static_cast<uint32_t>(params.resourceSetLayouts.size()),
+			.pSetLayouts = params.resourceSetLayouts.data(),
+			.pushConstantRangeCount = static_cast<uint32_t>(params.pushConstants.size()),
+			.pPushConstantRanges = params.pushConstants.data()
+		};
+
+		VkPipelineLayout pipelineLayout;
+		VkResult result = vkCreatePipelineLayout(device->device, &pipelineLayoutInfo, nullptr, &pipelineLayout);
+		VK_ASSERT(result);
+
+		return PipelineLayout{
+			.layout = pipelineLayout,
+			.pushConstants = params.pushConstants
+		};
+	}
 
 	Pipeline* create_graphics_pipeline(Device* device, const GraphicsPipelineParams& params)
 	{
-		VkShaderModule vertShaderModule = detail::create_shader_module(device, params.vertex_shader);
-		VkShaderModule fragShaderModule = detail::create_shader_module(device, params.fragment_shader);
-		VkShaderModule geomShaderModule = detail::create_shader_module(device, params.geometry_shader);
-
 		std::vector<VkPipelineShaderStageCreateInfo> shaderStages{};
-		add_shader_stage(vertShaderModule, VK_SHADER_STAGE_VERTEX_BIT, shaderStages);
-		add_shader_stage(fragShaderModule, VK_SHADER_STAGE_FRAGMENT_BIT, shaderStages);
-		add_shader_stage(geomShaderModule, VK_SHADER_STAGE_GEOMETRY_BIT, shaderStages);
+
+		// TODO: make helper?
+		const SpirvCode* vertexCode = std::get_if<SpirvCode>(&params.vertexShader);
+		ShaderModule vertexModule = VK_NULL_HANDLE;
+		if (vertexCode) {
+			vertexModule = create_shader_module(device, *vertexCode);
+		} else {
+			vertexModule = *std::get_if<ShaderModule>(&params.vertexShader);
+		}
+
+		const SpirvCode* fragmentCode = std::get_if<SpirvCode>(&params.fragmentShader);
+		ShaderModule fragmentModule = VK_NULL_HANDLE;
+		if (fragmentCode) {
+			fragmentModule = create_shader_module(device, *fragmentCode);
+		} else {
+			fragmentModule = *std::get_if<ShaderModule>(&params.fragmentShader);
+		}
+
+		const SpirvCode* geometryCode = std::get_if<SpirvCode>(&params.geometryShader);
+		ShaderModule geometryModule = VK_NULL_HANDLE;
+		if (geometryCode) {
+			geometryModule = create_shader_module(device, *geometryCode);
+		} else if (std::holds_alternative<ShaderModule>(params.geometryShader)) {
+			geometryModule = *std::get_if<ShaderModule>(&params.geometryShader);
+		}
+
+		add_shader_stage(vertexModule, VK_SHADER_STAGE_VERTEX_BIT, shaderStages);
+		add_shader_stage(fragmentModule, VK_SHADER_STAGE_FRAGMENT_BIT, shaderStages);
+		add_shader_stage(geometryModule, VK_SHADER_STAGE_GEOMETRY_BIT, shaderStages);
 
 		// Dynamic state
-		std::vector<VkDynamicState> dynamicStates = get_dynamic_states(params.dynamic_states);
+		std::vector<VkDynamicState> dynamicStates = get_dynamic_states(params.dynamicStates);
 
 		VkPipelineDynamicStateCreateInfo dynamicState{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
@@ -117,10 +161,10 @@ namespace gfx
 		// Vertex Input
 		std::vector<VkVertexInputBindingDescription> bindings{};
 		std::vector<VkVertexInputAttributeDescription> attributes{};
-		if (params.vertex_layout != nullptr) {
-			bindings.resize(params.vertex_layout->bindings.size());
+		if (params.vertexLayout != nullptr) {
+			bindings.resize(params.vertexLayout->bindings.size());
 			for (uint32_t i = 0; i < bindings.size(); i++) {
-				const auto& binding = params.vertex_layout->bindings[i];
+				const auto& binding = params.vertexLayout->bindings[i];
 				bindings[i] = {
 					.binding = i,
 					.stride = binding.stride,
@@ -152,20 +196,6 @@ namespace gfx
 			.primitiveRestartEnable = params.inputAssembly.restart_enable
 		};
 
-		// // Viewport
-		// VkViewport viewport{
-		// 	.x = 0.0f,
-		// 	.y = 0.0f,
-		// 	.width = (float)device->swapchain->extent.width,
-		// 	.height = (float)device->swapchain->extent.height,
-		// 	.minDepth = 0.0f,
-		// 	.maxDepth = 1.0f
-		// };
-
-		// VkRect2D scissor{};
-		// scissor.offset = {0, 0};
-		// scissor.extent = device->swapchain->extent;
-
 		// Rasterizer
 		VkPipelineRasterizationStateCreateInfo rasterizer{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
@@ -196,18 +226,6 @@ namespace gfx
 			.alphaToOneEnable = VK_FALSE
 		};
 
-		// Color Blend Attachment
-		VkPipelineColorBlendAttachmentState colorBlendAttachment{
-			.blendEnable = params.blending.enable_blend,
-			.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
-			.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-			.colorBlendOp = VK_BLEND_OP_ADD,
-			.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
-			.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-			.alphaBlendOp = VK_BLEND_OP_ADD,
-			.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
-		};
-
 		VkPipelineDepthStencilStateCreateInfo depthStencil{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
 			.pNext = nullptr,
@@ -221,6 +239,18 @@ namespace gfx
 			.back = {},
 			.minDepthBounds = 0.0f,
 			.maxDepthBounds = 1.0f
+		};
+
+		// Color Blend Attachment
+		VkPipelineColorBlendAttachmentState colorBlendAttachment{
+			.blendEnable = params.blending.enable_blend,
+			.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+			.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+			.colorBlendOp = VK_BLEND_OP_ADD,
+			.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+			.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+			.alphaBlendOp = VK_BLEND_OP_ADD,
+			.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
 		};
 
 		// ENABLED BLENDING:
@@ -243,19 +273,13 @@ namespace gfx
 			.blendConstants{0.0f, 0.0f, 0.0f, 0.0f}
 		};
 
-		VkPipelineLayoutCreateInfo pipelineLayoutInfo{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-			.pNext = nullptr,
-			.flags = 0,
-			.setLayoutCount = static_cast<uint32_t>(params.resource_set_layouts.size()),
-			.pSetLayouts = params.resource_set_layouts.data(),
-			.pushConstantRangeCount = static_cast<uint32_t>(params.push_constants.size()),
-			.pPushConstantRanges = params.push_constants.data()
-		};
-
-		VkPipelineLayout pipelineLayout;
-		VkResult result = vkCreatePipelineLayout(device->device, &pipelineLayoutInfo, nullptr, &pipelineLayout);
-		VK_ASSERT(result);
+		const PipelineLayoutDesc* pipelineLayoutParams = std::get_if<PipelineLayoutDesc>(&params.layout);
+		PipelineLayout pipelineLayout = {};
+		if (pipelineLayoutParams) {
+			pipelineLayout = create_pipeline_layout(device, *pipelineLayoutParams);
+		} else {
+			pipelineLayout = *std::get_if<PipelineLayout>(&params.layout);
+		}
 
 		VkGraphicsPipelineCreateInfo pipelineInfo{
 			.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -272,7 +296,7 @@ namespace gfx
 			.pDepthStencilState = &depthStencil,
 			.pColorBlendState = &colorBlending,
 			.pDynamicState = &dynamicState,
-			.layout = pipelineLayout,
+			.layout = pipelineLayout.layout,
 			.renderPass = device->renderPass->renderPass,
 			.subpass = 0,
 			.basePipelineHandle = VK_NULL_HANDLE,
@@ -280,75 +304,80 @@ namespace gfx
 		};
 
 		VkPipeline graphicsPipeline;
-		result = vkCreateGraphicsPipelines(device->device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline);
+		VkResult result = vkCreateGraphicsPipelines(device->device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline);
 		VK_ASSERT(result);
+
+		// clean up shader modules if they were created inline
+		if (vertexCode) {
+			vkDestroyShaderModule(device->device, vertexModule, nullptr);
+		}
+		if (fragmentCode) {
+			vkDestroyShaderModule(device->device, fragmentModule, nullptr);
+		}
+		if (geometryCode) {
+			vkDestroyShaderModule(device->device, geometryModule, nullptr);
+		}
 
 		Pipeline* pPipeline = new Pipeline{
 			.pipeline = graphicsPipeline,
-			.pipelineLayout = pipelineLayout,
-			.pushConstantRanges = params.push_constants, // TODO: we could std::move() this if we know the pipeline params are not re-used (maybe add a && overload?)
+			.layout = pipelineLayout,
+			.ownsLayout = pipelineLayoutParams != nullptr, // true if it was created inline, otherwise this is the users responsibility to manage it's lifetime
 			.bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-			.dynamicStates = params.dynamic_states
+			.dynamicStates = params.dynamicStates
 		};
-
-		// cleanup shader modules
-		vkDestroyShaderModule(device->device, fragShaderModule, nullptr);
-		vkDestroyShaderModule(device->device, vertShaderModule, nullptr);
-
-		if (geomShaderModule) {
-			vkDestroyShaderModule(device->device, geomShaderModule, nullptr);
-		}
 
 		return pPipeline;
 	}
 
 	Pipeline* create_compute_pipeline(Device* device, const ComputePipelineParams& params)
 	{
-		VkShaderModule computeShaderModule = detail::create_shader_module(device, params.compute_shader);
+		// TODO: make helper?
+		const SpirvCode* computeCode = std::get_if<SpirvCode>(&params.computeShader);
+		ShaderModule computeModule = VK_NULL_HANDLE;
+		if (computeCode) {
+			computeModule = create_shader_module(device, *computeCode);
+		} else {
+			computeModule = *std::get_if<ShaderModule>(&params.computeShader);
+		}
 
-		VkPipelineShaderStageCreateInfo computeShaderStageInfo = create_shader_stage(computeShaderModule, VK_SHADER_STAGE_COMPUTE_BIT);
+		VkPipelineShaderStageCreateInfo computeShaderStageInfo = create_shader_stage(computeModule, VK_SHADER_STAGE_COMPUTE_BIT);
 
-		VkPipelineLayoutCreateInfo pipelineLayoutInfo{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-			.pNext = nullptr,
-			.flags = 0,
-			.setLayoutCount = static_cast<uint32_t>(params.resource_set_layouts.size()),
-			.pSetLayouts = params.resource_set_layouts.data(),
-			.pushConstantRangeCount = static_cast<uint32_t>(params.push_constants.size()),
-			.pPushConstantRanges = params.push_constants.data()
-		};
-
-		VkPipelineLayout pipelineLayout;
-		VkResult result = vkCreatePipelineLayout(device->device, &pipelineLayoutInfo, nullptr, &pipelineLayout);
-		VK_ASSERT(result);
+		const PipelineLayoutDesc* pipelineLayoutParams = std::get_if<PipelineLayoutDesc>(&params.layout);
+		PipelineLayout pipelineLayout = {};
+		if (pipelineLayoutParams) {
+			pipelineLayout = create_pipeline_layout(device, *pipelineLayoutParams);
+		} else {
+			pipelineLayout = *std::get_if<PipelineLayout>(&params.layout);
+		}
 
 		VkComputePipelineCreateInfo pipelineInfo{
 			.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
 			.pNext = nullptr,
 			.flags = 0,
 			.stage = computeShaderStageInfo,
-			.layout = pipelineLayout,
+			.layout = pipelineLayout.layout,
 			.basePipelineHandle = VK_NULL_HANDLE,
 			.basePipelineIndex = 0
 		};
 
 		VkPipeline computePipeline;
-		result = vkCreateComputePipelines(device->device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &computePipeline);
+		VkResult result = vkCreateComputePipelines(device->device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &computePipeline);
 		VK_ASSERT(result);
+
+		if (computeCode) {
+			vkDestroyShaderModule(device->device, computeModule, nullptr);
+		}
 
 		Pipeline* pPipeline = new Pipeline{
 			.pipeline = computePipeline,
-			.pipelineLayout = pipelineLayout,
-			.pushConstantRanges = params.push_constants, // TODO: we could std::move() this if we know the pipeline params are not re-used (maybe add a && overload?)
+			.layout = pipelineLayout,
+			.ownsLayout = pipelineLayoutParams != nullptr, // true if it was created inline, otherwise this is the users responsibility to manage it's lifetime
 			.bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE,
 			.dynamicStates = DynamicStateFlags::None
 		};
 
-		vkDestroyShaderModule(device->device, computeShaderModule, nullptr);
-
 		return pPipeline;
 	}
-
 
 	void bind_pipeline(Pipeline* pipeline, CommandBuffer commands) {
 		vkCmdBindPipeline(commands, pipeline->bindPoint, pipeline->pipeline);
@@ -386,11 +415,11 @@ namespace gfx
 
 	void push_constants(CommandBuffer commands, Pipeline* pipeline, uint32_t rangeIndex, void* data){
 		// TODO: add bounds checking or return a safe handle?
-		const PushConstantRange& range = pipeline->pushConstantRanges[rangeIndex];
+		const PushConstantRange& range = pipeline->layout.pushConstants[rangeIndex];
 
 		vkCmdPushConstants(
 		    commands,
-		    pipeline->pipelineLayout,
+		    pipeline->layout.layout,
 		    range.stageFlags, range.offset, range.size,
 		    data
 		);
@@ -399,9 +428,10 @@ namespace gfx
 	void destroy_pipeline(Device* device, Pipeline* pipeline)
 	{
 		vkDestroyPipeline(device->device, pipeline->pipeline, nullptr);
-		vkDestroyPipelineLayout(device->device, pipeline->pipelineLayout, nullptr);
+		if(pipeline->ownsLayout) {
+			vkDestroyPipelineLayout(device->device, pipeline->layout.layout, nullptr);
+		}
 
 		pipeline = nullptr;
 	}
-
 } // namespace gfx

@@ -203,17 +203,19 @@ int main()
 	});
 
 	gfx::Pipeline* textPipeline = gfx::create_graphics_pipeline(device, {
-		.vertex_shader = load_shader("shaders/text.vertex.spv"),
-		.fragment_shader = load_shader("shaders/text.fragment.spv"),
-		.vertex_layout = &textVertexLayout,
-		.resource_set_layouts = {uboResourceLayout, glyphInstancesResourceLayout},
+		.vertexShader = load_shader("shaders/text.vertex.spv"),
+		.fragmentShader = load_shader("shaders/text.fragment.spv"),
+		.layout = gfx::PipelineLayoutDesc{
+			.resourceSetLayouts = {uboResourceLayout, glyphInstancesResourceLayout}
+		},
+		.vertexLayout = &textVertexLayout,
 		.multisampling = {
 			.enable_alpha_to_coverage = VK_TRUE
 		},
 		.inputAssembly{
 			.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST
 		},
-		.dynamic_states = gfx::DynamicStateFlags::Viewport | gfx::DynamicStateFlags::Scissor | gfx::DynamicStateFlags::LineWidth,
+		.dynamicStates = gfx::DynamicStateFlags::Viewport | gfx::DynamicStateFlags::Scissor | gfx::DynamicStateFlags::LineWidth,
 	});
 
 	gfx::UniformBuffer* ubo = gfx::create_uniform_buffer(device, sizeof(UniformBufferObject));
@@ -227,18 +229,21 @@ int main()
 		{.type = gfx::ResourceType::StorageBuffer, .storageBuffer = &textBuffers.glyphInstanceBuffer}
 	});
 
-	gfx::Pipeline* linePipeline = gfx::create_graphics_pipeline(device, {
-		.vertex_shader = load_shader("shaders/shader.vertex.spv"),
-		.fragment_shader = load_shader("shaders/shader.fragment.spv"),
-		.vertex_layout = &axesVertexLayout,
-		.resource_set_layouts = {uboResourceLayout},
+	gfx::Pipeline* linePipeline = gfx::create_graphics_pipeline(device,
+	{
+		.vertexShader = load_shader("shaders/shader.vertex.spv"),
+		.fragmentShader = load_shader("shaders/shader.fragment.spv"),
+		.layout = gfx::PipelineLayoutDesc{
+			.resourceSetLayouts = {uboResourceLayout}
+		},
+		.vertexLayout = &axesVertexLayout,
 		.multisampling = {
 			.enable_alpha_to_coverage = VK_TRUE
 		},
 		.inputAssembly{
  			.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST
 		},
-		.dynamic_states = gfx::DynamicStateFlags::Viewport | gfx::DynamicStateFlags::Scissor | gfx::DynamicStateFlags::LineWidth,
+		.dynamicStates = gfx::DynamicStateFlags::Viewport | gfx::DynamicStateFlags::Scissor | gfx::DynamicStateFlags::LineWidth,
 	});
 
 	while (poll_window_events(window)) {

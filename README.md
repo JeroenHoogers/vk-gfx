@@ -43,8 +43,8 @@ int main()
 	});
 
 	gfx::Pipeline* pipeline = gfx::create_graphics_pipeline(device, {
-		.vertex_shader = load_shader("shaders/triangle.vertex.spv"),
-		.fragment_shader = load_shader("shaders/triangle.fragment.spv"),
+		.vertexShader = load_shader("shaders/triangle.vertex.spv"),
+		.fragmentShader = load_shader("shaders/triangle.fragment.spv"),
 	});
 
 	while (poll_window_events(window)) {
@@ -245,6 +245,8 @@ See [examples/glfw_window.cpp](examples/glfw_window.cpp) for more details.
 ## Todo
 
 - [ ] Custom allocators
+- [ ] Device querying / error handling / fallbacks
+- [ ] Task / Mesh shaders
 - [ ] Offscreen rendering
 - [ ] Dynamic rendering (Vulkan>= 1.2)
 - [ ] Ray-tracing support

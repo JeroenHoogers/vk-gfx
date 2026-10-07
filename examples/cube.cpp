@@ -110,13 +110,15 @@ int main()
 	});
 
 	gfx::Pipeline* pipeline = gfx::create_graphics_pipeline(device, {
-		.vertex_shader = load_shader("shaders/textured.vertex.spv"),
-		.fragment_shader = load_shader("shaders/textured.fragment.spv"),
-		.vertex_layout = &vertexLayout,
-		.resource_set_layouts = {uboResourceLayout, materialResourceLayout}, // allow create directly in pipeline?
-		.push_constants = {
-			{ .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT, .offset = 0, .size = sizeof(Material) }
+		.vertexShader = load_shader("shaders/textured.vertex.spv"),
+		.fragmentShader = load_shader("shaders/textured.fragment.spv"),
+		.layout = gfx::PipelineLayoutDesc{
+			.resourceSetLayouts = {uboResourceLayout, materialResourceLayout},
+			.pushConstants = {
+				{ .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT, .offset = 0, .size = sizeof(Material) }
+			}
 		},
+		.vertexLayout = &vertexLayout,
 		.rasterizer = {
 			.front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE
 		}

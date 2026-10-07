@@ -72,8 +72,8 @@ int main() {
 	init_imgui(device, window.glfwWindow);
 
 	gfx::Pipeline* pipeline = gfx::create_graphics_pipeline(device, {
-		.vertex_shader = load_shader("shaders/triangle.vertex.spv"),
-		.fragment_shader = load_shader("shaders/triangle.fragment.spv"),
+		.vertexShader = load_shader("shaders/triangle.vertex.spv"),
+		.fragmentShader = load_shader("shaders/triangle.fragment.spv")
 	});
 
 	while (poll_window_events(window)) {

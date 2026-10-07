@@ -56,7 +56,7 @@ struct UniformBufferObject
 	glm::mat4 proj;
 };
 
-inline const std::vector<char> load_shader(const std::string& filename)
+inline const std::vector<uint32_t> load_shader(const std::string& filename)
 {
 	std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
@@ -64,11 +64,16 @@ inline const std::vector<char> load_shader(const std::string& filename)
 		throw std::runtime_error("failed to open file!");
 	}
 
-	size_t fileSize = (size_t)file.tellg();
-	std::vector<char> buffer(fileSize);
+	size_t byteSize = (size_t)file.tellg();
+
+	if (byteSize <= 0 || byteSize % static_cast<std::streamsize>(sizeof(std::uint32_t)) != 0) {
+        throw std::runtime_error("invalid SPIR-V file size: " + filename);
+	}
+
+	std::vector<std::uint32_t> buffer(static_cast<std::size_t>(byteSize) / sizeof(std::uint32_t));
 
 	file.seekg(0);
-	file.read(buffer.data(), fileSize);
+	file.read(reinterpret_cast<char*>(buffer.data()), byteSize);
 
 	file.close();
 

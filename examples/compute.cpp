@@ -123,14 +123,16 @@ int main()
 	}, device->framesInFlight);
 
 	gfx::Pipeline* computePipeline = gfx::create_compute_pipeline(device, {
-		.compute_shader = load_shader("shaders/compute.compute.spv"),
-		.resource_set_layouts = { resourceLayout }
+		.computeShader = load_shader("shaders/compute.compute.spv"),
+		.layout = gfx::PipelineLayoutDesc{
+			.resourceSetLayouts = { resourceLayout }
+		}
 	});
 
 	gfx::Pipeline* gfxPipeline = gfx::create_graphics_pipeline(device, {
-		.vertex_shader = load_shader("shaders/compute.vertex.spv"),
-		.fragment_shader = load_shader("shaders/compute.fragment.spv"),
-		.vertex_layout = &vertexLayout,
+		.vertexShader = load_shader("shaders/compute.vertex.spv"),
+		.fragmentShader = load_shader("shaders/compute.fragment.spv"),
+		.vertexLayout = &vertexLayout,
 		.inputAssembly {
 			.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST
 		},
