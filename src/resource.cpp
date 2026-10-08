@@ -19,8 +19,16 @@ namespace gfx
 			switch (resourceType) {
 			case ResourceType::UniformBuffer:
 				return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			case ResourceType::UniformBufferDynamic:
+				return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+			case ResourceType::SampledImage:
+				return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+			case ResourceType::Sampler:
+				return VK_DESCRIPTOR_TYPE_SAMPLER;
 			case ResourceType::CombinedImageSampler:
 				return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			case ResourceType::StorageBufferDynamic:
+				return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
 			case ResourceType::StorageBuffer:
 			case ResourceType::StorageBuffers:
 				return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -52,16 +60,34 @@ namespace gfx
 			return descriptorSetLayout;
 		}
 
-		VkDescriptorBufferInfo get_buffer_descriptor_info(const Buffer* buffer)
+		VkDescriptorBufferInfo get_buffer_descriptor_info(const Buffer* buffer, uint32_t offset, VkDeviceSize range)
 		{
 			return VkDescriptorBufferInfo{
 				.buffer = buffer->buffer,
-				.offset = 0,
-				.range = buffer->size,
+				.offset = offset,
+				.range = range,
 			};
 		}
 
-		VkDescriptorImageInfo get_texture_sampler_descriptor_info(Texture* texture)
+		VkDescriptorImageInfo get_sampler_descriptor_info(const Sampler* sampler)
+		{
+			return VkDescriptorImageInfo{
+				.sampler = *sampler,
+				.imageView = VK_NULL_HANDLE,
+				.imageLayout = VK_IMAGE_LAYOUT_UNDEFINED
+			};
+		}
+
+		VkDescriptorImageInfo get_sampled_image_descriptor_info(const Image* image)
+		{
+			return VkDescriptorImageInfo{
+				.sampler = VK_NULL_HANDLE,
+				.imageView = image->imageView,
+				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+			};
+		}
+
+		VkDescriptorImageInfo get_combined_image_sampler_descriptor_info(const Texture* texture)
 		{
 			return VkDescriptorImageInfo{
 				.sampler = texture->sampler,
@@ -189,18 +215,30 @@ namespace gfx
 				};
 
 				switch (resources[j].type) {
+				case ResourceType::UniformBufferDynamic:
+				// TODO: allow subrange
 				case ResourceType::UniformBuffer:
 					bufferInfos[index] = detail::get_buffer_descriptor_info(&resources[j].uniformBuffer->buffers[i]);
 					write.pBufferInfo = &bufferInfos[index];
 					break;
+				case gfx::ResourceType::Sampler:
+					imageInfos[index] = detail::get_sampler_descriptor_info(resources[j].sampler);
+					write.pImageInfo = &imageInfos[index];
+					break;
+				case ResourceType::SampledImage:
+					imageInfos[index] = detail::get_sampled_image_descriptor_info(resources[j].image);
+					write.pImageInfo = &imageInfos[index];
+					break;
 				case ResourceType::CombinedImageSampler:
-					imageInfos[index] = detail::get_texture_sampler_descriptor_info(resources[j].texture);
+					imageInfos[index] = detail::get_combined_image_sampler_descriptor_info(resources[j].texture);
 					write.pImageInfo = &imageInfos[index];
 					break;
 				case ResourceType::StorageBuffer:
 					bufferInfos[index] = detail::get_buffer_descriptor_info(resources[j].storageBuffer);
 					write.pBufferInfo = &bufferInfos[index];
 					break;
+				case ResourceType::StorageBufferDynamic:
+					// TODO: allow subrange
 				case ResourceType::StorageBuffers:
 					bufferInfos[index] = detail::get_buffer_descriptor_info(&resources[j].storageBuffers->buffers[i]);
 					write.pBufferInfo = &bufferInfos[index];

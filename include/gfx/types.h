@@ -16,6 +16,8 @@ namespace gfx
 
 	typedef VkPushConstantRange PushConstantRange;
 
+	typedef VkSampler Sampler;
+
 	typedef VkSemaphore Semaphore;
 	typedef VkFence Fence;
 

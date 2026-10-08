@@ -85,11 +85,11 @@ int main()
   - [x] Depth buffers
 - [x] Resources:
   - [x] Resource layouts / sets
-  - [x] Uniform buffers
-  - [x] Structured Buffers
+  - [x] (Dynamic) Uniform buffers
+  - [x] (Dynamic) Structured Buffers
   - [x] Combined samplers
-  - [ ] Texture
-  - [ ] Sampler
+  - [x] Texture
+  - [x] Sampler
 - [ ] Windowing:
   - [x] Windowing library agnostic
   - [x] Swapchain management

@@ -14,13 +14,16 @@ namespace gfx
 	struct Pipeline;
 	struct UniformBuffer;
 	struct Texture;
+	struct Image;
 	struct Buffer;
 	struct MultiBuffer;
 
 	namespace detail
 	{
-		VkDescriptorBufferInfo get_uniform_buffer_descriptor_info(UniformBuffer* uniformBuffer);
-		VkDescriptorImageInfo get_texture_sampler_descriptor_info(Texture* image);
+		VkDescriptorBufferInfo get_buffer_descriptor_info(const Buffer* uniformBuffer, uint32_t offset = 0, VkDeviceSize range = VK_WHOLE_SIZE);
+		VkDescriptorImageInfo get_combined_image_sampler_descriptor_info(const Texture* image);
+		VkDescriptorImageInfo get_sampled_image_descriptor_info(const Image* image);
+		VkDescriptorImageInfo get_sampler_descriptor_info(const Sampler* sampler);
 
 		void bind_descriptor_set(CommandBuffer* commandBuffer, Pipeline* pipeline, VkDescriptorSet descriptorSet);
 		VkDescriptorSetLayout create_descriptor_set_layout(Device* device, const std::vector<VkDescriptorSetLayoutBinding>& layoutBindings);
@@ -29,8 +32,12 @@ namespace gfx
 	// TODO: support more
 	enum class ResourceType {
 		CombinedImageSampler,
+		SampledImage,
+		Sampler,
 		UniformBuffer,
+		UniformBufferDynamic,
 		StorageBuffer,
+		StorageBufferDynamic,
 		StorageBuffers
 	};
 
@@ -58,6 +65,8 @@ namespace gfx
 		union {
 			void* ptr;
 			Texture* texture;
+			Image* image;
+			Sampler* sampler;
 			UniformBuffer* uniformBuffer; // per frame in flight
 			Buffer* storageBuffer;
 			MultiBuffer* storageBuffers;
