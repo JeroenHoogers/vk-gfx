@@ -103,7 +103,6 @@ int main()
 		.deviceExtensions = { VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME }, // required by SV_InstanceID
 		.framesInFlight = framesInFlight,
 		.features = deviceFeatures,
-		.enableDepth = false,
 		.msaaSamples = VK_SAMPLE_COUNT_8_BIT,
 		.windows = {
 			{ .window = window.vkWindow, .swapchain = { .format = VK_FORMAT_B8G8R8A8_SRGB }}

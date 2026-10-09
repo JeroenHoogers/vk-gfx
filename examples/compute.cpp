@@ -189,7 +189,7 @@ int main()
 			.queue = device->graphicsQueue,
 			.waitSemaphores = { computeFinishedSemaphores[frame.index], frameInFlight.imageAvailable },
 			.waitStages = { VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT },
-			.signalSemaphores = { frame.renderFinished },
+			.signalSemaphores = { frame.image.renderFinished },
 			.completedFence = frameInFlight.inFlightFence
 		});
 

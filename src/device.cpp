@@ -454,7 +454,6 @@ namespace gfx
 			.presentQueue = presentQueue,
 			.computeQueue = computeQueue,
 			.msaaSamples = msaaSamples,
-			.enableDepth = params.enableDepth
 		};
 
 		for (const auto& windowParams : params.windows) {

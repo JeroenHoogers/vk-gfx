@@ -74,7 +74,7 @@ int main()
 		.extensions = {},
 		.framesInFlight = framesInFlight,
 		.features = features,
-		.enableDepth = true,
+		.renderPass = { .enableDepth = true },
 		.msaaSamples = VK_SAMPLE_COUNT_4_BIT,
 		.windows = {
 			{ .window = window.vkWindow, .swapchain = { .format = VK_FORMAT_B8G8R8A8_SRGB }}

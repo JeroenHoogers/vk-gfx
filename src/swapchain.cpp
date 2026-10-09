@@ -256,12 +256,13 @@ namespace gfx
 		};
 
 		const uint32_t imageIndex = window->swapchain->imageIndex;
+		const uint32_t framebufferIndex = imageIndex * device->framesInFlight + window->currentFrame;
+
 		SwapchainFrame swapchainFrame {
 			.image = window->swapchain->images[imageIndex],
 			.window = window,
 			.dynamicState = dynamicState,
-			.frameBuffer = window->renderTarget->framebuffers[imageIndex],
-			.renderFinished = window->swapchain->images[imageIndex].renderFinished,
+			.frameBuffer = window->renderTarget->framebuffers[framebufferIndex],
 			.extent = window->swapchain->extent,
 			.index = window->currentFrame,
 			.swapImageIndex = imageIndex,

@@ -48,7 +48,7 @@ namespace gfx
 				.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
 				.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
 				.mipLodBias = 0,
-				.anisotropyEnable = VK_TRUE,
+				.anisotropyEnable = properties.limits.maxSamplerAnisotropy >= 2.0 ? VK_TRUE : VK_FALSE,
 				.maxAnisotropy = properties.limits.maxSamplerAnisotropy,
 				.compareEnable = VK_FALSE,
 				.compareOp = VK_COMPARE_OP_ALWAYS,

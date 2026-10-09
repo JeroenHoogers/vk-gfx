@@ -67,7 +67,6 @@ namespace gfx
 		VkCommandPool transientPool = VK_NULL_HANDLE;
 		ResourcePool resourcePool = VK_NULL_HANDLE;
 		VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
-		bool enableDepth = false;
 		uint32_t framesInFlight = 2;
 		RenderPass* renderPass = nullptr;
 	};
@@ -88,7 +87,6 @@ namespace gfx
 		uint32_t framesInFlight = 2;
 		VkPhysicalDeviceFeatures features{};
 		RenderPassDesc renderPass{};
-		bool enableDepth = false;
 		VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT; // 1 bit means no MSAA
 		std::vector<WindowDesc> windows {};
 		ResourcePoolDesc resourcePool {};

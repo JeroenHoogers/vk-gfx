@@ -174,7 +174,7 @@ namespace gfx
 	{
 		Frame& frameInFlight = frame.window->frames[frame.index];
 
-		VkSemaphore signalSemaphore = frame.renderFinished;
+		VkSemaphore signalSemaphore = frame.image.renderFinished;
 		VkSemaphore signalSemaphores[] = {signalSemaphore};
 		VkSemaphore waitSemaphores[] = {frameInFlight.imageAvailable};
 

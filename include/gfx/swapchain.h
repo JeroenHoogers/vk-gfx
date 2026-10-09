@@ -26,7 +26,6 @@ namespace gfx
 		Window* window;
 		DynamicState dynamicState;
 		VkFramebuffer frameBuffer;
-		Semaphore renderFinished;
 		VkExtent2D extent;
 		// CommandBuffer* commandBuffer; // TODO: could be added here
 		uint32_t index = 0;

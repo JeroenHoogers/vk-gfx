@@ -12,40 +12,49 @@ namespace gfx
 {
 	namespace
 	{
+		// TODO: allow shared attachments (single depth / msaa image instead of framesInFlight images)
+		// TODO: do not create additional framebuffers when depthImages and colorImages are both unused / empty
 		std::vector<VkFramebuffer> create_framebuffers(Device* device, Window* window, std::vector<Image*> colorImages, std::vector<Image*> depthImages, RenderPass* renderPass) {
 			const auto& swapchain = window->swapchain;
-			std::vector<VkFramebuffer> framebuffers(swapchain->images.size());
-			for (size_t i = 0; i < swapchain->images.size(); i++) {
-				std::vector<VkImageView> attachments = {};
+			std::vector<VkFramebuffer> framebuffers(swapchain->images.size() * device->framesInFlight);
 
-				if(device->msaaSamples == VK_SAMPLE_COUNT_1_BIT) { // no msaa
-					attachments.push_back(swapchain->images[i].imageView);
-					if(device->enableDepth) {
-						attachments.push_back(depthImages[window->currentFrame]->imageView);// TODO: check if indexing is correct
+			// create swapchainImages * framesInFlight framebuffers to allow overlap in attachments
+			for (uint32_t i = 0; i < swapchain->images.size(); i++) {
+				for (uint32_t j = 0; j < device->framesInFlight; j++) {
+					std::vector<VkImageView> attachments(renderPass->attachmentSlots.size());
+
+					for(uint32_t k = 0; k < renderPass->attachmentSlots.size(); k++) {
+						const auto& slot = renderPass->attachmentSlots[k];
+						switch (slot.type) {
+							case AttachmentSlotType::Color:
+								// TODO: support non-msaa non-swapchain image attachments
+								attachments[k] = (slot.samples == VK_SAMPLE_COUNT_1_BIT) ? swapchain->images[i].imageView : colorImages[j]->imageView;
+								break;
+							case AttachmentSlotType::DepthStencil:
+								attachments[k] = depthImages[j]->imageView;
+								break;
+							case AttachmentSlotType::Resolve:
+								attachments[k] = swapchain->images[i].imageView;
+								break;
+						}
 					}
-				} else {
-					// msaa enabled
-					attachments.push_back(colorImages[window->currentFrame]->imageView); // TODO: check if indexing is correct
-					if(device->enableDepth) { // no msaa + depth
-						attachments.push_back(depthImages[window->currentFrame]->imageView);// TODO: check if indexing is correct
-					}
-					attachments.push_back(swapchain->images[i].imageView);
+
+					VkFramebufferCreateInfo framebufferInfo{
+						.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+						.pNext = nullptr,
+						.flags = 0,
+						.renderPass = renderPass->renderPass,
+						.attachmentCount = static_cast<uint32_t>(attachments.size()),
+						.pAttachments = attachments.data(),
+						.width = swapchain->extent.width,
+						.height = swapchain->extent.height,
+						.layers = 1
+					};
+
+					uint32_t framebufferIndex = i * device->framesInFlight + j;
+					VkResult result = vkCreateFramebuffer(device->device, &framebufferInfo, nullptr, &framebuffers[framebufferIndex]);
+					VK_ASSERT(result);
 				}
-
-				VkFramebufferCreateInfo framebufferInfo{
-					.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-					.pNext = nullptr,
-					.flags = 0,
-					.renderPass = renderPass->renderPass,
-					.attachmentCount = static_cast<uint32_t>(attachments.size()),
-					.pAttachments = attachments.data(),
-					.width = swapchain->extent.width,
-					.height = swapchain->extent.height,
-					.layers = 1
-				};
-
-				VkResult result = vkCreateFramebuffer(device->device, &framebufferInfo, nullptr, &framebuffers[i]);
-				VK_ASSERT(result);
 			}
 
 			return framebuffers;
@@ -91,24 +100,48 @@ namespace gfx
 	}
 
 	RenderTarget* create_render_target(Device* device, Window* window, RenderPass* renderPass) {
-		std::vector<Image*> depthImages(device->framesInFlight);
-		std::vector<Image*> colorImages(device->framesInFlight);
+		uint32_t colorCount = 0;
+		uint32_t depthStencilCount = 0;
+		// uint32_t resolveCount = 0; // TODO: needed for headless
+
+		for (const auto& slot : renderPass->attachmentSlots) {
+			switch (slot.type) {
+				case AttachmentSlotType::Color:
+					// only create resources when MSAA is enabled
+					if (slot.samples != VK_SAMPLE_COUNT_1_BIT) {
+						colorCount++;
+					}
+					break;
+				case gfx::AttachmentSlotType::DepthStencil:
+					depthStencilCount++;
+					break;
+				case gfx::AttachmentSlotType::Resolve:
+					// resolveCount++;
+					break;
+			}
+		}
+
+		std::vector<Image*> depthImages(device->framesInFlight * depthStencilCount);
+		std::vector<Image*> colorImages(device->framesInFlight * colorCount);
 
 		for (uint32_t i = 0; i < device->framesInFlight; i++) {
-			colorImages[i] = detail::create_color_resources(device, window->swapchain);
-			depthImages[i] = detail::create_depth_resources(device, window->swapchain);
+			for(uint32_t j = 0; j < colorCount; j++) {
+				uint32_t idx = i * colorCount + j;
+				colorImages[idx] = detail::create_color_resources(device, window->swapchain);
+			}
+			for(uint32_t j = 0; j < depthStencilCount; j++) {
+				uint32_t idx = i * depthStencilCount + j;
+				depthImages[idx] = detail::create_depth_resources(device, window->swapchain);
+			}
 		}
 
 		std::vector<VkFramebuffer> framebuffers = create_framebuffers(device, window, colorImages, depthImages, renderPass);
 
-		RenderTarget* pRenderTarget = new RenderTarget{
-			// .renderPass = renderPass,
+		return new RenderTarget{
 			.colorImages = std::move(colorImages),
 			.depthImages = std::move(depthImages),
 			.framebuffers = std::move(framebuffers),
 		};
-
-		return pRenderTarget;
 	}
 
 	void destroy_render_target(Device* device, RenderTarget* renderTarget) {
