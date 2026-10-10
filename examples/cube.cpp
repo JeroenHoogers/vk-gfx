@@ -120,7 +120,7 @@ int main()
 		},
 		.vertexLayout = &vertexLayout,
 		.rasterizer = {
-			.front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE
+			.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE
 		}
 	});
 

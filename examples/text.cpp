@@ -209,7 +209,7 @@ int main()
 		},
 		.vertexLayout = &textVertexLayout,
 		.multisampling = {
-			.enable_alpha_to_coverage = VK_TRUE
+			.enableAlphaToCoverage = VK_TRUE
 		},
 		.inputAssembly{
 			.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST

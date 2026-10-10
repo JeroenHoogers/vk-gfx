@@ -203,14 +203,14 @@ namespace gfx
 			.flags = 0,
 			.depthClampEnable = VK_FALSE,
 			.rasterizerDiscardEnable = VK_FALSE,
-			.polygonMode = params.rasterizer.polygon_mode,
-			.cullMode = params.rasterizer.cull_mode,
-			.frontFace = params.rasterizer.front_face,
+			.polygonMode = params.rasterizer.polygonMode,
+			.cullMode = params.rasterizer.cullMode,
+			.frontFace = params.rasterizer.frontFace,
 			.depthBiasEnable = VK_FALSE,
 			.depthBiasConstantFactor = 0.0f,
 			.depthBiasClamp = 0.0f,
 			.depthBiasSlopeFactor = 0.0f,
-			.lineWidth = 1.0f
+			.lineWidth = params.rasterizer.lineWidth
 		};
 
 		// Multisampling
@@ -219,13 +219,14 @@ namespace gfx
 			.pNext = nullptr,
 			.flags = 0,
 			.rasterizationSamples = device->msaaSamples,
-			.sampleShadingEnable = params.multisampling.enable_sample_shading,
-			.minSampleShading = params.multisampling.min_sample_shading,
+			.sampleShadingEnable = params.multisampling.enableSampleShading,
+			.minSampleShading = params.multisampling.minSampleShading,
 			.pSampleMask = nullptr,
-			.alphaToCoverageEnable = VK_FALSE,
-			.alphaToOneEnable = VK_FALSE
+			.alphaToCoverageEnable = params.multisampling.enableAlphaToCoverage,
+			.alphaToOneEnable = params.multisampling.enableAlphaToOne
 		};
 
+		// DepthStencil
 		VkPipelineDepthStencilStateCreateInfo depthStencil{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
 			.pNext = nullptr,
@@ -243,7 +244,7 @@ namespace gfx
 
 		// Color Blend Attachment
 		VkPipelineColorBlendAttachmentState colorBlendAttachment{
-			.blendEnable = params.blending.enable_blend,
+			.blendEnable = params.blending.enableBlend,
 			.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
 			.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
 			.colorBlendOp = VK_BLEND_OP_ADD,

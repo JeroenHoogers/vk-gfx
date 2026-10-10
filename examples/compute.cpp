@@ -137,7 +137,7 @@ int main()
 			.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST
 		},
 		.blending = {
-			.enable_blend = VK_TRUE
+			.enableBlend = VK_TRUE
 		}
 	});
 

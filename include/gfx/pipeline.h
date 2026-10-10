@@ -17,16 +17,20 @@ namespace gfx
 
 	struct RasterizerParams
 	{
-		VkPolygonMode polygon_mode = VK_POLYGON_MODE_FILL;
-		VkCullModeFlags cull_mode = VK_CULL_MODE_BACK_BIT;
-		VkFrontFace front_face = VK_FRONT_FACE_CLOCKWISE;
+		VkBool32 enableDepthClamp = VK_FALSE;
+		VkBool32 enableRasterizerDiscard = VK_FALSE;
+		VkPolygonMode polygonMode = VK_POLYGON_MODE_FILL;
+		VkCullModeFlags cullMode = VK_CULL_MODE_BACK_BIT;
+		VkFrontFace frontFace = VK_FRONT_FACE_CLOCKWISE;
+		float lineWidth = 1.0f;
 	};
 
 	struct MultisamplingParams
 	{
-		VkBool32 enable_sample_shading = VK_FALSE;
-		VkBool32 enable_alpha_to_coverage = VK_FALSE;
-		float min_sample_shading = 1.0f;
+		VkBool32 enableSampleShading = VK_FALSE;
+		float minSampleShading = 1.0f;
+		VkBool32 enableAlphaToCoverage = VK_FALSE;
+		VkBool32 enableAlphaToOne = VK_FALSE;
 	};
 
 	struct InputAssemblyParams
@@ -37,7 +41,7 @@ namespace gfx
 
 	struct BlendParams
 	{
-		VkBool32 enable_blend = VK_FALSE;
+		VkBool32 enableBlend = VK_FALSE;
 	};
 
 	typedef std::vector<uint32_t> SpirvCode;
@@ -64,9 +68,9 @@ namespace gfx
 		ShaderSrc geometryShader = ShaderModule{VK_NULL_HANDLE};
 		PipelineLayoutSrc layout = PipelineLayoutDesc{};
 		VertexLayout* vertexLayout = nullptr;
+		InputAssemblyParams inputAssembly = {};
 		RasterizerParams rasterizer = {};
 		MultisamplingParams multisampling = {};
-		InputAssemblyParams inputAssembly = {};
 		BlendParams blending = {};
 		DynamicStateFlags dynamicStates = DynamicStateFlags::Viewport | DynamicStateFlags::Scissor;
 		// TODO: add color & depth formats?
