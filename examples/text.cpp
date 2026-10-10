@@ -10,7 +10,7 @@
 #include <vk_gfx.h>
 #include <draft-type.h>
 
-void updateUniformBuffer(gfx::UniformBuffer* uniformBuffer, const gfx::SwapchainFrame& frame)
+void updateUniformBuffer(gfx::UniformBuffer& uniformBuffer, const gfx::SwapchainFrame& frame)
 {
 	static auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -24,7 +24,7 @@ void updateUniformBuffer(gfx::UniformBuffer* uniformBuffer, const gfx::Swapchain
 	};
 	ubo.proj[1][1] *= -1;
 
-	memcpy(uniformBuffer->mappedMemory[frame.index], &ubo, sizeof(ubo));
+	memcpy(uniformBuffer.mappedMemory[frame.index], &ubo, sizeof(ubo));
 }
 
 struct TextBuffer {
@@ -208,18 +208,18 @@ int main()
 			.resourceSetLayouts = {uboResourceLayout, glyphInstancesResourceLayout}
 		},
 		.vertexLayout = &textVertexLayout,
-		.multisampling = {
-			.enableAlphaToCoverage = VK_TRUE
-		},
 		.inputAssembly{
 			.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST
+		},
+		.multisampling = {
+			.enableAlphaToCoverage = VK_TRUE
 		},
 		.dynamicStates = gfx::DynamicStateFlags::Viewport | gfx::DynamicStateFlags::Scissor | gfx::DynamicStateFlags::LineWidth,
 	});
 
-	gfx::UniformBuffer* ubo = gfx::create_uniform_buffer(device, sizeof(UniformBufferObject));
+	gfx::UniformBuffer ubo = gfx::create_uniform_buffer(device, sizeof(UniformBufferObject));
 	std::vector<gfx::ResourceSet> uboResources = gfx::create_resource_sets(device, uboResourceLayout, {
-		{.type = gfx::ResourceType::UniformBuffer, .uniformBuffer = ubo}
+		{.type = gfx::ResourceType::UniformBuffer, .uniformBuffer = &ubo}
 	}, device->framesInFlight);
 
 	const auto bounds = drafttype::measure(font, text, textLayoutOpts);
@@ -236,11 +236,11 @@ int main()
 			.resourceSetLayouts = {uboResourceLayout}
 		},
 		.vertexLayout = &axesVertexLayout,
-		.multisampling = {
-			.enable_alpha_to_coverage = VK_TRUE
-		},
 		.inputAssembly{
  			.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST
+		},
+		.multisampling = {
+			.enableAlphaToCoverage = VK_TRUE
 		},
 		.dynamicStates = gfx::DynamicStateFlags::Viewport | gfx::DynamicStateFlags::Scissor | gfx::DynamicStateFlags::LineWidth,
 	});

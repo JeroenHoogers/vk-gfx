@@ -14,11 +14,17 @@ namespace gfx
 	{
 		// TODO: allow shared attachments (single depth / msaa image instead of framesInFlight images)
 		// TODO: do not create additional framebuffers when depthImages and colorImages are both unused / empty
-		std::vector<VkFramebuffer> create_framebuffers(Device* device, Window* window, std::vector<Image*> colorImages, std::vector<Image*> depthImages, RenderPass* renderPass) {
+		std::vector<VkFramebuffer> create_framebuffers(Device* device, Window* window, std::vector<Image> colorImages, std::vector<Image> depthImages, RenderPass* renderPass) {
 			const auto& swapchain = window->swapchain;
 			std::vector<VkFramebuffer> framebuffers(swapchain->images.size() * device->framesInFlight);
 
-			// create swapchainImages * framesInFlight framebuffers to allow overlap in attachments
+			// Create SwapchainImages * FramesInFlight Framebuffers. 3 Swapchain Images and 2 Frames in flight:
+			//
+			// | FrameBuffer     | FB [0]    | FB [1]    | FB [2]    | FB [3]    | FB [4]    | FB [5]    |
+			// |-----------------|-----------|-----------|-----------|-----------|-----------|-----------|
+			// | Swapchain Image | SI [0]    | SI [1]    | SI [2]    | SI [0]    | SI [1]    | SI [2]    |
+			// | Frame In Flight | F  [0]    | F  [1]    | F  [0]    | F  [1]    | F  [0]    | F  [1]    |
+
 			for (uint32_t i = 0; i < swapchain->images.size(); i++) {
 				for (uint32_t j = 0; j < device->framesInFlight; j++) {
 					std::vector<VkImageView> attachments(renderPass->attachmentSlots.size());
@@ -28,10 +34,10 @@ namespace gfx
 						switch (slot.type) {
 							case AttachmentSlotType::Color:
 								// TODO: support non-msaa non-swapchain image attachments
-								attachments[k] = (slot.samples == VK_SAMPLE_COUNT_1_BIT) ? swapchain->images[i].imageView : colorImages[j]->imageView;
+								attachments[k] = (slot.samples == VK_SAMPLE_COUNT_1_BIT) ? swapchain->images[i].imageView : colorImages[j].imageView;
 								break;
 							case AttachmentSlotType::DepthStencil:
-								attachments[k] = depthImages[j]->imageView;
+								attachments[k] = depthImages[j].imageView;
 								break;
 							case AttachmentSlotType::Resolve:
 								attachments[k] = swapchain->images[i].imageView;
@@ -62,10 +68,10 @@ namespace gfx
 	} // namespace
 
 	namespace detail {
-		Image* create_depth_resources(Device* device, Swapchain* swapchain)
+		Image create_depth_resources(Device* device, Swapchain* swapchain)
 		{
 			VkExtent2D swapchainExtent = swapchain->extent;
-			Image* depthImage = create_image(device, ImageDesc{
+			Image depthImage = create_image(device, ImageDesc{
 				.format = VK_FORMAT_D32_SFLOAT_S8_UINT, // TODO: allow user to specify and add fallbacks
 				.extent = {swapchainExtent.width, swapchainExtent.height, 1},
 				.samples = device->msaaSamples,
@@ -75,17 +81,17 @@ namespace gfx
 				.aspect = VK_IMAGE_ASPECT_DEPTH_BIT
 			});
 
-			detail::transition_image_layout(device, depthImage->image, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+			detail::transition_image_layout(device, depthImage.image, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
 			return depthImage;
 		}
 
-		Image* create_color_resources(Device* device, Swapchain* swapchain)
+		Image create_color_resources(Device* device, Swapchain* swapchain)
 		{
 			VkExtent2D swapchainExtent = swapchain->extent;
 			VkFormat colorFormat = swapchain->format;
 
-			Image* colorImage = create_image(device, ImageDesc{
+			Image colorImage = create_image(device, ImageDesc{
 				.format = colorFormat,
 				.extent = {swapchainExtent.width, swapchainExtent.height, 1},
 				.samples = device->msaaSamples,
@@ -121,8 +127,8 @@ namespace gfx
 			}
 		}
 
-		std::vector<Image*> depthImages(device->framesInFlight * depthStencilCount);
-		std::vector<Image*> colorImages(device->framesInFlight * colorCount);
+		std::vector<Image> depthImages(device->framesInFlight * depthStencilCount);
+		std::vector<Image> colorImages(device->framesInFlight * colorCount);
 
 		for (uint32_t i = 0; i < device->framesInFlight; i++) {
 			for(uint32_t j = 0; j < colorCount; j++) {
@@ -145,11 +151,11 @@ namespace gfx
 	}
 
 	void destroy_render_target(Device* device, RenderTarget* renderTarget) {
-		for (auto* colorImage : renderTarget->colorImages) {
+		for (auto& colorImage : renderTarget->colorImages) {
 			destroy_image(device, colorImage);
 		}
 
-		for (auto* depthImage : renderTarget->depthImages) {
+		for (auto& depthImage : renderTarget->depthImages) {
 			destroy_image(device, depthImage);
 		}
 

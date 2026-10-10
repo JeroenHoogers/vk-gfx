@@ -91,7 +91,7 @@ namespace gfx
 		{
 			return VkDescriptorImageInfo{
 				.sampler = texture->sampler,
-				.imageView = texture->image->imageView,
+				.imageView = texture->image.imageView,
 				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 			};
 		}

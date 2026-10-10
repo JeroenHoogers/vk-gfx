@@ -69,8 +69,7 @@ namespace gfx
 			Sampler* sampler;
 			UniformBuffer* uniformBuffer; // per frame in flight
 			Buffer* storageBuffer;
-			MultiBuffer* storageBuffers;
-			// TODO: add more (Sampler, StorageBuffer etc.)
+			MultiBuffer* storageBuffers; // per frame in flight
 		};
 	};
 

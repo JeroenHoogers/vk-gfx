@@ -13,7 +13,6 @@ namespace gfx
 {
 	struct Device;
 	struct VertexLayout;
-	struct UniformBuffer;
 
 	struct RasterizerParams
 	{

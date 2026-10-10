@@ -41,7 +41,6 @@ namespace gfx
 
 	struct Frame {
 		CommandBuffer commands;
-		Image* depthImage = nullptr;
 		Fence inFlightFence;
 		Semaphore imageAvailable;
 	};

@@ -64,12 +64,6 @@ namespace gfx
 		bool enableDepth = false;
 	};
 
-	struct RenderPassInfo
-	{
-		VkImageView color;
-		// std::vector<VkClearColorValue> clearValues;
-	};
-
 	[[nodiscard]] RenderPass* create_render_pass(Device* device, const RenderPassDesc& desc = {});
 
 	void begin_render_pass(Device* device, CommandBuffer commands, const SwapchainFrame* frame);

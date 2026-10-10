@@ -15,14 +15,15 @@ namespace gfx
 	struct Image;
 
 	namespace detail {
-		Image* create_depth_resources(Device* device, Swapchain* swapchain);
+		Image create_depth_resources(Device* device, Swapchain* swapchain);
+		Image create_color_resources(Device* device, Swapchain* swapchain);
 	}
 
 	struct RenderTarget
 	{
 		// RenderPass* renderPass;
-		std::vector<Image*> colorImages; // used for MSAA
-		std::vector<Image*> depthImages;
+		std::vector<Image> colorImages; // used for MSAA
+		std::vector<Image> depthImages;
 		std::vector<VkFramebuffer> framebuffers;
 	};
 

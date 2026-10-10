@@ -108,7 +108,7 @@ int main()
 	gfx::MultiBuffer lastParticles = particles;
 	std::rotate(lastParticles.buffers.begin(), lastParticles.buffers.end() - 1, lastParticles.buffers.end()); // rotate buffers right by 1 to get last frame
 
-	gfx::UniformBuffer* ubo = gfx::create_uniform_buffer(device, sizeof(UBO));
+	gfx::UniformBuffer ubo = gfx::create_uniform_buffer(device, sizeof(UBO));
 
 	gfx::ResourceSetLayout resourceLayout = gfx::create_resource_set_layout(device, {
 		{.type = gfx::ResourceType::UniformBuffer, .stages = VK_SHADER_STAGE_COMPUTE_BIT},
@@ -117,7 +117,7 @@ int main()
 	});
 
 	std::vector<gfx::ResourceSet> resources = gfx::create_resource_sets(device, resourceLayout, {
-		{.type = gfx::ResourceType::UniformBuffer, .uniformBuffer = ubo},
+		{.type = gfx::ResourceType::UniformBuffer, .uniformBuffer = &ubo},
 		{.type = gfx::ResourceType::StorageBuffers, .storageBuffers = &lastParticles}, // last (in)
 		{.type = gfx::ResourceType::StorageBuffers, .storageBuffers = &particles}, // curr (out)
 	}, device->framesInFlight);
@@ -155,7 +155,7 @@ int main()
 	while (poll_window_events(window)) {
 		uint32_t frameIndex = window.vkWindow->currentFrame;
 		gfx::wait_for_fence(device, computeInFlightFences[frameIndex]);
-		updateUniformBuffer(ubo, frameIndex);
+		updateUniformBuffer(&ubo, frameIndex);
 		gfx::reset_fence(device, computeInFlightFences[frameIndex]);
 
 		// compute

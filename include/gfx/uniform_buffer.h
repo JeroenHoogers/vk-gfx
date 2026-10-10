@@ -18,7 +18,7 @@ namespace gfx {
 		std::vector<Buffer> buffers;
 	};
 
-	[[nodiscard]] UniformBuffer* create_uniform_buffer(Device* device, uint32_t size);
+	[[nodiscard]] UniformBuffer create_uniform_buffer(Device* device, uint32_t size);
 
-	void destroy_uniform_buffer(Device* device, UniformBuffer* uniformBuffer);
+	void destroy_uniform_buffer(Device* device, UniformBuffer& uniformBuffer);
 }

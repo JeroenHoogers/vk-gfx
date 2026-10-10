@@ -11,7 +11,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <vk_gfx.h>
 
-void updateUniformBuffer(gfx::UniformBuffer* uniformBuffer, const gfx::SwapchainFrame& frame)
+void updateUniformBuffer(gfx::UniformBuffer uniformBuffer, const gfx::SwapchainFrame& frame)
 {
 	static auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -25,7 +25,7 @@ void updateUniformBuffer(gfx::UniformBuffer* uniformBuffer, const gfx::Swapchain
 	};
 	ubo.proj[1][1] *= -1;
 
-	memcpy(uniformBuffer->mappedMemory[frame.index], &ubo, sizeof(ubo));
+	memcpy(uniformBuffer.mappedMemory[frame.index], &ubo, sizeof(ubo));
 }
 
 struct Material {
@@ -88,11 +88,11 @@ int main()
 		.enableValidation = enableValidationLayers,
 	});
 
-	gfx::Texture* texture = load_image(device, TEXTURE_PATH);
+	gfx::Texture texture = load_image(device, TEXTURE_PATH);
 	gfx::Mesh model = load_model(device, MODEL_PATH);
 
 	// gfx::Texture* texture = load_image(device, "../assets/textures/texture.jpg");
-	gfx::UniformBuffer* ubo = gfx::create_uniform_buffer(device, sizeof(UniformBufferObject));
+	gfx::UniformBuffer ubo = gfx::create_uniform_buffer(device, sizeof(UniformBufferObject));
 	gfx::ResourceSetLayout uboResourceLayout = gfx::create_resource_set_layout(device, {
 		{.type = gfx::ResourceType::UniformBuffer, .stages = VK_SHADER_STAGE_VERTEX_BIT}
 	});
@@ -102,11 +102,11 @@ int main()
 	});
 
 	std::vector<gfx::ResourceSet> uboResources = gfx::create_resource_sets(device, uboResourceLayout, {
-		{.type = gfx::ResourceType::UniformBuffer, .uniformBuffer = ubo}
+		{.type = gfx::ResourceType::UniformBuffer, .uniformBuffer = &ubo}
 	}, device->framesInFlight);
 
 	gfx::ResourceSet materialResourceSet = gfx::create_resource_set(device, materialResourceLayout, {
-		{.type = gfx::ResourceType::CombinedImageSampler, .texture = texture}
+		{.type = gfx::ResourceType::CombinedImageSampler, .texture = &texture}
 	});
 
 	gfx::Pipeline* pipeline = gfx::create_graphics_pipeline(device, {

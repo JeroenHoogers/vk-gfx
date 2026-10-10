@@ -26,8 +26,6 @@ namespace gfx
 	}
 
 	struct RenderPass;
-	struct RenderTarget;
-	struct Image;
 
 	// consider moving queue logic to a separate file?
 	struct Queue {

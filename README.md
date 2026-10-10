@@ -80,9 +80,6 @@ int main()
 - [x] Graphics pipelines
 - [x] Compute pipelines
 - [x] Queue requests
-- [x] Images:
-  - [x] Textures Sampler creation
-  - [x] Depth buffers
 - [x] Resources:
   - [x] Resource layouts / sets
   - [x] (Dynamic) Uniform buffers
@@ -97,9 +94,11 @@ int main()
   - [x] Multiple windows
   - [ ] Headless compute / rendering support
 - [x] Synchronization (semaphores & fences)
-- [x] Renderpass creation
+- [x] Renderpass
+  - [x] MSAA
+  - [x] Color attachments
+  - [x] Depth / Stencil attachment
 - [x] Push constants
-- [x] MSAA
 - [x] Drawing:
   - [x] Indexed
   - [x] Instancing

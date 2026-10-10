@@ -8,7 +8,6 @@
 
 namespace gfx
 {
-	struct Buffer;
 	struct Device;
 
 	struct ImageDesc
@@ -31,6 +30,7 @@ namespace gfx
 
 		// TODO: extract upload function for CPU -> GPU transfer of pixel data
 	}
+
 	struct Image
 	{
 		VkImage image;
@@ -43,22 +43,21 @@ namespace gfx
 	// };
 
 	struct Texture {
-		Image* image;
+		Image image;
 		VkSampler sampler;
 	};
 
-
 	struct TextureResource {
-		Texture* texture;
+		Texture texture;
 		ResourceSet resourceSet;
 	};
 
-	Image* create_image(Device* device, const ImageDesc& params);
-	Image* create_image(Device* device, void* pixels, uint64_t size, const ImageDesc& params);
-	Texture* create_texture(Device* device, void* pixels, uint64_t size, const ImageDesc& params);
+	Image create_image(Device* device, const ImageDesc& params);
+	Image create_image(Device* device, void* pixels, uint64_t size, const ImageDesc& params);
+	Texture create_texture(Device* device, void* pixels, uint64_t size, const ImageDesc& params);
 
 	TextureResource create_texture_resource(Device* device, void* pixels, uint64_t size, const ImageDesc& params, ResourceSetLayout* resourceLayout);
 
-	void destroy_image(Device* device, Image* image);
-	void destroy_texture(Device* device, Texture* texture);
+	void destroy_image(Device* device, Image& image);
+	void destroy_texture(Device* device, Texture& texture);
 } // namespace gfx

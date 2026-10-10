@@ -472,7 +472,6 @@ namespace gfx
 			for (uint32_t i = 0; i < params.framesInFlight; i++) {
 				window->frames[i] = Frame{
 					.commands = commandBuffers[i],
-					.depthImage = nullptr,
 					.inFlightFence = create_fence(pDevice),
 					.imageAvailable = create_semaphore(pDevice)
 				};

@@ -80,7 +80,7 @@ inline const std::vector<uint32_t> load_shader(const std::string& filename)
 	return buffer;
 }
 
-inline gfx::Texture* load_image(gfx::Device* device, const std::string& filename)
+inline gfx::Texture load_image(gfx::Device* device, const std::string& filename)
 {
 	int texWidth, texHeight, texChannels;
 	stbi_uc* pixels = stbi_load(filename.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
@@ -91,7 +91,7 @@ inline gfx::Texture* load_image(gfx::Device* device, const std::string& filename
 	}
 
 	uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
-	gfx::Texture* texture = gfx::create_texture(device, pixels, imageSize, {
+	gfx::Texture texture = gfx::create_texture(device, pixels, imageSize, {
 		.format = VK_FORMAT_R8G8B8A8_SRGB,
 		.extent = {
 			.width = static_cast<uint32_t>(texWidth),

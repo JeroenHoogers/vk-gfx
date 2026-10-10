@@ -307,20 +307,20 @@ namespace gfx
 		}
 	} // namespace detail
 
-	Image* create_image(Device* device, const ImageDesc& params)
+	Image create_image(Device* device, const ImageDesc& params)
 	{
 		VkDeviceMemory imageMemory;
 		VkImage image = detail::create_image(device, params, imageMemory);
 		VkImageView imageView = detail::create_image_view(device, image, params.format, params.aspect, params.mipLevels);
 
-		return new Image{
+		return Image{
 			.image = image,
 			.imageView = imageView,
 			.memory = imageMemory
 		};
 	}
 
-	Image* create_image(Device* device, void* pixels, uint64_t size, const ImageDesc& params)
+	Image create_image(Device* device, void* pixels, uint64_t size, const ImageDesc& params)
 	{
 		Buffer staging = create_buffer(device, {
 			.size = size,
@@ -349,19 +349,19 @@ namespace gfx
 		VkImageView imageView = detail::create_image_view(device, image, params.format, params.aspect, params.mipLevels);
 		// VkSampler sampler = create_texture_sampler(device);
 
-		return new Image{
+		return Image{
 			.image = image,
 			.imageView = imageView,
 			.memory = imageMemory
 		};
 	}
 
-	Texture* create_texture(Device* device, void* pixels, uint64_t size, const ImageDesc& params)
+	Texture create_texture(Device* device, void* pixels, uint64_t size, const ImageDesc& params)
 	{
-		Image* image = create_image(device, pixels, size, params);
+		Image image = create_image(device, pixels, size, params);
 		VkSampler sampler = create_texture_sampler(device);
 
-		return new Texture{
+		return Texture{
 			.image = image,
 			.sampler = sampler
 		};
@@ -369,26 +369,25 @@ namespace gfx
 
 	TextureResource create_texture_resource(Device* device, void* pixels, uint64_t size, const ImageDesc& params, const ResourceSetLayout resourceLayout)
 	{
-		Texture* texture = create_texture(device, pixels, size, params);
-		ResourceSet resourceSet = create_resource_set(device, resourceLayout, {Resource{.type = ResourceType::CombinedImageSampler, .texture = texture}});
+		Texture texture = create_texture(device, pixels, size, params);
+		ResourceSet resourceSet = create_resource_set(device, resourceLayout, {Resource{.type = ResourceType::CombinedImageSampler, .texture = &texture}});
 		return TextureResource{
 			.texture = texture,
 			.resourceSet = resourceSet
 		};
 	}
 
-	void destroy_texture(Device* device, Texture* texture)
+	void destroy_texture(Device* device, Texture& texture)
 	{
-		vkDestroySampler(device->device, texture->sampler, nullptr);
-		destroy_image(device, texture->image);
+		vkDestroySampler(device->device, texture.sampler, nullptr);
+		destroy_image(device, texture.image);
 	}
 
-	void destroy_image(Device* device, Image* image)
+	void destroy_image(Device* device, Image& image)
 	{
-		vkDestroyImageView(device->device, image->imageView, nullptr);
-		vkDestroyImage(device->device, image->image, nullptr);
-		vkFreeMemory(device->device, image->memory, nullptr);
-		delete image;
+		vkDestroyImageView(device->device, image.imageView, nullptr);
+		vkDestroyImage(device->device, image.image, nullptr);
+		vkFreeMemory(device->device, image.memory, nullptr);
 	}
 
 } // namespace gfx
