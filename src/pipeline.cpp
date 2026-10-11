@@ -108,6 +108,9 @@ namespace gfx
 	{
 		std::vector<VkPipelineShaderStageCreateInfo> shaderStages{};
 
+		// Use device default renderpass if it is not provided
+		RenderPass* renderPass = params.renderPass ? params.renderPass : device->renderPass;
+
 		// TODO: make helper?
 		const SpirvCode* vertexCode = std::get_if<SpirvCode>(&params.vertexShader);
 		ShaderModule vertexModule = VK_NULL_HANDLE;
@@ -231,8 +234,8 @@ namespace gfx
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
 			.pNext = nullptr,
 			.flags = 0,
-			.depthTestEnable = device->renderPass->useDepth ? VK_TRUE : VK_FALSE,
-			.depthWriteEnable = device->renderPass->useDepth ? VK_TRUE : VK_FALSE,
+			.depthTestEnable = renderPass->useDepth ? VK_TRUE : VK_FALSE,
+			.depthWriteEnable = renderPass->useDepth ? VK_TRUE : VK_FALSE,
 			.depthCompareOp = VK_COMPARE_OP_LESS,
 			.depthBoundsTestEnable = VK_FALSE,
 			.stencilTestEnable = VK_FALSE,
@@ -298,7 +301,7 @@ namespace gfx
 			.pColorBlendState = &colorBlending,
 			.pDynamicState = &dynamicState,
 			.layout = pipelineLayout.layout,
-			.renderPass = device->renderPass->renderPass,
+			.renderPass = renderPass->renderPass,
 			.subpass = 0,
 			.basePipelineHandle = VK_NULL_HANDLE,
 			.basePipelineIndex = -1
@@ -319,15 +322,13 @@ namespace gfx
 			vkDestroyShaderModule(device->device, geometryModule, nullptr);
 		}
 
-		Pipeline* pPipeline = new Pipeline{
+		return new Pipeline{
 			.pipeline = graphicsPipeline,
 			.layout = pipelineLayout,
 			.ownsLayout = pipelineLayoutParams != nullptr, // true if it was created inline, otherwise this is the users responsibility to manage it's lifetime
 			.bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
 			.dynamicStates = params.dynamicStates
 		};
-
-		return pPipeline;
 	}
 
 	Pipeline* create_compute_pipeline(Device* device, const ComputePipelineParams& params)

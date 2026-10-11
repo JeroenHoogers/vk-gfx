@@ -10,6 +10,7 @@
 namespace gfx
 {
 	struct Device;
+	struct RenderTarget;
 	struct SwapchainFrame;
 
 	struct Attachment
@@ -66,7 +67,8 @@ namespace gfx
 
 	[[nodiscard]] RenderPass* create_render_pass(Device* device, const RenderPassDesc& desc = {});
 
-	void begin_render_pass(Device* device, CommandBuffer commands, const SwapchainFrame* frame);
+	void begin_render_pass(RenderPass* renderPass, CommandBuffer commands, const SwapchainFrame& frame);
+	void begin_render_pass(RenderPass* renderPass, CommandBuffer commands, uint32_t frameIndex, RenderTarget* renderTarget);
 	void end_render_pass(CommandBuffer commands);
 	void destroy_render_pass(Device* device, RenderPass* renderPass);
 } // namespace gfx

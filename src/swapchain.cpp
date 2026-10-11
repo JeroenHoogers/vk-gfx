@@ -202,7 +202,7 @@ namespace gfx
 			.format = format,
 			.compositeAlpha = compositeAlpha
 		});
-		window->renderTarget = create_render_target(device, window, device->renderPass);
+		window->renderTarget = create_render_target(device, device->renderPass, window); // TODO: this renderpass should probably be associated with window / swapchain instead
 	}
 
 	void destroy_swapchain(Device* device, Swapchain* swapchain)

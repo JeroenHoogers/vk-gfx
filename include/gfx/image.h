@@ -26,7 +26,7 @@ namespace gfx
 	{
 		VkImage create_image(Device* device, const ImageDesc& params, VkDeviceMemory& imageMemory);
 		VkImageView create_image_view(Device* device, VkImage image, VkFormat format, VkImageAspectFlags aspect, uint32_t mipLevels = 1);
-		void transition_image_layout(Device* device, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels = 1);
+		void transition_image_layout(VkCommandBuffer commands, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels = 1);
 
 		// TODO: extract upload function for CPU -> GPU transfer of pixel data
 	}
@@ -36,6 +36,7 @@ namespace gfx
 		VkImage image;
 		VkImageView imageView;
 		VkDeviceMemory memory;
+		VkFormat format;
 	};
 
 	// struct Sampler {
@@ -57,6 +58,8 @@ namespace gfx
 	Texture create_texture(Device* device, void* pixels, uint64_t size, const ImageDesc& params);
 
 	TextureResource create_texture_resource(Device* device, void* pixels, uint64_t size, const ImageDesc& params, ResourceSetLayout* resourceLayout);
+
+	void transition_image(CommandBuffer commands, const Image& image, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels = 1);
 
 	void destroy_image(Device* device, Image& image);
 	void destroy_texture(Device* device, Texture& texture);

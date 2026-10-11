@@ -88,9 +88,9 @@ int main()
 	gfx::Device* device = gfx::create_device({
 		.appname = appName,
 		.extensions = {},
+		.features = features,
 		.queues = {gfx::QueueRequest{ .flags = gfx::QueueFlags::Graphics | gfx::QueueFlags::Present | gfx::QueueFlags::Compute }},
 		.framesInFlight = FRAMES_IN_FLIGHT,
-		.features = features,
 		.windows = {
 			{ .window = window.vkWindow, .swapchain = { .format = VK_FORMAT_B8G8R8A8_SRGB }}
 		},
@@ -174,7 +174,7 @@ int main()
 		const gfx::SwapchainFrame frame = gfx::acquire(device, window.vkWindow);
 		commands = gfx::begin_commands(frame.window);
 		gfx::bind_pipeline(gfxPipeline, commands, frame.dynamicState);
-		gfx::begin_render_pass(device, commands, &frame);
+		gfx::begin_render_pass(device->renderPass, commands, frame);
 
 		gfx::Mesh mesh {
 			.vertexBuffer = particles.buffers[frame.index],

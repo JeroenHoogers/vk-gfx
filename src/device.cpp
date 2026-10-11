@@ -244,9 +244,9 @@ namespace gfx
 			}
 			bool present_adequate = !surface || swapchain_adequate;
 
-			// VkPhysicalDeviceProperties properties;
-			// vkGetPhysicalDeviceProperties(physicalDevice, &properties);
-			// properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+			VkPhysicalDeviceProperties properties;
+			vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+			bool device_type_adequate = !params.requireDiscreteGpu || (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
 
 			// check queue families
 			// TODO: inefficient to repeatedly query this, we should probably save these assignments after querying them once
@@ -256,9 +256,8 @@ namespace gfx
 			VkPhysicalDeviceFeatures supportedFeatures;
 			vkGetPhysicalDeviceFeatures(physicalDevice, &supportedFeatures);
 			bool features_supported = check_device_features(params.features, supportedFeatures);
-			// TODO: check supported features against provided features
 
-			return has_queue_families && has_extensions && present_adequate && features_supported;
+			return has_queue_families && has_extensions && present_adequate && features_supported && device_type_adequate;
 		}
 
 		VkPhysicalDevice pick_physical_device(VkInstance instance, const std::vector<const char*>& extensions, const DeviceCreateParams& params, VkSurfaceKHR surface)
@@ -476,7 +475,7 @@ namespace gfx
 					.imageAvailable = create_semaphore(pDevice)
 				};
 			}
-			window->renderTarget = create_render_target(pDevice, window, pDevice->renderPass);
+			window->renderTarget = create_render_target(pDevice, pDevice->renderPass, window);
 		}
 
 		if (params.resourcePool.max_sets > 0) {

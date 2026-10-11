@@ -72,8 +72,8 @@ int main()
 	gfx::Device* device = gfx::create_device({
 		.appname = appName,
 		.extensions = {},
-		.framesInFlight = framesInFlight,
 		.features = features,
+		.framesInFlight = framesInFlight,
 		.renderPass = { .enableDepth = true },
 		.msaaSamples = VK_SAMPLE_COUNT_4_BIT,
 		.windows = {
@@ -134,7 +134,7 @@ int main()
 		const gfx::SwapchainFrame frame = gfx::acquire(device, window.vkWindow);
 		updateUniformBuffer(ubo, frame);
 		gfx::CommandBuffer commands = gfx::begin_commands(frame.window);
-		gfx::begin_render_pass(device, commands, &frame);
+		gfx::begin_render_pass(device->renderPass, commands, frame);
 		gfx::bind_pipeline(pipeline, commands, frame.dynamicState);
 		gfx::bind_resource_sets(commands, pipeline, { uboResources[frame.index], materialResourceSet });
 		gfx::push_constants(commands, pipeline, 0, &mat);

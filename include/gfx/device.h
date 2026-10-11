@@ -66,7 +66,7 @@ namespace gfx
 		ResourcePool resourcePool = VK_NULL_HANDLE;
 		VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 		uint32_t framesInFlight = 2;
-		RenderPass* renderPass = nullptr;
+		RenderPass* renderPass = nullptr; // default render pass, TODO: probably should not be owned by device but by window / rendertarget.
 	};
 
 	struct WindowDesc {
@@ -81,9 +81,10 @@ namespace gfx
 		std::vector<const char*> extensions{};
 		std::vector<const char*> deviceExtensions{};
 		std::vector<const char*> layers{};
+		VkPhysicalDeviceFeatures features{};
+		bool requireDiscreteGpu = false;
 		std::vector<QueueRequest> queues{ QueueRequest{ .flags = QueueFlags::Graphics | QueueFlags::Present }};
 		uint32_t framesInFlight = 2;
-		VkPhysicalDeviceFeatures features{};
 		RenderPassDesc renderPass{};
 		VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT; // 1 bit means no MSAA
 		std::vector<WindowDesc> windows {};

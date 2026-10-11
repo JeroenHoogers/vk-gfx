@@ -12,6 +12,7 @@
 namespace gfx
 {
 	struct Device;
+	struct RenderPass;
 	struct VertexLayout;
 
 	struct RasterizerParams
@@ -65,6 +66,7 @@ namespace gfx
 		ShaderSrc vertexShader;
 		ShaderSrc fragmentShader;
 		ShaderSrc geometryShader = ShaderModule{VK_NULL_HANDLE};
+		RenderPass* renderPass = nullptr; // if nullptr -> use default device render pass
 		PipelineLayoutSrc layout = PipelineLayoutDesc{};
 		VertexLayout* vertexLayout = nullptr;
 		InputAssemblyParams inputAssembly = {};

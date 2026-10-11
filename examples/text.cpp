@@ -101,8 +101,8 @@ int main()
 		.appname = appName,
 		.apiVersion = VK_API_VERSION_1_1, // slang compilation of a vertex shader using SV_InstanceID doesn't compile to spirv_1_0 so we need to raise API version
 		.deviceExtensions = { VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME }, // required by SV_InstanceID
-		.framesInFlight = framesInFlight,
 		.features = deviceFeatures,
+		.framesInFlight = framesInFlight,
 		.msaaSamples = VK_SAMPLE_COUNT_8_BIT,
 		.windows = {
 			{ .window = window.vkWindow, .swapchain = { .format = VK_FORMAT_B8G8R8A8_SRGB }}
@@ -249,7 +249,7 @@ int main()
 		const gfx::SwapchainFrame frame = gfx::acquire(device, window.vkWindow);
 		updateUniformBuffer(ubo, frame);
 		gfx::CommandBuffer commands = gfx::begin_commands(frame.window);
-		gfx::begin_render_pass(device, commands, &frame);
+		gfx::begin_render_pass(device->renderPass, commands, frame);
 
 		// draw text
 		gfx::bind_pipeline(textPipeline, commands, frame.dynamicState);

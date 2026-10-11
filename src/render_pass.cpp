@@ -161,20 +161,36 @@ namespace gfx
 		};
 	}
 
-	void begin_render_pass(Device* device, CommandBuffer commands, const SwapchainFrame* frame)
+	void begin_render_pass(RenderPass* renderPass, CommandBuffer commands, uint32_t frameIndex, RenderTarget* renderTarget)
 	{
-		// TODO: allow renderpass to be supplied, otherwise take the default renderpass from device
-		RenderPass* renderPass = device->renderPass;
 		// TODO: allow clearvalues to be supplied as arguments
-
 		VkRenderPassBeginInfo renderPassInfo{
 			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 			.pNext = nullptr,
-			.renderPass = device->renderPass->renderPass,
-			.framebuffer = frame->frameBuffer,
+			.renderPass = renderPass->renderPass,
+			.framebuffer = renderTarget->framebuffers[frameIndex],
 			.renderArea = {
 				.offset = {0, 0},
-				.extent = frame->window->swapchain->extent
+				.extent = renderTarget->extent
+			},
+			.clearValueCount = static_cast<uint32_t>(renderPass->clearValues.size()),
+			.pClearValues = renderPass->clearValues.data()
+		};
+
+		vkCmdBeginRenderPass(commands, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+	}
+
+	void begin_render_pass(RenderPass* renderPass, CommandBuffer commands, const SwapchainFrame& frame)
+	{
+		// TODO: allow clearvalues to be supplied as arguments
+		VkRenderPassBeginInfo renderPassInfo{
+			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+			.pNext = nullptr,
+			.renderPass = renderPass->renderPass,
+			.framebuffer = frame.frameBuffer,
+			.renderArea = {
+				.offset = {0, 0},
+				.extent = frame.window->swapchain->extent
 			},
 			.clearValueCount = static_cast<uint32_t>(renderPass->clearValues.size()),
 			.pClearValues = renderPass->clearValues.data()

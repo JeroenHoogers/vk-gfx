@@ -77,7 +77,9 @@ namespace gfx
 
 		Buffer buffer = create_buffer(device, {.size = params.size, .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | params.usage, .properties = params.properties});
 
-		copy_buffer(device, staging, buffer);
+		VkCommandBuffer commandBuffer = detail::begin_one_time_commands(device);
+		copy_buffer(commandBuffer, staging, buffer);
+		detail::end_one_time_commands(device, commandBuffer);
 
 		destroy_buffer(device, staging);
 
@@ -102,6 +104,7 @@ namespace gfx
 		// TODO: re-use command buffer
 		Buffer staging = create_buffer(device, {.size = params.size, .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT, .properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT});
 
+		VkCommandBuffer commandBuffer = detail::begin_one_time_commands(device);
 		void* mapped;
 		VkResult result = vkMapMemory(device->device, staging.memory, 0, staging.size, 0, &mapped);
 		VK_ASSERT(result);
@@ -114,25 +117,24 @@ namespace gfx
 
 		for (size_t i = 0; i < count; i++) {
 			multiBuffer.buffers[i] = create_buffer(device, {.size = params.size, .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | params.usage, .properties = params.properties});
-			copy_buffer(device, staging, multiBuffer.buffers[i]);
+			copy_buffer(commandBuffer, staging, multiBuffer.buffers[i]);
 		}
+
+		detail::end_one_time_commands(device, commandBuffer);
 		destroy_buffer(device, staging);
 
 		return multiBuffer;
 	}
 
-	void copy_buffer(Device* device, const Buffer& src, const Buffer& dst)
+	void copy_buffer(CommandBuffer commandBuffer, const Buffer& src, const Buffer& dst)
 	{
-		VkCommandBuffer commands = detail::begin_one_time_commands(device);
-
 		VkBufferCopy copyRegion{
 			.srcOffset = 0,
 			.dstOffset = 0,
 			.size = src.size
 		};
 
-		vkCmdCopyBuffer(commands, src.buffer, dst.buffer, 1, &copyRegion);
-		detail::end_one_time_commands(device, commands);
+		vkCmdCopyBuffer(commandBuffer, src.buffer, dst.buffer, 1, &copyRegion);
 	}
 
 	void destroy_buffer(Device* device, const Buffer& buffer)

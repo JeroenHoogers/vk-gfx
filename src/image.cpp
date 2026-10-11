@@ -11,9 +11,8 @@ namespace gfx
 {
 	namespace
 	{
-		void copy_buffer_to_image(Device* device, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
+		void copy_buffer_to_image(VkCommandBuffer commandBuffer, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
 		{
-			VkCommandBuffer commandBuffer = detail::begin_one_time_commands(device);
 			VkBufferImageCopy region{
 				.bufferOffset = 0,
 				.bufferRowLength = 0,
@@ -29,7 +28,7 @@ namespace gfx
 			};
 
 			vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-			detail::end_one_time_commands(device, commandBuffer);
+
 		}
 
 		VkSampler create_texture_sampler(Device* device)
@@ -69,7 +68,7 @@ namespace gfx
 			return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 		}
 
-		void generate_mipmaps(Device* device, VkImage image, VkFormat format, int32_t width, int32_t height, uint32_t mipLevels)
+		void generate_mipmaps(Device* device, VkCommandBuffer commandBuffer, VkImage image, VkFormat format, int32_t width, int32_t height, uint32_t mipLevels)
 		{
 			// check if image format supports linear blitting
 			VkFormatProperties formatProperties;
@@ -77,8 +76,6 @@ namespace gfx
 			if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
 				printf("Unable to generate mipmaps! Texture image format does not support linear blitting!");
 			}
-
-			VkCommandBuffer commandBuffer = detail::begin_one_time_commands(device);
 
 			VkImageMemoryBarrier barrier{
 				.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -168,8 +165,6 @@ namespace gfx
 			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
 			vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
-
-			detail::end_one_time_commands(device, commandBuffer);
 		}
 	} // namespace
 
@@ -242,10 +237,8 @@ namespace gfx
 			return imageView;
 		}
 
-		void transition_image_layout(Device* device, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels)
+		void transition_image_layout(VkCommandBuffer commandBuffer, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels)
 		{
-			VkCommandBuffer commandBuffer = detail::begin_one_time_commands(device);
-
 			VkImageMemoryBarrier barrier{
 				.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
 				.pNext = nullptr,
@@ -302,10 +295,12 @@ namespace gfx
 				0, nullptr,
 				1, &barrier
 			);
-
-			detail::end_one_time_commands(device, commandBuffer);
 		}
 	} // namespace detail
+
+	void transition_image(CommandBuffer commands, const Image& image, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels) {
+		detail::transition_image_layout(commands, image.image, image.format, oldLayout, newLayout, mipLevels);
+	}
 
 	Image create_image(Device* device, const ImageDesc& params)
 	{
@@ -316,7 +311,8 @@ namespace gfx
 		return Image{
 			.image = image,
 			.imageView = imageView,
-			.memory = imageMemory
+			.memory = imageMemory,
+			.format = params.format
 		};
 	}
 
@@ -336,15 +332,18 @@ namespace gfx
 		VkDeviceMemory imageMemory;
 		VkImage image = detail::create_image(device, params, imageMemory);
 
-		// TODO OPTIMIZE THIS: put these all into a single command buffer and flush
-		detail::transition_image_layout(device, image, params.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, params.mipLevels);
-		copy_buffer_to_image(device, staging.buffer, image, params.extent.width, params.extent.height);
+		VkCommandBuffer commandBuffer = detail::begin_one_time_commands(device);
+
+		detail::transition_image_layout(commandBuffer, image, params.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, params.mipLevels);
+		copy_buffer_to_image(commandBuffer, staging.buffer, image, params.extent.width, params.extent.height);
 
 		// generate_mipmaps also transfers layout to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 		// TODO: also support loading mipmaps instead of generating them at runtime
-		generate_mipmaps(device, image, params.format, params.extent.width, params.extent.height, params.mipLevels);
+		generate_mipmaps(device, commandBuffer, image, params.format, params.extent.width, params.extent.height, params.mipLevels);
+		detail::end_one_time_commands(device, commandBuffer);
 
 		destroy_buffer(device, staging);
+
 
 		VkImageView imageView = detail::create_image_view(device, image, params.format, params.aspect, params.mipLevels);
 		// VkSampler sampler = create_texture_sampler(device);
@@ -352,7 +351,8 @@ namespace gfx
 		return Image{
 			.image = image,
 			.imageView = imageView,
-			.memory = imageMemory
+			.memory = imageMemory,
+			.format = params.format
 		};
 	}
 

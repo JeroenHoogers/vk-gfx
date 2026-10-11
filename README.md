@@ -50,7 +50,7 @@ int main()
 	while (poll_window_events(window)) {
 		const gfx::SwapchainFrame frame = gfx::acquire(device, window.vkWindow);
 		gfx::CommandBuffer commands = gfx::begin_commands(frame.window);
-		gfx::begin_render_pass(device, commands, &frame);
+		gfx::begin_render_pass(device->renderPass, commands, &frame);
 		gfx::bind_pipeline(pipeline, commands, frame.dynamicState);
 		gfx::draw(commands, {}, 3); // mesh verts are defined in shader
 		gfx::end_render_pass(commands);
