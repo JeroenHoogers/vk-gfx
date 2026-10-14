@@ -53,7 +53,7 @@ namespace gfx
 	};
 
 	Mesh create_mesh(Device* device, const MeshData& meshData);
-	void destroy_mesh(Device* device, Mesh* mesh);
+	void destroy_mesh(Device* device, Mesh& mesh);
 
 	VertexLayout create_vertex_layout(const std::vector<VertexBinding>& bindings);
 

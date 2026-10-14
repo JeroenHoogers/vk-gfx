@@ -15,13 +15,14 @@ namespace gfx
 	struct Image;
 
 	namespace detail {
-		Image create_depth_resources(Device* device, VkExtent2D extent, VkFormat format);
-		Image create_color_resources(Device* device, VkExtent2D extent, VkFormat format);
+		Image create_depth_resources(Device* device, VkExtent2D extent, VkFormat format, VkImageUsageFlags = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+		Image create_color_resources(Device* device, VkExtent2D extent, VkFormat format, VkImageUsageFlags = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
 	}
 
 	struct RenderTargetDesc {
 		VkExtent2D extent;
 		VkFormat colorFormat;
+		VkImageUsageFlags colorUsage;
 	};
 
 	struct RenderTarget

@@ -55,6 +55,7 @@ namespace gfx
 		VkInstance instance;
 		VkPhysicalDevice physicalDevice;
 		VkDevice device;
+		VkPhysicalDeviceFeatures features;
 		VkDebugUtilsMessengerEXT debugMessenger;
 		// TODO: consider creating a list of queues instead matching the queue requests?
 		Queue graphicsQueue = {};

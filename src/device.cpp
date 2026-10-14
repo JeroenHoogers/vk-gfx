@@ -448,6 +448,7 @@ namespace gfx
 			.instance = instance,
 			.physicalDevice = physicalDevice,
 			.device = device,
+			.features = params.features,
 			.debugMessenger = debugMessenger,
 			.graphicsQueue = graphicsQueue,
 			.presentQueue = presentQueue,

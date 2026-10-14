@@ -5,10 +5,20 @@
 
 #include <vulkan/vulkan.h>
 #include "types.h" // Needed for ResourceSet, ResourceSetLayout
+#include <vector>
 
 namespace gfx
 {
 	struct Device;
+
+	struct SamplerDesc
+	{
+		VkFilter filter = VK_FILTER_LINEAR;
+		VkSamplerMipmapMode mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		bool enableAnisotrophy = true;
+		float maxAnisotropy = 16.0f;
+		VkSamplerAddressMode addressMode = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	};
 
 	struct ImageDesc
 	{
@@ -39,13 +49,11 @@ namespace gfx
 		VkFormat format;
 	};
 
-	// struct Sampler {
-	// 	VkSampler sampler;
-	// };
+	typedef std::vector<Image> MultiImage;
 
 	struct Texture {
 		Image image;
-		VkSampler sampler;
+		Sampler sampler;
 	};
 
 	struct TextureResource {
@@ -55,6 +63,7 @@ namespace gfx
 
 	Image create_image(Device* device, const ImageDesc& params);
 	Image create_image(Device* device, void* pixels, uint64_t size, const ImageDesc& params);
+	Sampler create_image_sampler(Device* device, const SamplerDesc& params = {});
 	Texture create_texture(Device* device, void* pixels, uint64_t size, const ImageDesc& params);
 
 	TextureResource create_texture_resource(Device* device, void* pixels, uint64_t size, const ImageDesc& params, ResourceSetLayout* resourceLayout);
@@ -62,5 +71,6 @@ namespace gfx
 	void transition_image(CommandBuffer commands, const Image& image, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels = 1);
 
 	void destroy_image(Device* device, Image& image);
+	void destroy_sampler(Device* device, Sampler& sampler);
 	void destroy_texture(Device* device, Texture& texture);
 } // namespace gfx

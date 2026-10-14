@@ -111,13 +111,13 @@ namespace gfx
 	} // namespace
 
 	namespace detail {
-		Image create_depth_resources(Device* device, VkExtent2D extent, VkFormat format)
+		Image create_depth_resources(Device* device, VkExtent2D extent, VkFormat format, VkImageUsageFlags usage)
 		{
 			Image depthImage = create_image(device, ImageDesc{
 				.format = format, // TODO: allow user to specify and add fallbacks
 				.extent = {extent.width, extent.height, 1},
 				.samples = device->msaaSamples,
-				.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+				.usage = usage,
 				.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				.tiling = VK_IMAGE_TILING_OPTIMAL,
 				.aspect = VK_IMAGE_ASPECT_DEPTH_BIT
@@ -130,13 +130,13 @@ namespace gfx
 			return depthImage;
 		}
 
-		Image create_color_resources(Device* device, VkExtent2D extent, VkFormat format)
+		Image create_color_resources(Device* device, VkExtent2D extent, VkFormat format, VkImageUsageFlags usage)
 		{
 			Image colorImage = create_image(device, ImageDesc{
 				.format = format,
 				.extent = {extent.width, extent.height, 1},
 				.samples = device->msaaSamples,
-				.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+				.usage = usage,
 				.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				.tiling = VK_IMAGE_TILING_OPTIMAL,
 				.aspect = VK_IMAGE_ASPECT_COLOR_BIT
@@ -203,9 +203,7 @@ namespace gfx
 			switch (slot.type) {
 				case AttachmentSlotType::Color:
 					// only create resources when MSAA is enabled
-					if (slot.samples != VK_SAMPLE_COUNT_1_BIT) {
-						colorCount++;
-					}
+					colorCount++;
 					break;
 				case gfx::AttachmentSlotType::DepthStencil:
 					depthStencilCount++;
@@ -222,7 +220,7 @@ namespace gfx
 		for (uint32_t i = 0; i < device->framesInFlight; i++) {
 			for(uint32_t j = 0; j < colorCount; j++) {
 				uint32_t idx = i * colorCount + j;
-				colorImages[idx] = detail::create_color_resources(device, params.extent, renderPass->colors[j].format);
+				colorImages[idx] = detail::create_color_resources(device, params.extent, renderPass->colors[j].format, params.colorUsage);
 			}
 			for(uint32_t j = 0; j < depthStencilCount; j++) {
 				uint32_t idx = i * depthStencilCount + j;

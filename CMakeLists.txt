@@ -96,6 +96,7 @@ if(VKGFX_BUILD_EXAMPLES)
       "${SHADER_SRC_DIR}/textured.slang"
       "${SHADER_SRC_DIR}/text.slang" # will be compiled to spirv_1_3 instead of 1_0 since it uses SV_InstanceID
       "${SHADER_SRC_DIR}/compute.slang"
+      "${SHADER_SRC_DIR}/multipass.slang"
   )
 
   set(FRAGMENT_SHADERS
@@ -104,6 +105,7 @@ if(VKGFX_BUILD_EXAMPLES)
       "${SHADER_SRC_DIR}/textured.slang"
       "${SHADER_SRC_DIR}/text.slang"
       "${SHADER_SRC_DIR}/compute.slang"
+      "${SHADER_SRC_DIR}/multipass.slang"
   )
 
   set(COMPUTE_SHADERS
@@ -199,6 +201,13 @@ if(VKGFX_BUILD_EXAMPLES)
   target_link_libraries(compute-example PRIVATE ${EXAMPLE_LIBS})
   add_dependencies(compute-example vkgfx_compile_shaders)
   target_compile_definitions(compute-example PRIVATE $<$<CONFIG:Debug>:DEBUG=1>)
+
+  # multi-pass
+  include_directories(${INCLUDE_DIR} ${EXAMPLES_DIR}/thirdparty)
+  add_executable(multipass-example ${SRC_EXAMPLES} ${EXAMPLES_DIR}/multipass.cpp)
+  target_link_libraries(multipass-example PRIVATE ${EXAMPLE_LIBS})
+  add_dependencies(multipass-example vkgfx_compile_shaders)
+  target_compile_definitions(multipass-example PRIVATE $<$<CONFIG:Debug>:DEBUG=1>)
 
   # text
   set(DRAFT_TYPE_DIR ${EXAMPLES_DIR}/thirdparty/draft-type)

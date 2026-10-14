@@ -6,6 +6,7 @@
 #include "gfx/command_buffer.h"
 #include "gfx/device.h"
 #include <cstring>
+#include <algorithm>
 
 namespace gfx
 {
@@ -28,40 +29,8 @@ namespace gfx
 			};
 
 			vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-
 		}
 
-		VkSampler create_texture_sampler(Device* device)
-		{
-			VkPhysicalDeviceProperties properties{};
-			vkGetPhysicalDeviceProperties(device->physicalDevice, &properties);
-
-			VkSamplerCreateInfo samplerInfo{
-				.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-				.pNext = nullptr,
-				.flags = 0,
-				.magFilter = VK_FILTER_LINEAR,
-				.minFilter = VK_FILTER_LINEAR,
-				.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-				.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-				.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-				.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-				.mipLodBias = 0,
-				.anisotropyEnable = properties.limits.maxSamplerAnisotropy >= 2.0 ? VK_TRUE : VK_FALSE,
-				.maxAnisotropy = properties.limits.maxSamplerAnisotropy,
-				.compareEnable = VK_FALSE,
-				.compareOp = VK_COMPARE_OP_ALWAYS,
-				.minLod = 0.0f,
-				.maxLod = VK_LOD_CLAMP_NONE,
-				.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
-				.unnormalizedCoordinates = VK_FALSE
-			};
-
-			VkSampler sampler;
-			VkResult result = vkCreateSampler(device->device, &samplerInfo, nullptr, &sampler);
-			VK_ASSERT(result);
-			return sampler;
-		}
 
 		bool has_stencil_component(VkFormat format)
 		{
@@ -278,6 +247,11 @@ namespace gfx
 				barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 				srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 				dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			} else if (oldLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+				barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+				barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+				srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+				dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 			} else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
 				barrier.srcAccessMask = 0;
 				barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
@@ -297,6 +271,46 @@ namespace gfx
 			);
 		}
 	} // namespace detail
+
+	Sampler create_image_sampler(Device* device, const SamplerDesc& params)
+	{
+		const bool useAnisotropy = params.enableAnisotrophy && device->features.samplerAnisotropy;
+		float maxAnisotropy = 1.0f;
+
+		if (useAnisotropy) {
+			// TODO: cache these properties in device?
+			VkPhysicalDeviceProperties properties{};
+			vkGetPhysicalDeviceProperties(device->physicalDevice, &properties);
+
+			maxAnisotropy = std::clamp(params.maxAnisotropy, 1.0f, properties.limits.maxSamplerAnisotropy);
+		}
+
+		VkSamplerCreateInfo samplerInfo{
+			.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = 0,
+			.magFilter = params.filter,
+			.minFilter = params.filter,
+			.mipmapMode = params.mipmapMode,
+			.addressModeU = params.addressMode,
+			.addressModeV = params.addressMode,
+			.addressModeW = params.addressMode,
+			.mipLodBias = 0,
+			.anisotropyEnable = useAnisotropy ? VK_TRUE : VK_FALSE,
+			.maxAnisotropy = maxAnisotropy,
+			.compareEnable = VK_FALSE,
+			.compareOp = VK_COMPARE_OP_ALWAYS,
+			.minLod = 0.0f,
+			.maxLod = VK_LOD_CLAMP_NONE,
+			.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+			.unnormalizedCoordinates = VK_FALSE
+		};
+
+		VkSampler sampler;
+		VkResult result = vkCreateSampler(device->device, &samplerInfo, nullptr, &sampler);
+		VK_ASSERT(result);
+		return sampler;
+	}
 
 	void transition_image(CommandBuffer commands, const Image& image, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels) {
 		detail::transition_image_layout(commands, image.image, image.format, oldLayout, newLayout, mipLevels);
@@ -344,9 +358,7 @@ namespace gfx
 
 		destroy_buffer(device, staging);
 
-
 		VkImageView imageView = detail::create_image_view(device, image, params.format, params.aspect, params.mipLevels);
-		// VkSampler sampler = create_texture_sampler(device);
 
 		return Image{
 			.image = image,
@@ -359,7 +371,7 @@ namespace gfx
 	Texture create_texture(Device* device, void* pixels, uint64_t size, const ImageDesc& params)
 	{
 		Image image = create_image(device, pixels, size, params);
-		VkSampler sampler = create_texture_sampler(device);
+		VkSampler sampler = create_image_sampler(device);
 
 		return Texture{
 			.image = image,
@@ -379,8 +391,13 @@ namespace gfx
 
 	void destroy_texture(Device* device, Texture& texture)
 	{
-		vkDestroySampler(device->device, texture.sampler, nullptr);
+		destroy_sampler(device, texture.sampler);
 		destroy_image(device, texture.image);
+	}
+
+	void destroy_sampler(Device* device, Sampler& sampler)
+	{
+		vkDestroySampler(device->device, sampler, nullptr);
 	}
 
 	void destroy_image(Device* device, Image& image)

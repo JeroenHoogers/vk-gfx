@@ -22,9 +22,7 @@ namespace gfx {
 		// uint32_t stride;
 	};
 
-	struct MultiBuffer {
-		std::vector<Buffer> buffers;
-	};
+	typedef std::vector<Buffer> MultiBuffer;
 
 	struct BufferDesc{
 		uint64_t size;
@@ -43,5 +41,5 @@ namespace gfx {
 	void copy_buffer(CommandBuffer commands, const Buffer& src, const Buffer& dst);
 
 	void destroy_buffer(Device* device, const Buffer& buffer);
-	void destroy_buffer(Device* device, const MultiBuffer& buffer);
+	void destroy_buffers(Device* device, const MultiBuffer& buffer);
 }

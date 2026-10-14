@@ -146,7 +146,7 @@ int main()
 
 	gfx::wait_idle(device);
 
-	gfx::destroy_mesh(device, &model);
+	gfx::destroy_mesh(device, model);
 
 	gfx::destroy_pipeline(device, pipeline);
 	gfx::destroy_resource_set_layouts(device, {uboResourceLayout, materialResourceLayout});

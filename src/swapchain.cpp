@@ -178,15 +178,13 @@ namespace gfx
 			};
 		}
 
-		Swapchain* pSwapchain = new Swapchain{
+		return new Swapchain{
 			.swapchain = swapchain,
 			.extent = extent,
 			.format = surfaceFormat.format,
 			.compositeAlpha = compositeAlpha,
 			.images = std::move(images)
 		};
-
-		return pSwapchain;
 	}
 
 	void recreate_swapchain(Device* device, Window* window)
@@ -217,6 +215,7 @@ namespace gfx
 		swapchain = nullptr;
 	}
 
+	// TODO: support custom render target / headless
 	SwapchainFrame acquire(Device* device, Window* window)
 	{
 		// if no window specified use main window

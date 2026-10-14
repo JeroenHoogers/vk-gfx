@@ -32,20 +32,20 @@ double lastTime = 0.0f;
 
 gfx::MultiBuffer createParticleBuffer(gfx::Device* device) {
 	// Initialize particles
-    std::default_random_engine rndEngine((unsigned)time(nullptr));
-    std::uniform_real_distribution<float> rndDist(0.0f, 1.0f);
+	std::default_random_engine rndEngine((unsigned)time(nullptr));
+	std::uniform_real_distribution<float> rndDist(0.0f, 1.0f);
 
-    // Initial particle positions on a circle
-    std::vector<Particle> particles(PARTICLE_COUNT);
-    for (auto& particle : particles) {
-        float r = 0.25f * sqrt(rndDist(rndEngine));
-        float theta = rndDist(rndEngine) * 2 * 3.14159265358979323846;
-        float x = r * cos(theta) * HEIGHT / WIDTH;
-        float y = r * sin(theta);
-        particle.position = glm::vec2(x, y);
-        particle.velocity = glm::normalize(glm::vec2(x,y)) * 0.00025f;
-        particle.color = glm::vec4(rndDist(rndEngine), rndDist(rndEngine), rndDist(rndEngine), 1.0f);
-    }
+	// Initial particle positions on a circle
+	std::vector<Particle> particles(PARTICLE_COUNT);
+	for (auto& particle : particles) {
+		float r = 0.25f * sqrt(rndDist(rndEngine));
+		float theta = rndDist(rndEngine) * 2 * 3.14159265358979323846;
+		float x = r * cos(theta) * HEIGHT / WIDTH;
+		float y = r * sin(theta);
+		particle.position = glm::vec2(x, y);
+		particle.velocity = glm::normalize(glm::vec2(x,y)) * 0.00025f;
+		particle.color = glm::vec4(rndDist(rndEngine), rndDist(rndEngine), rndDist(rndEngine), 1.0f);
+	}
 
 	gfx::MultiBuffer particleBuffers = gfx::create_and_upload_buffers(device, particles.data(), {
 		.size = particles.size() * sizeof(Particle),
@@ -104,9 +104,9 @@ int main()
 		.enableValidation = enableValidationLayers
 	});
 
-	gfx::MultiBuffer particles = createParticleBuffer(device);
-	gfx::MultiBuffer lastParticles = particles;
-	std::rotate(lastParticles.buffers.begin(), lastParticles.buffers.end() - 1, lastParticles.buffers.end()); // rotate buffers right by 1 to get last frame
+	gfx::MultiBuffer particleBuffers = createParticleBuffer(device);
+	gfx::MultiBuffer lastParticles = particleBuffers;
+	std::rotate(lastParticles.begin(), lastParticles.end() - 1, lastParticles.end()); // rotate buffers right by 1 to get last frame
 
 	gfx::UniformBuffer ubo = gfx::create_uniform_buffer(device, sizeof(UBO));
 
@@ -119,7 +119,7 @@ int main()
 	std::vector<gfx::ResourceSet> resources = gfx::create_resource_sets(device, resourceLayout, {
 		{.type = gfx::ResourceType::UniformBuffer, .uniformBuffer = &ubo},
 		{.type = gfx::ResourceType::StorageBuffers, .storageBuffers = &lastParticles}, // last (in)
-		{.type = gfx::ResourceType::StorageBuffers, .storageBuffers = &particles}, // curr (out)
+		{.type = gfx::ResourceType::StorageBuffers, .storageBuffers = &particleBuffers}, // curr (out)
 	}, device->framesInFlight);
 
 	gfx::Pipeline* computePipeline = gfx::create_compute_pipeline(device, {
@@ -177,7 +177,7 @@ int main()
 		gfx::begin_render_pass(device->renderPass, commands, frame);
 
 		gfx::Mesh mesh {
-			.vertexBuffer = particles.buffers[frame.index],
+			.vertexBuffer = particleBuffers[frame.index],
 			.vertexCount = PARTICLE_COUNT
 		};
 
@@ -193,15 +193,15 @@ int main()
 			.completedFence = frameInFlight.inFlightFence
 		});
 
-        double currentTime = glfwGetTime();
-        lastFrameTime = (currentTime - lastTime) * 1000.0;
-        lastTime = currentTime;
+		double currentTime = glfwGetTime();
+		lastFrameTime = (currentTime - lastTime) * 1000.0;
+		lastTime = currentTime;
 	}
 
 	gfx::wait_idle(device);
 
 	gfx::destroy_uniform_buffer(device, ubo);
-	gfx::destroy_buffer(device, particles);
+	gfx::destroy_buffers(device, particleBuffers);
 
 	gfx::destroy_resource_set_layout(device, resourceLayout);
 	gfx::destroy_pipeline(device, computePipeline);

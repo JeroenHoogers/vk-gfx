@@ -151,14 +151,28 @@ namespace gfx
 			.pDynamicStates = dynamicStates.data()
 		};
 
+		VkViewport viewport{
+			.x = 0,
+			.y = 0,
+			.width = static_cast<float>(params.viewport.extent.width),
+			.height = static_cast<float>(params.viewport.extent.height),
+			.minDepth = 0.0f,
+			.maxDepth = 1.0f
+		};
+
+		VkRect2D scissor{
+			.offset = {0, 0},
+			.extent = params.viewport.extent,
+		};
+
 		VkPipelineViewportStateCreateInfo viewportState{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
 			.pNext = nullptr,
 			.flags = 0,
 			.viewportCount = 1,
-			.pViewports = nullptr,
+			.pViewports = &viewport,
 			.scissorCount = 1,
-			.pScissors = nullptr
+			.pScissors = &scissor
 		};
 
 		// Vertex Input

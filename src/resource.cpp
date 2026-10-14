@@ -22,6 +22,7 @@ namespace gfx
 			case ResourceType::UniformBufferDynamic:
 				return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 			case ResourceType::SampledImage:
+			case ResourceType::SampledImages:
 				return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 			case ResourceType::Sampler:
 				return VK_DESCRIPTOR_TYPE_SAMPLER;
@@ -192,7 +193,7 @@ namespace gfx
 		std::vector<VkDescriptorBufferInfo> bufferInfos(writes.size());
 		std::vector<VkDescriptorImageInfo> imageInfos(writes.size());
 
-		std::vector<ResourceSet> descriptorSets(count);
+		std::vector<VkDescriptorSet> descriptorSets(count);
 		VkResult result = vkAllocateDescriptorSets(device->device, &allocInfo, descriptorSets.data());
 		VK_ASSERT(result);
 
@@ -221,12 +222,16 @@ namespace gfx
 					bufferInfos[index] = detail::get_buffer_descriptor_info(&resources[j].uniformBuffer->buffers[i]);
 					write.pBufferInfo = &bufferInfos[index];
 					break;
-				case gfx::ResourceType::Sampler:
+				case ResourceType::Sampler:
 					imageInfos[index] = detail::get_sampler_descriptor_info(resources[j].sampler);
 					write.pImageInfo = &imageInfos[index];
 					break;
 				case ResourceType::SampledImage:
 					imageInfos[index] = detail::get_sampled_image_descriptor_info(resources[j].image);
+					write.pImageInfo = &imageInfos[index];
+					break;
+				case ResourceType::SampledImages:
+					imageInfos[index] = detail::get_sampled_image_descriptor_info(&resources[j].images->at(i));
 					write.pImageInfo = &imageInfos[index];
 					break;
 				case ResourceType::CombinedImageSampler:
@@ -240,7 +245,7 @@ namespace gfx
 				case ResourceType::StorageBufferDynamic:
 					// TODO: allow subrange
 				case ResourceType::StorageBuffers:
-					bufferInfos[index] = detail::get_buffer_descriptor_info(&resources[j].storageBuffers->buffers[i]);
+					bufferInfos[index] = detail::get_buffer_descriptor_info(&resources[j].storageBuffers->at(i));
 					write.pBufferInfo = &bufferInfos[index];
 					break;
 				}
@@ -248,8 +253,6 @@ namespace gfx
 		}
 
 		vkUpdateDescriptorSets(device->device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
-
-		std::vector<ResourceSet> resourceSets(count, {VK_NULL_HANDLE});
 
 		return descriptorSets;
 	}

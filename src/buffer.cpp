@@ -88,12 +88,10 @@ namespace gfx
 
 	MultiBuffer create_buffers(Device* device, const BufferDesc& params, uint32_t count)
 	{
-		MultiBuffer multiBuffer {
-			.buffers = std::vector<Buffer>(count)
-		};
+		MultiBuffer multiBuffer(count);
 
 		for (size_t i = 0; i < count; i++) {
-			multiBuffer.buffers[i] = create_buffer(device, {.size = params.size, .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | params.usage, .properties = params.properties});
+			multiBuffer[i] = create_buffer(device, {.size = params.size, .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | params.usage, .properties = params.properties});
 		}
 
 		return multiBuffer;
@@ -111,13 +109,11 @@ namespace gfx
 		memcpy(mapped, data, static_cast<size_t>(staging.size));
 		vkUnmapMemory(device->device, staging.memory);
 
-		MultiBuffer multiBuffer {
-			.buffers = std::vector<Buffer>(count)
-		};
+		MultiBuffer multiBuffer(count);
 
 		for (size_t i = 0; i < count; i++) {
-			multiBuffer.buffers[i] = create_buffer(device, {.size = params.size, .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | params.usage, .properties = params.properties});
-			copy_buffer(commandBuffer, staging, multiBuffer.buffers[i]);
+			multiBuffer[i] = create_buffer(device, {.size = params.size, .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | params.usage, .properties = params.properties});
+			copy_buffer(commandBuffer, staging, multiBuffer[i]);
 		}
 
 		detail::end_one_time_commands(device, commandBuffer);
@@ -143,10 +139,10 @@ namespace gfx
 		vkFreeMemory(device->device, buffer.memory, nullptr);
 	}
 
-	void destroy_buffer(Device* device, const MultiBuffer& buffer)
+	void destroy_buffers(Device* device, const MultiBuffer& multiBuffer)
 	{
-		for (size_t i = 0; i < buffer.buffers.size(); i++) {
-			destroy_buffer(device, buffer.buffers[i]);
+		for (size_t i = 0; i < multiBuffer.size(); i++) {
+			destroy_buffer(device, multiBuffer[i]);
 		}
 	}
 

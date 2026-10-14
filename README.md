@@ -90,11 +90,12 @@ int main()
 - [ ] Windowing:
   - [x] Windowing library agnostic
   - [x] Swapchain management
-  - [x] Rendertarget / Framebuffers
   - [x] Multiple windows
   - [ ] Headless compute / rendering support
 - [x] Synchronization (semaphores & fences)
+- [x] Rendertarget / Framebuffers
 - [x] Renderpass
+  - [x] Multiple passes
   - [x] MSAA
   - [x] Color attachments
   - [x] Depth / Stencil attachment
@@ -153,6 +154,8 @@ make -j
 
 #### [Compute Particles](examples/compute.cpp)
 
+Simulate particle system in a compute step then render them using a Graphics pipeline.
+
 ![image](assets/images/compute-particles.png)
 
 **Features:**
@@ -161,6 +164,19 @@ make -j
 - Uniform Buffers
 - Storage Buffers
 - Advanced Synchronization
+
+#### [Multipass Rendering](examples/multipass.cpp)
+
+Renders a triangle to an offscreen image buffer, then use the rendered image as a texture on the cube.
+
+![image](assets/images/multipass.png)
+
+**Features:**
+
+- Multiple Renderpasses / Render targets
+- Render to offscreen pixel buffer
+- Image layout transitions
+- Resource set creation & binding
 
 ### Thirdparty Integration
 

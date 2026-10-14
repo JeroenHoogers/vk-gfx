@@ -16,7 +16,6 @@ namespace gfx
 	struct Texture;
 	struct Image;
 	struct Buffer;
-	struct MultiBuffer;
 
 	namespace detail
 	{
@@ -33,6 +32,7 @@ namespace gfx
 	enum class ResourceType {
 		CombinedImageSampler,
 		SampledImage,
+		SampledImages,
 		Sampler,
 		UniformBuffer,
 		UniformBufferDynamic,
@@ -66,10 +66,11 @@ namespace gfx
 			void* ptr;
 			Texture* texture;
 			Image* image;
+			std::vector<Image>* images; // per frame in flight
 			Sampler* sampler;
 			UniformBuffer* uniformBuffer; // per frame in flight
 			Buffer* storageBuffer;
-			MultiBuffer* storageBuffers; // per frame in flight
+			std::vector<Buffer>* storageBuffers; // per frame in flight
 		};
 	};
 

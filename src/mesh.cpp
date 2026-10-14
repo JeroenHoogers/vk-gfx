@@ -54,12 +54,12 @@ namespace gfx
 		};
 	}
 
-	void destroy_mesh(Device* device, Mesh* mesh)
+	void destroy_mesh(Device* device, Mesh& mesh)
 	{
-		destroy_buffer(device, mesh->vertexBuffer);
+		destroy_buffer(device, mesh.vertexBuffer);
 
-		if (mesh->indexBuffer.buffer) {
-			destroy_buffer(device, mesh->indexBuffer);
+		if (mesh.indexBuffer.buffer) {
+			destroy_buffer(device, mesh.indexBuffer);
 		}
 	}
 } // namespace gfx

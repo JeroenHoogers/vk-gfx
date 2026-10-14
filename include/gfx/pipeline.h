@@ -15,7 +15,7 @@ namespace gfx
 	struct RenderPass;
 	struct VertexLayout;
 
-	struct RasterizerParams
+	struct RasterizerDesc
 	{
 		VkBool32 enableDepthClamp = VK_FALSE;
 		VkBool32 enableRasterizerDiscard = VK_FALSE;
@@ -25,7 +25,7 @@ namespace gfx
 		float lineWidth = 1.0f;
 	};
 
-	struct MultisamplingParams
+	struct MultisamplingDesc
 	{
 		VkBool32 enableSampleShading = VK_FALSE;
 		float minSampleShading = 1.0f;
@@ -33,10 +33,16 @@ namespace gfx
 		VkBool32 enableAlphaToOne = VK_FALSE;
 	};
 
-	struct InputAssemblyParams
+	struct InputAssemblyDesc
 	{
 		VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		VkBool32 restart_enable = VK_FALSE;
+	};
+
+
+	struct ViewportStateDesc
+	{
+		VkExtent2D extent;
 	};
 
 	struct BlendParams
@@ -69,9 +75,10 @@ namespace gfx
 		RenderPass* renderPass = nullptr; // if nullptr -> use default device render pass
 		PipelineLayoutSrc layout = PipelineLayoutDesc{};
 		VertexLayout* vertexLayout = nullptr;
-		InputAssemblyParams inputAssembly = {};
-		RasterizerParams rasterizer = {};
-		MultisamplingParams multisampling = {};
+		InputAssemblyDesc inputAssembly = {};
+		ViewportStateDesc viewport = {};
+		RasterizerDesc rasterizer = {};
+		MultisamplingDesc multisampling = {};
 		BlendParams blending = {};
 		DynamicStateFlags dynamicStates = DynamicStateFlags::Viewport | DynamicStateFlags::Scissor;
 		// TODO: add color & depth formats?

@@ -273,8 +273,8 @@ int main()
 
 	gfx::wait_idle(device);
 
-	gfx::destroy_mesh(device, &fontMesh);
-	gfx::destroy_mesh(device, &axesMesh);
+	gfx::destroy_mesh(device, fontMesh);
+	gfx::destroy_mesh(device, axesMesh);
 
 	gfx::destroy_pipeline(device, textPipeline);
 	gfx::destroy_pipeline(device, linePipeline);
