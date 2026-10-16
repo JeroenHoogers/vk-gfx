@@ -56,7 +56,7 @@ int main()
 		.stride = sizeof(Vertex),
 		.attributes = {
 			{.format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, pos)},
-			{.format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, color)},
+			{.format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, normal)},
 			{.format = VK_FORMAT_R32G32_SFLOAT, .offset = offsetof(Vertex, uv)},
 		}
 	}});
@@ -89,9 +89,8 @@ int main()
 	});
 
 	gfx::Texture texture = load_image(device, TEXTURE_PATH);
-	gfx::Mesh model = load_model(device, MODEL_PATH);
+	gfx::Mesh model = create_cube(device);
 
-	// gfx::Texture* texture = load_image(device, "../assets/textures/texture.jpg");
 	gfx::UniformBuffer ubo = gfx::create_uniform_buffer(device, sizeof(UniformBufferObject));
 	gfx::ResourceSetLayout uboResourceLayout = gfx::create_resource_set_layout(device, {
 		{.type = gfx::ResourceType::UniformBuffer, .stages = VK_SHADER_STAGE_VERTEX_BIT}
@@ -119,9 +118,6 @@ int main()
 			}
 		},
 		.vertexLayout = &vertexLayout,
-		.rasterizer = {
-			.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE
-		}
 	});
 
 	Material mat{

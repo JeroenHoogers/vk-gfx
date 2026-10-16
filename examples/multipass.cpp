@@ -64,8 +64,7 @@ int main() {
 		.enableValidation = enableValidationLayers
 	});
 
-	const std::string MODEL_PATH = "assets/models/cube.obj";
-	gfx::Mesh mesh = load_model(device, MODEL_PATH);
+	gfx::Mesh mesh = create_cube(device);
 
 	gfx::RenderPass* offscreenPass = gfx::create_render_pass(device, {
 		.colors = { gfx::Attachment{
@@ -107,7 +106,7 @@ int main() {
 		.stride = sizeof(Vertex),
 		.attributes = {
 			{.format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, pos)},
-			{.format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, color)},
+			{.format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, normal)},
 			{.format = VK_FORMAT_R32G32_SFLOAT, .offset = offsetof(Vertex, uv)},
 		}
 	}});
@@ -119,9 +118,6 @@ int main() {
 			.resourceSetLayouts = { frameResourceLayout },
 		},
 		.vertexLayout = &vertexLayout,
-		.rasterizer = {
-			.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE
-		}
 	});
 
 	while (poll_window_events(window)) {

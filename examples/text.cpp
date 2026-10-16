@@ -164,14 +164,6 @@ int main()
 		}
 	});
 
-	gfx::VertexLayout axesVertexLayout = gfx::create_vertex_layout({{
-		.stride = sizeof(Vertex),
-		.attributes = {
-			{.format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, pos)},
-			{.format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, color)}
-		}
-	}});
-
 	gfx::VertexLayout textVertexLayout = gfx::create_vertex_layout({{
 		.stride = sizeof(drafttype::Vert),
 		.attributes = {
@@ -228,23 +220,6 @@ int main()
 		{.type = gfx::ResourceType::StorageBuffer, .storageBuffer = &textBuffers.glyphInstanceBuffer}
 	});
 
-	gfx::Pipeline* linePipeline = gfx::create_graphics_pipeline(device,
-	{
-		.vertexShader = load_shader("shaders/shader.vertex.spv"),
-		.fragmentShader = load_shader("shaders/shader.fragment.spv"),
-		.layout = gfx::PipelineLayoutDesc{
-			.resourceSetLayouts = {uboResourceLayout}
-		},
-		.vertexLayout = &axesVertexLayout,
-		.inputAssembly{
- 			.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST
-		},
-		.multisampling = {
-			.enableAlphaToCoverage = VK_TRUE
-		},
-		.dynamicStates = gfx::DynamicStateFlags::Viewport | gfx::DynamicStateFlags::Scissor | gfx::DynamicStateFlags::LineWidth,
-	});
-
 	while (poll_window_events(window)) {
 		const gfx::SwapchainFrame frame = gfx::acquire(device, window.vkWindow);
 		updateUniformBuffer(ubo, frame);
@@ -258,14 +233,6 @@ int main()
 		uint32_t count = textBuffers.indirectBuffer.size / sizeof(VkDrawIndexedIndirectCommand);
 		gfx::draw_indexed_indirect(commands, &fontMesh, textBuffers.indirectBuffer, count, 0);
 
-		// draw axes
-		gfx::DynamicState dynamicState = frame.dynamicState;
-		dynamicState.lineWidth = 2.0f;
-		gfx::bind_pipeline(linePipeline, commands, dynamicState);
-
-		gfx::bind_resource_set(commands, linePipeline, 0, uboResources[frame.index]);
-		gfx::draw_indexed(commands, &axesMesh, axesMesh.indexCount);
-
 		gfx::end_render_pass(commands);
 		gfx::end_commands(commands);
 		gfx::submit_and_present(device, frame, commands);
@@ -277,7 +244,6 @@ int main()
 	gfx::destroy_mesh(device, axesMesh);
 
 	gfx::destroy_pipeline(device, textPipeline);
-	gfx::destroy_pipeline(device, linePipeline);
 
 	gfx::destroy_resource_set_layouts(device, {uboResourceLayout, glyphInstancesResourceLayout});
 	gfx::destroy_uniform_buffer(device, ubo);

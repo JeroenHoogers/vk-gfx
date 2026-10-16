@@ -15,39 +15,14 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader.h>
-
-#include <unordered_map>
-
 #include <vk_gfx.h>
 
 struct Vertex
 {
 	glm::vec3 pos;
-	glm::vec3 color;
+	glm::vec3 normal;
 	glm::vec2 uv;
-
-	bool operator==(const Vertex& other) const
-	{
-		return pos == other.pos && uv == other.uv && color == other.color;
-	}
 };
-
-namespace std
-{
-	template <>
-	struct hash<Vertex>
-	{
-		size_t operator()(Vertex const& vertex) const
-		{
-			return ((hash<glm::vec3>()(vertex.pos) ^
-					 (hash<glm::vec3>()(vertex.color) << 1)) >>
-					1) ^
-				   (hash<glm::vec2>()(vertex.uv) << 1);
-		}
-	};
-} // namespace std
 
 struct UniformBufferObject
 {
@@ -67,7 +42,7 @@ inline const std::vector<uint32_t> load_shader(const std::string& filename)
 	size_t byteSize = (size_t)file.tellg();
 
 	if (byteSize <= 0 || byteSize % static_cast<std::streamsize>(sizeof(std::uint32_t)) != 0) {
-        throw std::runtime_error("invalid SPIR-V file size: " + filename);
+		throw std::runtime_error("invalid SPIR-V file size: " + filename);
 	}
 
 	std::vector<std::uint32_t> buffer(static_cast<std::size_t>(byteSize) / sizeof(std::uint32_t));
@@ -91,64 +66,78 @@ inline gfx::Texture load_image(gfx::Device* device, const std::string& filename)
 	}
 
 	uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
-	gfx::Texture texture = gfx::create_texture(device, pixels, imageSize, {
-		.format = VK_FORMAT_R8G8B8A8_SRGB,
-		.extent = {
-			.width = static_cast<uint32_t>(texWidth),
-			.height = static_cast<uint32_t>(texHeight),
-			.depth = 1
-		},
-		.mipLevels = mipLevels,
-		.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-		.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-	});
+	gfx::Texture texture = gfx::create_texture(device, pixels, imageSize, {.format = VK_FORMAT_R8G8B8A8_SRGB, .extent = {.width = static_cast<uint32_t>(texWidth), .height = static_cast<uint32_t>(texHeight), .depth = 1}, .mipLevels = mipLevels, .usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, .properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
 
 	stbi_image_free(pixels);
 
 	return texture;
 }
 
-inline gfx::Mesh load_model(gfx::Device* device, const std::string& filename)
+inline gfx::Mesh create_cube(gfx::Device* device)
 {
+	constexpr glm::vec3 positions[] = {
+		{-0.5f, -0.5f,  0.5f}, // 0
+		{ 0.5f, -0.5f,  0.5f}, // 1
+		{ 0.5f,  0.5f,  0.5f}, // 2
+		{-0.5f,  0.5f,  0.5f}, // 3
+		{-0.5f, -0.5f, -0.5f}, // 4
+		{ 0.5f, -0.5f, -0.5f}, // 5
+		{ 0.5f,  0.5f, -0.5f}, // 6
+		{-0.5f,  0.5f, -0.5f}  // 7
+	};
+
+	constexpr glm::vec2 uvs[] = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}};
+
+	constexpr uint32_t faces[6][4] = {
+		{0, 1, 2, 3}, // front
+		{5, 4, 7, 6}, // back
+		{4, 0, 3, 7}, // left
+		{1, 5, 6, 2}, // right
+		{3, 2, 6, 7}, // top
+		{4, 5, 1, 0}  // bottom
+	};
+
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
+	vertices.reserve(24);
+	indices.reserve(36);
 
-	tinyobj::attrib_t attrib;
-	std::vector<tinyobj::shape_t> shapes;
-	std::vector<tinyobj::material_t> materials;
-	std::string err;
+	for (const auto& face : faces) {
+		const glm::vec3& p0 = positions[face[0]];
+		const glm::vec3& p1 = positions[face[1]];
+		const glm::vec3& p2 = positions[face[2]];
 
-	std::unordered_map<Vertex, uint32_t> uniqueVertices{};
+		const glm::vec3 normal = glm::normalize(glm::cross(p2 - p0, p1 - p0));
 
-	if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &err, filename.c_str())) {
-		throw std::runtime_error(err);
-	}
+		const uint32_t base = static_cast<uint32_t>(vertices.size());
 
-	for (const auto& shape : shapes) {
-		for (const auto& index : shape.mesh.indices) {
-			Vertex vertex{
-				.pos = {
-					attrib.vertices[3 * index.vertex_index + 0],
-					attrib.vertices[3 * index.vertex_index + 1],
-					attrib.vertices[3 * index.vertex_index + 2]
-				},
-				.color = {1.0f, 1.0f, 1.0f},
-				.uv = {
-					attrib.texcoords[2 * index.texcoord_index + 0],
-					1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-				}
-			};
-
-			if (uniqueVertices.count(vertex) == 0) {
-				uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
-				vertices.push_back(vertex);
-			}
-
-			indices.push_back(uniqueVertices[vertex]);
+		// face corners
+		for (uint32_t j = 0; j < 4; j++) {
+			vertices.push_back({
+				positions[face[j]],
+				normal,
+				uvs[j]}
+			);
 		}
+
+		// add triangles (0, 2, 1) and (0, 3, 2)
+		indices.insert(indices.end(),
+			{base + 0, base + 2, base + 1, base + 0, base + 3, base + 2}
+		);
 	}
 
-	gfx::Mesh model = gfx::create_mesh(device, {.vertices{.data = vertices.data(), .size = sizeof(Vertex) * vertices.size(), .stride = sizeof(Vertex)}, .indices{.data = indices.data(), .size = sizeof(uint32_t) * indices.size(), .stride = sizeof(uint32_t)}});
+	gfx::Mesh cube = gfx::create_mesh(device, {
+		.vertices = {
+			.data = vertices.data(),
+			.size = vertices.size() * sizeof(Vertex),
+			.stride = sizeof(Vertex)
+		},
+		.indices = {
+			.data = indices.data(),
+			.size = indices.size() * sizeof(uint32_t),
+			.stride = sizeof(uint32_t)
+		}
+	});
 
-	return model;
+	return cube;
 }
