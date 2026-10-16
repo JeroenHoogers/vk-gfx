@@ -4,7 +4,6 @@
 #include "gfx/mesh.h"
 #include "gfx/buffer.h"
 #include "gfx/device.h"
-#include <cstring>
 
 namespace gfx
 {
@@ -23,6 +22,9 @@ namespace gfx
 
 		Buffer indexBuffer = {};
 
+		uint32_t vertexCount = meshData.vertices.size / meshData.vertices.stride;
+		uint32_t indexCount = 0;
+
 		VkIndexType indexType = VK_INDEX_TYPE_NONE_KHR;
 		if (meshData.indices.data) {
 			indexBuffer = create_and_upload_buffer(device, meshData.indices.data, {
@@ -30,6 +32,8 @@ namespace gfx
 				.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 				.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 			});
+			indexCount = meshData.indices.size / meshData.indices.stride;
+
 			if (meshData.indices.stride == sizeof(uint32_t)) {
 				indexType = VK_INDEX_TYPE_UINT32;
 			} else if ((meshData.indices.stride == sizeof(uint16_t))) {
@@ -39,12 +43,6 @@ namespace gfx
 			}
 		}
 
-		uint32_t vertexCount = meshData.vertices.size / meshData.vertices.stride;
-		uint32_t indexCount = 0;
-		if (meshData.indices.size > 0) {
-			indexCount = meshData.indices.size / meshData.indices.stride;
-		}
-
 		return Mesh{
 			.vertexBuffer = vertexBuffer,
 			.indexBuffer = indexBuffer,
@@ -52,6 +50,16 @@ namespace gfx
 			.vertexCount = vertexCount,
 			.indexType = indexType
 		};
+	}
+
+	void bind_mesh(CommandBuffer commands, const Mesh* mesh)
+	{
+		VkBuffer vertexBuffers[] = {mesh->vertexBuffer.buffer};
+		VkDeviceSize offsets[] = {0};
+		vkCmdBindVertexBuffers(commands, 0, 1, vertexBuffers, offsets);
+		if(mesh->indexCount > 0) {
+			vkCmdBindIndexBuffer(commands, mesh->indexBuffer.buffer, 0, mesh->indexType);
+		}
 	}
 
 	void destroy_mesh(Device* device, Mesh& mesh)

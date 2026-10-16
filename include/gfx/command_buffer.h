@@ -37,6 +37,7 @@ namespace gfx
 	[[nodiscard]] std::vector<CommandBuffer> create_command_buffers(Device* device, uint32_t count);
 	[[nodiscard]] CommandBuffer begin_commands(Window* window);
 	CommandBuffer begin_commands(CommandBuffer commandBuffer);
+
 	void end_commands(CommandBuffer commands);
 
 	void dispatch(CommandBuffer commands, uint32_t groupCountX, uint32_t groupCountY = 1, uint32_t groupCountZ = 1);
