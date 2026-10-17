@@ -68,6 +68,7 @@ namespace gfx
 		VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 		uint32_t framesInFlight = 2;
 		RenderPass* renderPass = nullptr; // default render pass, TODO: probably should not be owned by device but by window / rendertarget.
+		PipelineCache pipelineCache = VK_NULL_HANDLE;
 	};
 
 	struct WindowDesc {
@@ -91,6 +92,7 @@ namespace gfx
 		std::vector<WindowDesc> windows {};
 		ResourcePoolDesc resourcePool {};
 		bool enableValidation = false;
+		std::vector<char> pipelineCache = {};
 	};
 
 	Device* create_device(const DeviceCreateParams& init);

@@ -6,6 +6,7 @@
 #include "gfx/image.h"
 #include "gfx/render_pass.h"
 #include "gfx/render_target.h"
+#include "gfx/pipeline.h"
 #include "gfx/swapchain.h"
 #include "gfx/sync.h"
 
@@ -463,6 +464,13 @@ namespace gfx
 
 		pDevice->commandPool = create_command_pool(pDevice, graphicsQueue.familyIndex);
 		pDevice->transientPool = create_command_pool(pDevice, graphicsQueue.familyIndex, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+
+		if (!params.pipelineCache.empty()) {
+			pDevice->pipelineCache = create_pipeline_cache(pDevice, params.pipelineCache.data(), params.pipelineCache.size());
+		} else {
+			pDevice->pipelineCache = create_pipeline_cache(pDevice);
+		}
+
 		pDevice->renderPass = create_render_pass(pDevice, params.renderPass);
 
 		for (const auto& windowParams : params.windows) {
@@ -500,6 +508,8 @@ namespace gfx
 		vkDestroyCommandPool(device->device, device->transientPool, nullptr);
 		vkDestroyCommandPool(device->device, device->commandPool, nullptr);
 		destroy_render_pass(device, device->renderPass);
+
+		destroy_pipeline_cache(device, device->pipelineCache);
 
 		vkDestroyDevice(device->device, nullptr);
 

@@ -104,6 +104,36 @@ namespace gfx
 		};
 	}
 
+	PipelineCache create_pipeline_cache(Device* device, const void* initialData, size_t initialDataSize)
+	{
+		VkPipelineCacheCreateInfo info{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = 0,
+			.initialDataSize = initialDataSize,
+			.pInitialData = initialData,
+		};
+
+		VkPipelineCache cache;
+		VkResult result = vkCreatePipelineCache(device->device, &info, nullptr, &cache);
+		VK_ASSERT(result);
+
+		return cache;
+	}
+
+	std::vector<char> get_pipeline_cache_data(Device* device, PipelineCache pipelineCache) {
+		size_t size = 0;
+		VkResult result = vkGetPipelineCacheData(device->device, pipelineCache, &size, nullptr);
+		VK_ASSERT(result);
+
+		std::vector<char> data(size);
+		result = vkGetPipelineCacheData(device->device, pipelineCache, &size, data.data());
+		VK_ASSERT(result);
+
+		data.resize(size);
+		return data;
+	}
+
 	Pipeline* create_graphics_pipeline(Device* device, const GraphicsPipelineParams& params)
 	{
 		std::vector<VkPipelineShaderStageCreateInfo> shaderStages{};
@@ -322,7 +352,7 @@ namespace gfx
 		};
 
 		VkPipeline graphicsPipeline;
-		VkResult result = vkCreateGraphicsPipelines(device->device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline);
+		VkResult result = vkCreateGraphicsPipelines(device->device, device->pipelineCache, 1, &pipelineInfo, nullptr, &graphicsPipeline);
 		VK_ASSERT(result);
 
 		// clean up shader modules if they were created inline
@@ -439,6 +469,10 @@ namespace gfx
 		    range.stageFlags, range.offset, range.size,
 		    data
 		);
+	}
+
+	void destroy_pipeline_cache(Device* device, PipelineCache pipelineCache){
+		vkDestroyPipelineCache(device->device, pipelineCache, nullptr);
 	}
 
 	void destroy_pipeline(Device* device, Pipeline* pipeline)

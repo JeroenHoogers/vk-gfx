@@ -21,7 +21,7 @@ namespace gfx
 		VkBool32 enableRasterizerDiscard = VK_FALSE;
 		VkPolygonMode polygonMode = VK_POLYGON_MODE_FILL;
 		VkCullModeFlags cullMode = VK_CULL_MODE_BACK_BIT;
-		VkFrontFace frontFace = VK_FRONT_FACE_CLOCKWISE;
+		VkFrontFace frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 		float lineWidth = 1.0f;
 	};
 
@@ -105,6 +105,10 @@ namespace gfx
 
 	[[nodiscard]] ShaderModule create_shader_module(Device* device, const SpirvCode& shader);
 	void destroy_shader_module(Device* device, ShaderModule shader_module);
+
+	[[nodiscard]] PipelineCache create_pipeline_cache(Device* device, const void* intitialData = nullptr, size_t initialDataSize = 0);
+	std::vector<char> get_pipeline_cache_data(Device* device, PipelineCache pipelineCache);
+	void destroy_pipeline_cache(Device* device, PipelineCache pipelineCache);
 
 	[[nodiscard]] PipelineLayout create_pipeline_layout(Device* device, const PipelineLayoutDesc& params);
 

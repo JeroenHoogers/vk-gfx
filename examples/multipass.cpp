@@ -99,6 +99,7 @@ int main() {
 		.fragmentShader = load_shader("shaders/triangle.fragment.spv"),
 		.renderPass = offscreenPass,
 		.viewport = { .extent = offscreenTarget->extent },
+		.rasterizer = { .frontFace = VK_FRONT_FACE_CLOCKWISE },
 		.dynamicStates = gfx::DynamicStateFlags::None
 	});
 

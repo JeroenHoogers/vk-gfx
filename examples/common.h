@@ -120,9 +120,9 @@ inline gfx::Mesh create_cube(gfx::Device* device)
 			);
 		}
 
-		// add triangles (0, 2, 1) and (0, 3, 2)
+		// add triangles (0, 1, 2) and (0, 2, 3)
 		indices.insert(indices.end(),
-			{base + 0, base + 2, base + 1, base + 0, base + 3, base + 2}
+			{base + 0, base + 1, base + 2, base + 0, base + 2, base + 3}
 		);
 	}
 

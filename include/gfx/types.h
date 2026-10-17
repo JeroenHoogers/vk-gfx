@@ -14,6 +14,7 @@ namespace gfx
 	typedef VkDescriptorPool ResourcePool;
 	typedef VkDescriptorSet ResourceSet;
 
+	typedef VkPipelineCache PipelineCache;
 	typedef VkPushConstantRange PushConstantRange;
 
 	typedef VkSampler Sampler;

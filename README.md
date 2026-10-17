@@ -77,8 +77,11 @@ int main()
   - [x] Validation Layers
   - [x] Vulkan API version
   - [x] Command pool sizes
-- [x] Graphics pipelines
-- [x] Compute pipelines
+- [x] Pipelines
+  - [x] Pipeline Cache
+  - [x] Graphics
+  - [x] Compute
+  - [ ] Raytracing
 - [x] Queue requests
 - [x] Resources:
   - [x] Resource layouts / sets
@@ -269,7 +272,6 @@ See [examples/glfw_window.cpp](examples/glfw_window.cpp) for more details.
 - [ ] Multiple render passes
 - [ ] Timeline semaphores
 - [ ] Async Compute
-- [ ] Pipeline Caching
 
 ## Acknowledgments
 
