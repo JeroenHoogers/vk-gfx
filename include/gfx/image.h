@@ -6,6 +6,7 @@
 #include <vulkan/vulkan.h>
 #include "types.h" // Needed for ResourceSet, ResourceSetLayout
 #include <vector>
+#include "resource.h"
 
 namespace gfx
 {
@@ -66,7 +67,7 @@ namespace gfx
 	Sampler create_image_sampler(Device* device, const SamplerDesc& params = {});
 	Texture create_texture(Device* device, void* pixels, uint64_t size, const ImageDesc& params);
 
-	TextureResource create_texture_resource(Device* device, void* pixels, uint64_t size, const ImageDesc& params, ResourceSetLayout* resourceLayout);
+	TextureResource create_texture_resource(Device* device, void* pixels, uint64_t size, const ImageDesc& params, const ResourceSetLayout& resourceLayout);
 
 	void transition_image(CommandBuffer commands, const Image& image, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels = 1);
 

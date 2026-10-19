@@ -88,29 +88,25 @@ int main()
 		.enableValidation = enableValidationLayers,
 	});
 
-	gfx::Texture texture = load_image(device, TEXTURE_PATH);
 	gfx::Mesh model = create_cube(device);
 
+	gfx::Texture texture = load_image(device, TEXTURE_PATH);
 	gfx::UniformBuffer ubo = gfx::create_uniform_buffer(device, sizeof(UniformBufferObject));
+
 	gfx::ResourceSetLayout uboResourceLayout = gfx::create_resource_set_layout(device, {
-		{.type = gfx::ResourceType::UniformBuffer, .stages = VK_SHADER_STAGE_VERTEX_BIT}
+		{.binding = 0, .type = gfx::ResourceType::UniformBuffer, .stages = VK_SHADER_STAGE_VERTEX_BIT}
 	});
 
 	gfx::ResourceSetLayout materialResourceLayout = gfx::create_resource_set_layout(device, {
-		{.type = gfx::ResourceType::CombinedImageSampler, .stages = VK_SHADER_STAGE_FRAGMENT_BIT}
+		{.binding = 0, .type = gfx::ResourceType::CombinedImageSampler, .stages = VK_SHADER_STAGE_FRAGMENT_BIT}
 	});
 
-	std::vector<gfx::ResourceSet> uboResources = gfx::create_resource_sets(device, uboResourceLayout, {
-		{.type = gfx::ResourceType::UniformBuffer, .uniformBuffer = &ubo}
-	}, device->framesInFlight);
-
-	gfx::ResourceSet materialResourceSet = gfx::create_resource_set(device, materialResourceLayout, {
-		{.type = gfx::ResourceType::CombinedImageSampler, .texture = &texture}
-	});
+	std::vector<gfx::ResourceSet> uboResources = gfx::create_resource_sets(device, uboResourceLayout, {{.uniformBuffer = &ubo}}, device->framesInFlight);
+	gfx::ResourceSet materialResourceSet = gfx::create_resource_set(device, materialResourceLayout, {{.texture = &texture}});
 
 	gfx::Pipeline* pipeline = gfx::create_graphics_pipeline(device, {
-		.vertexShader = load_shader("shaders/textured.vertex.spv"),
-		.fragmentShader = load_shader("shaders/textured.fragment.spv"),
+		.vertexSpirv = load_shader("shaders/textured.vertex.spv"),
+		.fragmentSpirv = load_shader("shaders/textured.fragment.spv"),
 		.layout = gfx::PipelineLayoutDesc{
 			.resourceSetLayouts = {uboResourceLayout, materialResourceLayout},
 			.pushConstants = {

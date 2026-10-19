@@ -80,23 +80,23 @@ int main() {
 	});
 
 	gfx::ResourceSetLayout frameResourceLayout = gfx::create_resource_set_layout(device, {
-		{.type = gfx::ResourceType::UniformBuffer, .stages = VK_SHADER_STAGE_VERTEX_BIT},
-		{.type = gfx::ResourceType::SampledImages, .stages = VK_SHADER_STAGE_FRAGMENT_BIT},
-		{.type = gfx::ResourceType::Sampler, .stages = VK_SHADER_STAGE_FRAGMENT_BIT},
+		{.binding = 0, .type = gfx::ResourceType::UniformBuffer, .stages = VK_SHADER_STAGE_VERTEX_BIT},
+		{.binding = 1, .type = gfx::ResourceType::SampledImages, .stages = VK_SHADER_STAGE_FRAGMENT_BIT},
+		{.binding = 2, .type = gfx::ResourceType::Sampler, .stages = VK_SHADER_STAGE_FRAGMENT_BIT},
 	});
 
 	gfx::Sampler textureSampler = gfx::create_image_sampler(device);
 	gfx::UniformBuffer ubo = gfx::create_uniform_buffer(device, sizeof(UniformBufferObject));
 
 	std::vector<gfx::ResourceSet> frameResources = gfx::create_resource_sets(device, frameResourceLayout, {
-		{.type = gfx::ResourceType::UniformBuffer, .uniformBuffer = &ubo},
-		{.type = gfx::ResourceType::SampledImages, .images = &offscreenTarget->colorImages},
-		{.type = gfx::ResourceType::Sampler, .sampler = &textureSampler}
+		{ .uniformBuffer = &ubo },
+		{ .images = &offscreenTarget->colorImages },
+		{ .sampler = &textureSampler }
 	}, device->framesInFlight);
 
 	gfx::Pipeline* offscreenPipeline = gfx::create_graphics_pipeline(device, {
-		.vertexShader = load_shader("shaders/triangle.vertex.spv"),
-		.fragmentShader = load_shader("shaders/triangle.fragment.spv"),
+		.vertexSpirv = load_shader("shaders/triangle.vertex.spv"),
+		.fragmentSpirv = load_shader("shaders/triangle.fragment.spv"),
 		.renderPass = offscreenPass,
 		.viewport = { .extent = offscreenTarget->extent },
 		.rasterizer = { .frontFace = VK_FRONT_FACE_CLOCKWISE },
@@ -113,8 +113,8 @@ int main() {
 	}});
 
 	gfx::Pipeline* pipeline = gfx::create_graphics_pipeline(device, {
-		.vertexShader = load_shader("shaders/multipass.vertex.spv"),
-		.fragmentShader = load_shader("shaders/multipass.fragment.spv"),
+		.vertexSpirv = load_shader("shaders/multipass.vertex.spv"),
+		.fragmentSpirv = load_shader("shaders/multipass.fragment.spv"),
 		.layout = gfx::PipelineLayoutDesc{
 			.resourceSetLayouts = { frameResourceLayout },
 		},

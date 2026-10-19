@@ -72,8 +72,8 @@ int main() {
 	init_imgui(device, window.glfwWindow);
 
 	gfx::Pipeline* pipeline = gfx::create_graphics_pipeline(device, {
-		.vertexShader = load_shader("shaders/triangle.vertex.spv"),
-		.fragmentShader = load_shader("shaders/triangle.fragment.spv"),
+		.vertexSpirv = load_shader("shaders/triangle.vertex.spv"),
+		.fragmentSpirv = load_shader("shaders/triangle.fragment.spv"),
 		.rasterizer = { .frontFace = VK_FRONT_FACE_CLOCKWISE }
 	});
 

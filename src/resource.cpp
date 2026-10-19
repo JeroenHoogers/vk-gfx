@@ -139,7 +139,7 @@ namespace gfx
 		return descriptorSets;
 	}
 
-	ResourceSetLayout create_resource_set_layout(Device* device, const std::vector<ResourceDesc>& layoutBindings)
+	ResourceSetLayout create_resource_set_layout(Device* device, const std::vector<ResourceBindingDesc>& layoutBindings)
 	{
 		std::vector<VkDescriptorSetLayoutBinding> bindings(layoutBindings.size());
 
@@ -147,37 +147,39 @@ namespace gfx
 			bindings[i] = VkDescriptorSetLayoutBinding{
 				.binding = i,
 				.descriptorType = detail::to_descriptor_type(layoutBindings[i].type),
-				.descriptorCount = 1,
+				.descriptorCount = layoutBindings[i].count,
 				.stageFlags = layoutBindings[i].stages,
 				.pImmutableSamplers = nullptr
 			};
 		}
 
-		VkDescriptorSetLayout layout = detail::create_descriptor_set_layout(device, bindings);
-
-		return layout;
+		return ResourceSetLayout {
+			.handle = detail::create_descriptor_set_layout(device, bindings),
+			.bindings = layoutBindings,
+		};
 	}
 
 	void destroy_resource_set_layout(Device* device, ResourceSetLayout layout)
 	{
-		vkDestroyDescriptorSetLayout(device->device, layout, nullptr);
+		vkDestroyDescriptorSetLayout(device->device, layout.handle, nullptr);
 	}
 
 	void destroy_resource_set_layouts(Device* device, const std::initializer_list<ResourceSetLayout>& layouts) {
 		for (auto& layout : layouts) {
-			vkDestroyDescriptorSetLayout(device->device, layout, nullptr);
+			vkDestroyDescriptorSetLayout(device->device, layout.handle, nullptr);
 		}
 	}
 
 	void destroy_resource_set_layouts(Device* device, const std::span<ResourceSetLayout>& layouts) {
 		for (auto& layout : layouts) {
-			vkDestroyDescriptorSetLayout(device->device, layout, nullptr);
+			vkDestroyDescriptorSetLayout(device->device, layout.handle, nullptr);
 		}
 	}
 
-	std::vector<ResourceSet> create_resource_sets(Device* device, ResourceSetLayout layout, const std::vector<Resource>& resources, uint32_t count)
+	std::vector<ResourceSet> allocate_resource_sets(Device* device, const ResourceSetLayout& layout, uint32_t count)
 	{
-		std::vector<VkDescriptorSetLayout> layouts(count, layout);
+		std::vector<VkDescriptorSetLayout> layouts(count, layout.handle);
+
 		VkDescriptorSetAllocateInfo allocInfo{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
 			.pNext = nullptr,
@@ -186,18 +188,57 @@ namespace gfx
 			.pSetLayouts = layouts.data()
 		};
 
-		std::vector<VkWriteDescriptorSet> writes(count * resources.size());
-
-		// we need to allocate these outside the loop so they don't invalidate before we call vkUpdateDescriptorSets,
-		// note that only one of the 2 will be used the other will be left empty
-		std::vector<VkDescriptorBufferInfo> bufferInfos(writes.size());
-		std::vector<VkDescriptorImageInfo> imageInfos(writes.size());
-
 		std::vector<VkDescriptorSet> descriptorSets(count);
 		VkResult result = vkAllocateDescriptorSets(device->device, &allocInfo, descriptorSets.data());
 		VK_ASSERT(result);
 
-		for (uint32_t i = 0; i < count; i++) {
+		return descriptorSets;
+	}
+
+	ResourceSet allocate_resource_set(Device* device, const ResourceSetLayout& layout)
+	{
+		VkDescriptorSetAllocateInfo allocInfo{
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+			.pNext = nullptr,
+			.descriptorPool = device->resourcePool,
+			.descriptorSetCount = 1,
+			.pSetLayouts = &layout.handle
+		};
+
+		VkDescriptorSet descriptorSet;
+		VkResult result = vkAllocateDescriptorSets(device->device, &allocInfo, &descriptorSet);
+		VK_ASSERT(result);
+
+		return descriptorSet;
+	}
+
+	std::vector<ResourceSet> create_resource_sets(Device* device, const ResourceSetLayout& layout, const std::vector<Resource>& resources, uint32_t count)
+	{
+		std::vector<ResourceSet> resourceSets = allocate_resource_sets(device, layout, count);
+		write_resource_sets(device, layout, resourceSets, resources);
+
+		return resourceSets;
+	}
+
+	ResourceSet create_resource_set(Device* device, const ResourceSetLayout& layout, const std::vector<Resource>& resources)
+	{
+		ResourceSet resourceSet = allocate_resource_set(device, layout);
+		write_resource_set(device, layout, resourceSet, resources);
+		return resourceSet;
+	}
+
+	void write_resource_sets(Device* device, const ResourceSetLayout& layout, const std::vector<ResourceSet>& sets, const std::vector<Resource>& resources) {
+		assert(resources.size() == layout.bindings.size());
+
+		const size_t writeCount = sets.size() * resources.size();
+		std::vector<VkWriteDescriptorSet> writes(writeCount);
+
+		// we need to allocate these outside the loop so they don't invalidate before we call vkUpdateDescriptorSets,
+		// note that only one of the 2 will be used the other will be left empty
+		std::vector<VkDescriptorBufferInfo> bufferInfos(writeCount);
+		std::vector<VkDescriptorImageInfo> imageInfos(writeCount);
+
+		for (uint32_t i = 0; i < sets.size(); i++) {
 			for (uint32_t j = 0; j < resources.size(); j++) {
 				const uint32_t index = i * resources.size() + j;
 
@@ -205,17 +246,17 @@ namespace gfx
 				write = VkWriteDescriptorSet{
 					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 					.pNext = nullptr,
-					.dstSet = descriptorSets[i],
-					.dstBinding = j,
+					.dstSet = sets[i],
+					.dstBinding = layout.bindings[j].binding,
 					.dstArrayElement = 0,
 					.descriptorCount = 1,
-					.descriptorType = detail::to_descriptor_type(resources[j].type),
+					.descriptorType = detail::to_descriptor_type(layout.bindings[j].type),
 					.pImageInfo = nullptr,
 					.pBufferInfo = nullptr,
 					.pTexelBufferView = nullptr,
 				};
 
-				switch (resources[j].type) {
+				switch (layout.bindings[j].type) {
 				case ResourceType::UniformBufferDynamic:
 				// TODO: allow subrange
 				case ResourceType::UniformBuffer:
@@ -253,13 +294,10 @@ namespace gfx
 		}
 
 		vkUpdateDescriptorSets(device->device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
-
-		return descriptorSets;
 	}
 
-	ResourceSet create_resource_set(Device* device, const ResourceSetLayout layout, const std::vector<Resource>& resources)
-	{
-		return create_resource_sets(device, layout, resources)[0];
+	void write_resource_set(Device* device, const ResourceSetLayout& layout, const ResourceSet& resourceSet, const std::vector<Resource>& resources) {
+		write_resource_sets(device, layout, {resourceSet}, resources);
 	}
 
 	void bind_resource_set(CommandBuffer commandBuffer, Pipeline* pipeline, uint32_t index, const ResourceSet& resourceSet)

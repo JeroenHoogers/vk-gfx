@@ -111,27 +111,27 @@ int main()
 	gfx::UniformBuffer ubo = gfx::create_uniform_buffer(device, sizeof(UBO));
 
 	gfx::ResourceSetLayout resourceLayout = gfx::create_resource_set_layout(device, {
-		{.type = gfx::ResourceType::UniformBuffer, .stages = VK_SHADER_STAGE_COMPUTE_BIT},
-		{.type = gfx::ResourceType::StorageBuffer, .stages = VK_SHADER_STAGE_COMPUTE_BIT}, // last (in)
-		{.type = gfx::ResourceType::StorageBuffer, .stages = VK_SHADER_STAGE_COMPUTE_BIT}, // curr (out)
+		{ .binding = 0, .type = gfx::ResourceType::UniformBuffer, .stages = VK_SHADER_STAGE_COMPUTE_BIT},
+		{ .binding = 1, .type = gfx::ResourceType::StorageBuffers, .stages = VK_SHADER_STAGE_COMPUTE_BIT}, // last (in)
+		{ .binding = 2, .type = gfx::ResourceType::StorageBuffers, .stages = VK_SHADER_STAGE_COMPUTE_BIT}, // curr (out)
 	});
 
 	std::vector<gfx::ResourceSet> resources = gfx::create_resource_sets(device, resourceLayout, {
-		{.type = gfx::ResourceType::UniformBuffer, .uniformBuffer = &ubo},
-		{.type = gfx::ResourceType::StorageBuffers, .storageBuffers = &lastParticles}, // last (in)
-		{.type = gfx::ResourceType::StorageBuffers, .storageBuffers = &particleBuffers}, // curr (out)
+		{ .uniformBuffer = &ubo },
+		{ .storageBuffers = &lastParticles }, // last (in)
+		{ .storageBuffers = &particleBuffers }, // curr (out)
 	}, device->framesInFlight);
 
 	gfx::Pipeline* computePipeline = gfx::create_compute_pipeline(device, {
-		.computeShader = load_shader("shaders/compute.compute.spv"),
+		.computeSpirv = load_shader("shaders/compute.compute.spv"),
 		.layout = gfx::PipelineLayoutDesc{
 			.resourceSetLayouts = { resourceLayout }
 		}
 	});
 
 	gfx::Pipeline* gfxPipeline = gfx::create_graphics_pipeline(device, {
-		.vertexShader = load_shader("shaders/compute.vertex.spv"),
-		.fragmentShader = load_shader("shaders/compute.fragment.spv"),
+		.vertexSpirv = load_shader("shaders/compute.vertex.spv"),
+		.fragmentSpirv = load_shader("shaders/compute.fragment.spv"),
 		.vertexLayout = &vertexLayout,
 		.inputAssembly {
 			.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST

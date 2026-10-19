@@ -379,10 +379,10 @@ namespace gfx
 		};
 	}
 
-	TextureResource create_texture_resource(Device* device, void* pixels, uint64_t size, const ImageDesc& params, const ResourceSetLayout resourceLayout)
+	TextureResource create_texture_resource(Device* device, void* pixels, uint64_t size, const ImageDesc& params, const ResourceSetLayout& resourceLayout)
 	{
 		Texture texture = create_texture(device, pixels, size, params);
-		ResourceSet resourceSet = create_resource_set(device, resourceLayout, {Resource{.type = ResourceType::CombinedImageSampler, .texture = &texture}});
+		ResourceSet resourceSet = create_resource_set(device, resourceLayout, {Resource{.texture = &texture}});
 		return TextureResource{
 			.texture = texture,
 			.resourceSet = resourceSet

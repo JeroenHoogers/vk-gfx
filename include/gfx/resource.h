@@ -41,13 +41,20 @@ namespace gfx
 		StorageBuffers
 	};
 
-	struct ResourceDesc
+	struct ResourceBindingDesc
 	{
+		uint32_t binding;
 		ResourceType type;
 		VkShaderStageFlags stages;
+		uint32_t count = 1;
 	};
 
-	[[nodiscard]] ResourceSetLayout create_resource_set_layout(Device* device, const std::vector<ResourceDesc>& layoutBindings);
+	struct ResourceSetLayout {
+	    VkDescriptorSetLayout handle = VK_NULL_HANDLE;
+	    std::vector<ResourceBindingDesc> bindings;
+	};
+
+	[[nodiscard]] ResourceSetLayout create_resource_set_layout(Device* device, const std::vector<ResourceBindingDesc>& layoutBindings);
 	void destroy_resource_set_layout(Device* device, ResourceSetLayout layout);
 	void destroy_resource_set_layouts(Device* device, const std::initializer_list<ResourceSetLayout>& layouts);
 	void destroy_resource_set_layouts(Device* device, const std::span<ResourceSetLayout>& layouts);
@@ -59,23 +66,27 @@ namespace gfx
 		VkDescriptorPoolCreateFlags flags = 0;
 	};
 
-	struct Resource
+	union Resource
 	{
-		ResourceType type;
-		union {
-			void* ptr;
-			Texture* texture;
-			Image* image;
-			std::vector<Image>* images; // per frame in flight
-			Sampler* sampler;
-			UniformBuffer* uniformBuffer; // per frame in flight
-			Buffer* storageBuffer;
-			std::vector<Buffer>* storageBuffers; // per frame in flight
-		};
+		void* ptr;
+		Texture* texture;
+		Image* image;
+		std::vector<Image>* images; // per frame in flight
+		Sampler* sampler;
+		UniformBuffer* uniformBuffer; // per frame in flight
+		Buffer* storageBuffer;
+		std::vector<Buffer>* storageBuffers; // per frame in flight
 	};
 
-	std::vector<ResourceSet> create_resource_sets(Device* device, const ResourceSetLayout layout, const std::vector<Resource>& resources, uint32_t count = 1);
-	ResourceSet create_resource_set(Device* device, const ResourceSetLayout layout, const std::vector<Resource>& resources);
+	std::vector<ResourceSet> allocate_resource_sets(Device* device, const ResourceSetLayout& layout, uint32_t count);
+	ResourceSet allocate_resource_set(Device* device, const ResourceSetLayout& layout);
+
+	std::vector<ResourceSet> create_resource_sets(Device* device, const ResourceSetLayout& layout, const std::vector<Resource>& resources, uint32_t count);
+	ResourceSet create_resource_set(Device* device, const ResourceSetLayout& layout, const std::vector<Resource>& resources);
+
+	void write_resource_sets(Device* device, const ResourceSetLayout& layout, const std::vector<ResourceSet>& resourceSets, const std::vector<Resource>& resources);
+	void write_resource_set(Device* device, const ResourceSetLayout& layout, const ResourceSet& resourceSet, const std::vector<Resource>& resources);
+
 	void bind_resource_set(CommandBuffer commandBuffer, Pipeline* pipeline, uint32_t index, const ResourceSet& resourceSet);
 
 	void bind_resource_sets(CommandBuffer commandBuffer, Pipeline* pipeline, std::initializer_list<ResourceSet> resourceSets);

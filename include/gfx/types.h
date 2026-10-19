@@ -10,7 +10,6 @@ namespace gfx
 	typedef VkCommandBuffer CommandBuffer;
 
 	typedef VkShaderModule ShaderModule;
-	typedef VkDescriptorSetLayout ResourceSetLayout;
 	typedef VkDescriptorPool ResourcePool;
 	typedef VkDescriptorSet ResourceSet;
 

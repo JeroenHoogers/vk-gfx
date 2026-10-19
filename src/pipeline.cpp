@@ -9,6 +9,7 @@
 #include "gfx/render_pass.h"
 #include "gfx/swapchain.h"
 #include "gfx/uniform_buffer.h"
+#include <cassert>
 
 namespace gfx
 {
@@ -84,12 +85,18 @@ namespace gfx
 
 	PipelineLayout create_pipeline_layout(Device* device, const PipelineLayoutDesc& params)
 	{
+		std::vector<VkDescriptorSetLayout> setLayouts(params.resourceSetLayouts.size());
+
+		for (uint32_t i = 0; i < setLayouts.size(); i++) {
+			setLayouts[i] = params.resourceSetLayouts[i].handle;
+		}
+
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 			.pNext = nullptr,
 			.flags = 0,
-			.setLayoutCount = static_cast<uint32_t>(params.resourceSetLayouts.size()),
-			.pSetLayouts = params.resourceSetLayouts.data(),
+			.setLayoutCount = static_cast<uint32_t>(setLayouts.size()),
+			.pSetLayouts = setLayouts.data(),
 			.pushConstantRangeCount = static_cast<uint32_t>(params.pushConstants.size()),
 			.pPushConstantRanges = params.pushConstants.data()
 		};
@@ -141,29 +148,23 @@ namespace gfx
 		// Use device default renderpass if it is not provided
 		RenderPass* renderPass = params.renderPass ? params.renderPass : device->renderPass;
 
-		// TODO: make helper?
-		const SpirvCode* vertexCode = std::get_if<SpirvCode>(&params.vertexShader);
-		ShaderModule vertexModule = VK_NULL_HANDLE;
-		if (vertexCode) {
-			vertexModule = create_shader_module(device, *vertexCode);
-		} else {
-			vertexModule = *std::get_if<ShaderModule>(&params.vertexShader);
+		ShaderModule vertexModule = params.vertexModule;
+		if (vertexModule == VK_NULL_HANDLE) {
+			vertexModule = create_shader_module(device, params.vertexSpirv);
 		}
 
-		const SpirvCode* fragmentCode = std::get_if<SpirvCode>(&params.fragmentShader);
-		ShaderModule fragmentModule = VK_NULL_HANDLE;
-		if (fragmentCode) {
-			fragmentModule = create_shader_module(device, *fragmentCode);
-		} else {
-			fragmentModule = *std::get_if<ShaderModule>(&params.fragmentShader);
-		}
+		assert(vertexModule != VK_NULL_HANDLE);
 
-		const SpirvCode* geometryCode = std::get_if<SpirvCode>(&params.geometryShader);
-		ShaderModule geometryModule = VK_NULL_HANDLE;
-		if (geometryCode) {
-			geometryModule = create_shader_module(device, *geometryCode);
-		} else if (std::holds_alternative<ShaderModule>(params.geometryShader)) {
-			geometryModule = *std::get_if<ShaderModule>(&params.geometryShader);
+		ShaderModule fragmentModule = params.fragmentModule;
+		if (fragmentModule == VK_NULL_HANDLE) {
+			fragmentModule = create_shader_module(device, params.fragmentSpirv);
+		}
+		assert(fragmentModule != VK_NULL_HANDLE);
+
+		// geometry is optional
+		ShaderModule geometryModule = params.geometryModule;
+		if (geometryModule == VK_NULL_HANDLE && !params.geometrySpirv.empty()) {
+			geometryModule = create_shader_module(device, params.geometrySpirv);
 		}
 
 		add_shader_stage(vertexModule, VK_SHADER_STAGE_VERTEX_BIT, shaderStages);
@@ -301,15 +302,6 @@ namespace gfx
 			.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
 		};
 
-		// ENABLED BLENDING:
-		// colorBlendAttachment.blendEnable = VK_TRUE;
-		// colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-		// colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-		// colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-		// colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-		// colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-		// colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
-
 		VkPipelineColorBlendStateCreateInfo colorBlending{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
 			.pNext = nullptr,
@@ -356,13 +348,13 @@ namespace gfx
 		VK_ASSERT(result);
 
 		// clean up shader modules if they were created inline
-		if (vertexCode) {
+		if (!params.vertexModule && !params.vertexSpirv.empty()) {
 			vkDestroyShaderModule(device->device, vertexModule, nullptr);
 		}
-		if (fragmentCode) {
+		if (!params.fragmentModule && !params.fragmentSpirv.empty()) {
 			vkDestroyShaderModule(device->device, fragmentModule, nullptr);
 		}
-		if (geometryCode) {
+		if (!params.geometryModule && !params.geometrySpirv.empty()) {
 			vkDestroyShaderModule(device->device, geometryModule, nullptr);
 		}
 
@@ -377,14 +369,12 @@ namespace gfx
 
 	Pipeline* create_compute_pipeline(Device* device, const ComputePipelineParams& params)
 	{
-		// TODO: make helper?
-		const SpirvCode* computeCode = std::get_if<SpirvCode>(&params.computeShader);
-		ShaderModule computeModule = VK_NULL_HANDLE;
-		if (computeCode) {
-			computeModule = create_shader_module(device, *computeCode);
-		} else {
-			computeModule = *std::get_if<ShaderModule>(&params.computeShader);
+		ShaderModule computeModule = params.computeModule;
+		if (computeModule == VK_NULL_HANDLE) {
+			computeModule = create_shader_module(device, params.computeSpirv);
 		}
+
+		assert(computeModule != VK_NULL_HANDLE);
 
 		VkPipelineShaderStageCreateInfo computeShaderStageInfo = create_shader_stage(computeModule, VK_SHADER_STAGE_COMPUTE_BIT);
 
@@ -410,7 +400,7 @@ namespace gfx
 		VkResult result = vkCreateComputePipelines(device->device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &computePipeline);
 		VK_ASSERT(result);
 
-		if (computeCode) {
+		if (!params.computeModule && !params.computeSpirv.empty()) {
 			vkDestroyShaderModule(device->device, computeModule, nullptr);
 		}
 

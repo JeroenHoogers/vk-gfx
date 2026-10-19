@@ -8,6 +8,7 @@
 #include <variant>
 #include <vector>
 #include <vulkan/vulkan.h>
+#include "resource.h"
 
 namespace gfx
 {
@@ -65,13 +66,15 @@ namespace gfx
 	};
 
 	using PipelineLayoutSrc = std::variant<PipelineLayout, PipelineLayoutDesc>;
-	using ShaderSrc = std::variant<ShaderModule, SpirvCode>;
 
 	struct GraphicsPipelineParams
 	{
-		ShaderSrc vertexShader;
-		ShaderSrc fragmentShader;
-		ShaderSrc geometryShader = ShaderModule{VK_NULL_HANDLE};
+		ShaderModule vertexModule = VK_NULL_HANDLE;
+		ShaderModule fragmentModule = VK_NULL_HANDLE;
+		ShaderModule geometryModule = VK_NULL_HANDLE;
+		SpirvCode vertexSpirv = {};
+		SpirvCode fragmentSpirv = {};
+		SpirvCode geometrySpirv = {};
 		RenderPass* renderPass = nullptr; // if nullptr -> use default device render pass
 		PipelineLayoutSrc layout = PipelineLayoutDesc{};
 		VertexLayout* vertexLayout = nullptr;
@@ -87,7 +90,8 @@ namespace gfx
 
 	struct ComputePipelineParams
 	{
-		ShaderSrc computeShader;
+		ShaderModule computeModule = VK_NULL_HANDLE;
+		SpirvCode computeSpirv = {};
 		PipelineLayoutSrc layout = PipelineLayoutDesc{};
 	};
 

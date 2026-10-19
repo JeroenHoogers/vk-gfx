@@ -186,18 +186,18 @@ int main()
 	});
 
 	gfx::ResourceSetLayout uboResourceLayout = gfx::create_resource_set_layout(device, {
-		{.type = gfx::ResourceType::UniformBuffer, .stages = VK_SHADER_STAGE_VERTEX_BIT}
+		{ .binding = 0, .type = gfx::ResourceType::UniformBuffer, .stages = VK_SHADER_STAGE_VERTEX_BIT}
 	});
 
 	gfx::ResourceSetLayout glyphInstancesResourceLayout = gfx::create_resource_set_layout(device, {
-		{.type = gfx::ResourceType::StorageBuffer, .stages = VK_SHADER_STAGE_VERTEX_BIT}
+		{ .binding = 0, .type = gfx::ResourceType::StorageBuffer, .stages = VK_SHADER_STAGE_VERTEX_BIT}
 	});
 
 	gfx::Pipeline* textPipeline = gfx::create_graphics_pipeline(device, {
-		.vertexShader = load_shader("shaders/text.vertex.spv"),
-		.fragmentShader = load_shader("shaders/text.fragment.spv"),
+		.vertexSpirv = load_shader("shaders/text.vertex.spv"),
+		.fragmentSpirv = load_shader("shaders/text.fragment.spv"),
 		.layout = gfx::PipelineLayoutDesc{
-			.resourceSetLayouts = {uboResourceLayout, glyphInstancesResourceLayout}
+			.resourceSetLayouts = { uboResourceLayout, glyphInstancesResourceLayout }
 		},
 		.vertexLayout = &textVertexLayout,
 		.inputAssembly{
@@ -211,13 +211,13 @@ int main()
 
 	gfx::UniformBuffer ubo = gfx::create_uniform_buffer(device, sizeof(UniformBufferObject));
 	std::vector<gfx::ResourceSet> uboResources = gfx::create_resource_sets(device, uboResourceLayout, {
-		{.type = gfx::ResourceType::UniformBuffer, .uniformBuffer = &ubo}
+		{ .uniformBuffer = &ubo }
 	}, device->framesInFlight);
 
 	const auto bounds = drafttype::measure(font, text, textLayoutOpts);
 	TextBuffer textBuffers = createTextBuffer(device, font, gpuFont, text, glm::vec2(0.0f, -(bounds.bottom + bounds.top) * 0.5f), textLayoutOpts);
 	gfx::ResourceSet glyphInstancesResourceSet = gfx::create_resource_set(device, glyphInstancesResourceLayout, {
-		{.type = gfx::ResourceType::StorageBuffer, .storageBuffer = &textBuffers.glyphInstanceBuffer}
+		{.storageBuffer = &textBuffers.glyphInstanceBuffer}
 	});
 
 	while (poll_window_events(window)) {
