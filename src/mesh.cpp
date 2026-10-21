@@ -53,13 +53,13 @@ namespace gfx
 		MappedBuffer vertexBuffer = create_mapped_buffer(device, {
 			.size = vertexSize,
 			.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+			.properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 		});
 
 		MappedBuffer indexBuffer = {};
 		uint64_t indexSize = 0;
 
-		if (params.indices.data)
+		if (params.indices.count > 0)
 		{
 			const uint32_t indexStride =
 				params.indices.type == VK_INDEX_TYPE_UINT16 ? 2 :
@@ -70,7 +70,7 @@ namespace gfx
 			indexBuffer = create_mapped_buffer(device, {
 				.size = indexSize,
 				.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-				.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+				.properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 			});
 		}
 
@@ -115,6 +115,16 @@ namespace gfx
 		vkCmdBindVertexBuffers(commands, 0, 1, vertexBuffers, offsets);
 		if(mesh->indexCount > 0) {
 			vkCmdBindIndexBuffer(commands, mesh->indexBuffer.buffer, 0, mesh->indexType);
+		}
+	}
+
+	void bind_dynamic_mesh(CommandBuffer commands, const DynamicMesh* mesh)
+	{
+		VkBuffer vertexBuffers[] = {mesh->vertexBuffer.buffer.buffer};
+		VkDeviceSize offsets[] = {0};
+		vkCmdBindVertexBuffers(commands, 0, 1, vertexBuffers, offsets);
+		if(mesh->indexCount > 0) {
+			vkCmdBindIndexBuffer(commands, mesh->indexBuffer.buffer.buffer, 0, mesh->indexType);
 		}
 	}
 

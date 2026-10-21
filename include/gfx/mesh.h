@@ -81,6 +81,7 @@ namespace gfx
 	void update_dynamic_mesh(DynamicMesh& mesh, const void* vertexData, uint32_t vertexCount, const void* indexData = nullptr, uint32_t indexCount = 0);
 
 	void bind_mesh(CommandBuffer commands, const Mesh* mesh);
+	void bind_dynamic_mesh(CommandBuffer commands, const DynamicMesh* mesh);
 
 	void destroy_mesh(Device* device, Mesh& mesh);
 	void destroy_dynamic_mesh(Device* device, DynamicMesh& mesh);

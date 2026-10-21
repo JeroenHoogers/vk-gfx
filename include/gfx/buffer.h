@@ -54,5 +54,6 @@ namespace gfx {
 	void copy_buffer(CommandBuffer commands, const Buffer& src, const Buffer& dst);
 
 	void destroy_buffer(Device* device, const Buffer& buffer);
+	void destroy_buffer(Device* device, const MappedBuffer& buffer);
 	void destroy_buffers(Device* device, const MultiBuffer& buffer);
 }
