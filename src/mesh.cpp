@@ -4,6 +4,8 @@
 #include "gfx/mesh.h"
 #include "gfx/buffer.h"
 #include "gfx/device.h"
+#include <cassert>
+#include <cstring>
 
 namespace gfx
 {
@@ -12,44 +14,98 @@ namespace gfx
 		return VertexLayout{.bindings = bindings};
 	}
 
-	Mesh create_mesh(Device* device, const MeshData& meshData)
+	Mesh create_mesh(Device* device, const MeshDesc& params)
 	{
-		Buffer vertexBuffer = create_and_upload_buffer(device, meshData.vertices.data, {
-			.size = meshData.vertices.size,
+		Buffer vertexBuffer = create_and_upload_buffer(device, params.vertices.data, {
+			.size = params.vertices.count * params.vertices.stride,
 			.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		});
 
 		Buffer indexBuffer = {};
 
-		uint32_t vertexCount = meshData.vertices.size / meshData.vertices.stride;
-		uint32_t indexCount = 0;
+		if (params.indices.data)
+		{
+			const uint32_t indexStride =
+		        params.indices.type == VK_INDEX_TYPE_UINT16 ? 2 :
+		        params.indices.type == VK_INDEX_TYPE_UINT32 ? 4 : 0;
 
-		VkIndexType indexType = VK_INDEX_TYPE_NONE_KHR;
-		if (meshData.indices.data) {
-			indexBuffer = create_and_upload_buffer(device, meshData.indices.data, {
-				.size = meshData.indices.size,
+			indexBuffer = create_and_upload_buffer(device, params.indices.data, {
+				.size = params.indices.count * indexStride,
 				.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 				.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 			});
-			indexCount = meshData.indices.size / meshData.indices.stride;
-
-			if (meshData.indices.stride == sizeof(uint32_t)) {
-				indexType = VK_INDEX_TYPE_UINT32;
-			} else if ((meshData.indices.stride == sizeof(uint16_t))) {
-				indexType = VK_INDEX_TYPE_UINT16;
-			} else if ((meshData.indices.stride == sizeof(uint8_t))) {
-				indexType = VK_INDEX_TYPE_UINT8;
-			}
 		}
 
 		return Mesh{
 			.vertexBuffer = vertexBuffer,
 			.indexBuffer = indexBuffer,
-			.indexCount = indexCount,
-			.vertexCount = vertexCount,
-			.indexType = indexType
+			.vertexCount = params.vertices.count,
+			.indexCount = params.indices.count,
+			.indexType = params.indices.type
 		};
+	}
+
+	DynamicMesh create_dynamic_mesh(Device* device, const MeshDesc& params)
+	{
+		const uint64_t vertexSize = params.vertices.count * params.vertices.stride;
+
+		MappedBuffer vertexBuffer = create_mapped_buffer(device, {
+			.size = vertexSize,
+			.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+			.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+		});
+
+		MappedBuffer indexBuffer = {};
+		uint64_t indexSize = 0;
+
+		if (params.indices.data)
+		{
+			const uint32_t indexStride =
+				params.indices.type == VK_INDEX_TYPE_UINT16 ? 2 :
+				params.indices.type == VK_INDEX_TYPE_UINT32 ? 4 : 0;
+
+			indexSize = params.indices.count * indexStride;
+
+			indexBuffer = create_mapped_buffer(device, {
+				.size = indexSize,
+				.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+				.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+			});
+		}
+
+		return DynamicMesh{
+			.vertexBuffer = vertexBuffer,
+			.indexBuffer = indexBuffer,
+			.vertexCount = params.vertices.count,
+			.indexCount = params.indices.count,
+			.vertexStride = params.vertices.stride,
+			.indexType = params.indices.type,
+			.vertexCapacity = vertexSize,
+			.indexCapacity = indexSize,
+		};
+	}
+
+	void update_dynamic_mesh(DynamicMesh& mesh, const void* vertexData, uint32_t vertexCount, const void* indexData, uint32_t indexCount)
+	{
+		size_t vertexSize = vertexCount * mesh.vertexStride;
+		assert(vertexSize <= mesh.vertexCapacity);
+
+		memcpy(mesh.vertexBuffer.mapped, vertexData, vertexSize);
+		mesh.vertexCount = vertexCount;
+
+		if(indexData)
+		{
+			const uint32_t indexStride =
+				mesh.indexType == VK_INDEX_TYPE_UINT16 ? 2 :
+				mesh.indexType == VK_INDEX_TYPE_UINT32 ? 4 : 0;
+
+			size_t indexSize = indexCount * indexStride;
+			assert(indexSize <= mesh.indexCapacity);
+
+			memcpy(mesh.indexBuffer.mapped, indexData, indexSize);
+			mesh.indexCount = indexCount;
+		}
 	}
 
 	void bind_mesh(CommandBuffer commands, const Mesh* mesh)
@@ -68,6 +124,15 @@ namespace gfx
 
 		if (mesh.indexBuffer.buffer) {
 			destroy_buffer(device, mesh.indexBuffer);
+		}
+	}
+
+	void destroy_dynamic_mesh(Device* device, DynamicMesh& mesh)
+	{
+		destroy_buffer(device, mesh.vertexBuffer.buffer);
+
+		if (mesh.indexBuffer.buffer.buffer) {
+			destroy_buffer(device, mesh.indexBuffer.buffer);
 		}
 	}
 } // namespace gfx

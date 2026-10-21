@@ -25,7 +25,7 @@ void updateUniformBuffer(gfx::UniformBuffer uniformBuffer, const gfx::SwapchainF
 	};
 	ubo.proj[1][1] *= -1;
 
-	memcpy(uniformBuffer.mappedMemory[frame.index], &ubo, sizeof(ubo));
+	memcpy(uniformBuffer.mapped[frame.index], &ubo, sizeof(ubo));
 }
 
 struct Material {

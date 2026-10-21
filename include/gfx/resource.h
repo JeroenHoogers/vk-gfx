@@ -7,12 +7,12 @@
 #include <vulkan/vulkan.h>
 #include <span>
 #include "types.h" // Needed for CommandBuffer, ResourceSet
+#include "uniform_buffer.h" // Needed for UniformBuffer
 
 namespace gfx
 {
 	struct Device;
 	struct Pipeline;
-	struct UniformBuffer;
 	struct Texture;
 	struct Image;
 	struct Buffer;

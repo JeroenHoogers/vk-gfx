@@ -2,9 +2,6 @@
 // Distributed under the MIT License (http://opensource.org/licenses/MIT)
 
 #include "gfx/uniform_buffer.h"
-#include "gfx/buffer.h"
-#include "gfx/command_buffer.h"
-#include "gfx/resource.h"
 #include "gfx/device.h"
 #include <assert.h>
 
@@ -20,28 +17,16 @@ namespace gfx
 			.properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 		};
 
-		std::vector<Buffer> buffers(count);
-		std::vector<void*> mappedMemory(count);
-
-		for (size_t i = 0; i < count; i++) {
-			buffers[i] = create_buffer(device, bufferDesc);
-			VkResult result = vkMapMemory(device->device, buffers[i].memory, 0, buffers[i].size, 0, &mappedMemory[i]);
-			VK_ASSERT(result);
-		}
-
-		return UniformBuffer{
-			.mappedMemory = std::move(mappedMemory),
-			.buffers = std::move(buffers),
-		};
+		UniformBuffer uniformBuffer = create_mapped_buffers(device, bufferDesc, count);
+		return uniformBuffer;
 	}
 
 	void destroy_uniform_buffer(Device* device, UniformBuffer& uniformBuffer)
 	{
-		assert(uniformBuffer.buffers.size() == uniformBuffer.mappedMemory.size());
+		assert(uniformBuffer.buffers.size() == uniformBuffer.mapped.size());
 
 		for (uint32_t i = 0; i < uniformBuffer.buffers.size(); i++) {
 			destroy_buffer(device, uniformBuffer.buffers[i]);
 		}
 	}
-
 } // namespace gfx

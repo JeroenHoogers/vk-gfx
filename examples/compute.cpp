@@ -60,7 +60,7 @@ void updateUniformBuffer(gfx::UniformBuffer* uniformBuffer, uint32_t frameIndex)
 	UBO ubo{};
 	ubo.deltaTime = lastFrameTime * 2.0f;
 
-	memcpy(uniformBuffer->mappedMemory[frameIndex], &ubo, sizeof(ubo));
+	memcpy(uniformBuffer->mapped[frameIndex], &ubo, sizeof(ubo));
 }
 
 int main()

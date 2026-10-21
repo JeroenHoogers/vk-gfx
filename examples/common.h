@@ -129,13 +129,13 @@ inline gfx::Mesh create_cube(gfx::Device* device)
 	gfx::Mesh cube = gfx::create_mesh(device, {
 		.vertices = {
 			.data = vertices.data(),
-			.size = vertices.size() * sizeof(Vertex),
+			.count = vertices.size(),
 			.stride = sizeof(Vertex)
 		},
 		.indices = {
 			.data = indices.data(),
-			.size = indices.size() * sizeof(uint32_t),
-			.stride = sizeof(uint32_t)
+			.count = indices.size(),
+			.type = VK_INDEX_TYPE_UINT32
 		}
 	});
 

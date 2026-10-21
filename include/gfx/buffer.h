@@ -22,7 +22,17 @@ namespace gfx {
 		// uint32_t stride;
 	};
 
+	struct MappedBuffer {
+		Buffer buffer;
+		void* mapped = nullptr;
+	};
+
 	typedef std::vector<Buffer> MultiBuffer;
+
+	struct MappedMultiBuffer {
+		MultiBuffer buffers;
+		std::vector<void*> mapped = {};
+	};
 
 	struct BufferDesc{
 		uint64_t size;
@@ -34,6 +44,9 @@ namespace gfx {
 
 	[[nodiscard]] Buffer create_buffer(Device* device, const BufferDesc& params);
 	[[nodiscard]] Buffer create_and_upload_buffer(Device* device, const void* data, const BufferDesc& params);
+
+	[[nodiscard]] MappedBuffer create_mapped_buffer(Device* device, const BufferDesc& params);
+	[[nodiscard]] MappedMultiBuffer create_mapped_buffers(Device* device, const BufferDesc& params, uint32_t count);
 
 	[[nodiscard]] MultiBuffer create_buffers(Device* device, const BufferDesc& params, uint32_t count);
 	[[nodiscard]] MultiBuffer create_and_upload_buffers(Device* device, const void* data, const BufferDesc& params, uint32_t count);

@@ -63,6 +63,32 @@ namespace gfx
 		return Buffer{.buffer = buffer, .memory = deviceMemory, .size = params.size};
 	}
 
+	MappedBuffer create_mapped_buffer(Device* device, const BufferDesc& params) {
+		MappedBuffer mappedBuffer {
+			.buffer = create_buffer(device, params)
+		};
+
+		VkResult result = vkMapMemory(device->device, mappedBuffer.buffer.memory, 0, mappedBuffer.buffer.size, 0, &mappedBuffer.mapped);
+		VK_ASSERT(result);
+
+		return mappedBuffer;
+	}
+
+	MappedMultiBuffer create_mapped_buffers(Device* device, const BufferDesc& params, uint32_t count) {
+		MappedMultiBuffer mappedBuffers {
+			.buffers = create_buffers(device, params, count),
+			.mapped = std::vector<void*>(count)
+		};
+
+		for (uint32_t i = 0; i < count; i++) {
+			auto& buffer = mappedBuffers.buffers[i];
+			VkResult result = vkMapMemory(device->device, buffer.memory, 0, buffer.size, 0, &mappedBuffers.mapped[i]);
+			VK_ASSERT(result);
+		}
+
+		return mappedBuffers;
+	}
+
 	Buffer create_and_upload_buffer(Device* device, const void* data, const BufferDesc& params)
 	{
 		// TODO: cache staging buffer? (user provided)
@@ -97,7 +123,8 @@ namespace gfx
 		return multiBuffer;
 	}
 
-	MultiBuffer create_and_upload_buffers(Device* device, const void* data, const BufferDesc& params, uint32_t count){
+	MultiBuffer create_and_upload_buffers(Device* device, const void* data, const BufferDesc& params, uint32_t count)
+	{
 		// TODO: cache staging buffer? (user provided)
 		// TODO: re-use command buffer
 		Buffer staging = create_buffer(device, {.size = params.size, .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT, .properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT});

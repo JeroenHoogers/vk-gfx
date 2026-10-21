@@ -24,7 +24,7 @@ void updateUniformBuffer(gfx::UniformBuffer& uniformBuffer, const gfx::Swapchain
 	};
 	ubo.proj[1][1] *= -1;
 
-	memcpy(uniformBuffer.mappedMemory[frame.index], &ubo, sizeof(ubo));
+	memcpy(uniformBuffer.mapped[frame.index], &ubo, sizeof(ubo));
 }
 
 struct TextBuffer {
@@ -154,13 +154,13 @@ int main()
 	gfx::Mesh axesMesh = gfx::create_mesh(device, {
 		.vertices {
 			.data = vertices.data(),
-			.size = sizeof(Vertex) * vertices.size(),
+			.count = vertices.size(),
 			.stride = sizeof(Vertex)
 		},
 		.indices {
 			.data = indices.data(),
-			.size = sizeof(uint16_t) * indices.size(),
-			.stride = sizeof(uint16_t)
+			.count = indices.size(),
+			.type = VK_INDEX_TYPE_UINT16
 		}
 	});
 
@@ -175,13 +175,13 @@ int main()
 	gfx::Mesh fontMesh = gfx::create_mesh(device, {
 		.vertices {
 			.data = gpuFont.vertices.data(),
-			.size = sizeof(drafttype::Vert) * gpuFont.vertices.size(),
+			.count = gpuFont.vertices.size(),
 			.stride = sizeof(drafttype::Vert)
 		},
 		.indices {
 			.data = gpuFont.indices.data(),
-			.size = sizeof(uint32_t) * gpuFont.indices.size(),
-			.stride = sizeof(uint32_t)
+			.count = gpuFont.indices.size(),
+			.type = VK_INDEX_TYPE_UINT32
 		}
 	});
 

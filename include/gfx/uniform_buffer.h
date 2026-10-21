@@ -4,19 +4,13 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
-#include <vector>
+#include "buffer.h"
 
 namespace gfx {
 	struct Device;
-	struct Window;
 	struct Buffer;
-	struct Pipeline;
 
-	// turn into multibuffer?
-	struct UniformBuffer{
-		std::vector<void*> mappedMemory;
-		std::vector<Buffer> buffers;
-	};
+	typedef MappedMultiBuffer UniformBuffer;
 
 	[[nodiscard]] UniformBuffer create_uniform_buffer(Device* device, uint32_t size);
 
