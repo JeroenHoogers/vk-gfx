@@ -61,7 +61,7 @@ namespace gfx
 
 	struct PipelineLayout
 	{
-		VkPipelineLayout layout = VK_NULL_HANDLE;
+		VkPipelineLayout handle = VK_NULL_HANDLE;
 		std::vector<PushConstantRange> pushConstants = {};
 	};
 
@@ -97,7 +97,7 @@ namespace gfx
 
 	struct Pipeline
 	{
-		VkPipeline pipeline;
+		VkPipeline handle;
 		PipelineLayout layout;
 		// Set automatically at creation, if the user supplies the layout as an argument the user is repsponsible for destroying it.
 		// If the layout is created internally in `create_xxxxx_pipeline`, its lifetime will be tied to the pipeline
@@ -115,6 +115,7 @@ namespace gfx
 	void destroy_pipeline_cache(Device* device, PipelineCache pipelineCache);
 
 	[[nodiscard]] PipelineLayout create_pipeline_layout(Device* device, const PipelineLayoutDesc& params);
+	void destroy_pipeline_layout(Device* device, const PipelineLayout& layout);
 
 	[[nodiscard]] Pipeline* create_graphics_pipeline(Device* device, const GraphicsPipelineParams& params);
 	[[nodiscard]] Pipeline* create_compute_pipeline(Device* device, const ComputePipelineParams& params);

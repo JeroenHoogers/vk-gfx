@@ -106,7 +106,7 @@ namespace gfx
 		VK_ASSERT(result);
 
 		return PipelineLayout{
-			.layout = pipelineLayout,
+			.handle = pipelineLayout,
 			.pushConstants = params.pushConstants
 		};
 	}
@@ -336,7 +336,7 @@ namespace gfx
 			.pDepthStencilState = &depthStencil,
 			.pColorBlendState = &colorBlending,
 			.pDynamicState = &dynamicState,
-			.layout = pipelineLayout.layout,
+			.layout = pipelineLayout.handle,
 			.renderPass = renderPass->renderPass,
 			.subpass = 0,
 			.basePipelineHandle = VK_NULL_HANDLE,
@@ -359,7 +359,7 @@ namespace gfx
 		}
 
 		return new Pipeline{
-			.pipeline = graphicsPipeline,
+			.handle = graphicsPipeline,
 			.layout = pipelineLayout,
 			.ownsLayout = pipelineLayoutParams != nullptr, // true if it was created inline, otherwise this is the users responsibility to manage it's lifetime
 			.bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -391,7 +391,7 @@ namespace gfx
 			.pNext = nullptr,
 			.flags = 0,
 			.stage = computeShaderStageInfo,
-			.layout = pipelineLayout.layout,
+			.layout = pipelineLayout.handle,
 			.basePipelineHandle = VK_NULL_HANDLE,
 			.basePipelineIndex = 0
 		};
@@ -404,24 +404,22 @@ namespace gfx
 			vkDestroyShaderModule(device->device, computeModule, nullptr);
 		}
 
-		Pipeline* pPipeline = new Pipeline{
-			.pipeline = computePipeline,
+		return new Pipeline{
+			.handle = computePipeline,
 			.layout = pipelineLayout,
 			.ownsLayout = pipelineLayoutParams != nullptr, // true if it was created inline, otherwise this is the users responsibility to manage it's lifetime
 			.bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE,
 			.dynamicStates = DynamicStateFlags::None
 		};
-
-		return pPipeline;
 	}
 
 	void bind_pipeline(Pipeline* pipeline, CommandBuffer commands) {
-		vkCmdBindPipeline(commands, pipeline->bindPoint, pipeline->pipeline);
+		vkCmdBindPipeline(commands, pipeline->bindPoint, pipeline->handle);
 	}
 
 	void bind_pipeline(Pipeline* pipeline, CommandBuffer commands, const DynamicState& dynamicState)
 	{
-		vkCmdBindPipeline(commands, pipeline->bindPoint, pipeline->pipeline);
+		vkCmdBindPipeline(commands, pipeline->bindPoint, pipeline->handle);
 
 		// set dynamic states
 		if ((pipeline->dynamicStates & DynamicStateFlags::Viewport) != DynamicStateFlags::None) {
@@ -455,23 +453,28 @@ namespace gfx
 
 		vkCmdPushConstants(
 		    commands,
-		    pipeline->layout.layout,
+		    pipeline->layout.handle,
 		    range.stageFlags, range.offset, range.size,
 		    data
 		);
 	}
 
-	void destroy_pipeline_cache(Device* device, PipelineCache pipelineCache){
+	void destroy_pipeline_cache(Device* device, PipelineCache pipelineCache) {
 		vkDestroyPipelineCache(device->device, pipelineCache, nullptr);
+	}
+
+	void destroy_pipeline_layout(Device *device, const PipelineLayout& layout) {
+		vkDestroyPipelineLayout(device->device, layout.handle, nullptr);
 	}
 
 	void destroy_pipeline(Device* device, Pipeline* pipeline)
 	{
-		vkDestroyPipeline(device->device, pipeline->pipeline, nullptr);
+		vkDestroyPipeline(device->device, pipeline->handle, nullptr);
 		if(pipeline->ownsLayout) {
-			vkDestroyPipelineLayout(device->device, pipeline->layout.layout, nullptr);
+			destroy_pipeline_layout(device, pipeline->layout);
 		}
 
+		delete pipeline;
 		pipeline = nullptr;
 	}
 } // namespace gfx

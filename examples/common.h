@@ -20,7 +20,7 @@
 struct Vertex
 {
 	glm::vec3 pos;
-	glm::vec3 normal;
+	glm::vec3 color;
 	glm::vec2 uv;
 };
 
@@ -103,21 +103,18 @@ inline gfx::Mesh create_cube(gfx::Device* device)
 	indices.reserve(36);
 
 	for (const auto& face : faces) {
-		const glm::vec3& p0 = positions[face[0]];
-		const glm::vec3& p1 = positions[face[1]];
-		const glm::vec3& p2 = positions[face[2]];
+		// const glm::vec3& p0 = positions[face[0]];
+		// const glm::vec3& p1 = positions[face[1]];
+		// const glm::vec3& p2 = positions[face[2]];
 
-		const glm::vec3 normal = glm::normalize(glm::cross(p2 - p0, p1 - p0));
+		// const glm::vec3 normal = glm::normalize(glm::cross(p2 - p0, p1 - p0));
+		const glm::vec3 color(1.0f);
 
 		const uint32_t base = static_cast<uint32_t>(vertices.size());
 
 		// face corners
 		for (uint32_t j = 0; j < 4; j++) {
-			vertices.push_back({
-				positions[face[j]],
-				normal,
-				uvs[j]}
-			);
+			vertices.push_back({ positions[face[j]], color, uvs[j]} );
 		}
 
 		// add triangles (0, 1, 2) and (0, 2, 3)

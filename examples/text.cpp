@@ -32,8 +32,8 @@ struct TextBuffer {
 	gfx::Buffer indirectBuffer;
 };
 
-TextBuffer createTextBuffer(gfx::Device* device, const drafttype::HersheyFont& font, const drafttype::GPUFont& gpuFont, const std::string& text, glm::vec2 pos, drafttype::LayoutOptions opts) {
-	auto glyphInstances = drafttype::layout(font, text, pos.x, pos.y, opts, true);
+TextBuffer createTextBuffer(gfx::Device* device, const drafttype::HersheyFont& font, const drafttype::GPUFont& gpuFont, const std::string& text, drafttype::LayoutOptions opts) {
+	auto glyphInstances = drafttype::layout(font, text, opts, true);
 
 	// create indirect buffer
 	std::vector<VkDrawIndexedIndirectCommand> commands;
@@ -164,6 +164,14 @@ int main()
 		}
 	});
 
+	gfx::VertexLayout vertexLayout = gfx::create_vertex_layout({{
+		.stride = sizeof(Vertex),
+		.attributes = {
+			{.format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, pos)},
+			{.format = VK_FORMAT_R32G32B32_SFLOAT, .offset = offsetof(Vertex, color)}
+		}
+	}});
+
 	gfx::VertexLayout textVertexLayout = gfx::create_vertex_layout({{
 		.stride = sizeof(drafttype::Vert),
 		.attributes = {
@@ -193,6 +201,16 @@ int main()
 		{ .binding = 0, .type = gfx::ResourceType::StorageBuffer, .stages = VK_SHADER_STAGE_VERTEX_BIT}
 	});
 
+	gfx::Pipeline* linePipeline = gfx::create_graphics_pipeline(device, {
+		.vertexSpirv = load_shader("shaders/shader.vertex.spv"),
+		.fragmentSpirv = load_shader("shaders/shader.fragment.spv"),
+		.layout = gfx::PipelineLayoutDesc{
+			.resourceSetLayouts = { uboResourceLayout }
+		},
+		.vertexLayout = &vertexLayout,
+		.inputAssembly{ .topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST }
+	});
+
 	gfx::Pipeline* textPipeline = gfx::create_graphics_pipeline(device, {
 		.vertexSpirv = load_shader("shaders/text.vertex.spv"),
 		.fragmentSpirv = load_shader("shaders/text.fragment.spv"),
@@ -214,8 +232,7 @@ int main()
 		{ .uniformBuffer = &ubo }
 	}, device->framesInFlight);
 
-	const auto bounds = drafttype::measure(font, text, textLayoutOpts);
-	TextBuffer textBuffers = createTextBuffer(device, font, gpuFont, text, glm::vec2(0.0f, -(bounds.bottom + bounds.top) * 0.5f), textLayoutOpts);
+	TextBuffer textBuffers = createTextBuffer(device, font, gpuFont, text, textLayoutOpts);
 	gfx::ResourceSet glyphInstancesResourceSet = gfx::create_resource_set(device, glyphInstancesResourceLayout, {
 		{.storageBuffer = &textBuffers.glyphInstanceBuffer}
 	});
@@ -233,6 +250,10 @@ int main()
 		uint32_t count = textBuffers.indirectBuffer.size / sizeof(VkDrawIndexedIndirectCommand);
 		gfx::draw_indexed_indirect(commands, &fontMesh, textBuffers.indirectBuffer, count, 0);
 
+		gfx::bind_pipeline(linePipeline, commands, frame.dynamicState);
+		gfx::bind_resource_set(commands, linePipeline, 0, uboResources[frame.index]);
+		gfx::draw_indexed(commands, &axesMesh, axesMesh.indexCount);
+
 		gfx::end_render_pass(commands);
 		gfx::end_commands(commands);
 		gfx::submit_and_present(device, frame, commands);
@@ -243,6 +264,7 @@ int main()
 	gfx::destroy_mesh(device, fontMesh);
 	gfx::destroy_mesh(device, axesMesh);
 
+	gfx::destroy_pipeline(device, linePipeline);
 	gfx::destroy_pipeline(device, textPipeline);
 
 	gfx::destroy_resource_set_layouts(device, {uboResourceLayout, glyphInstancesResourceLayout});

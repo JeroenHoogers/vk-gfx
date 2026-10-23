@@ -41,7 +41,7 @@ namespace gfx
 
 		void bind_descriptor_set(CommandBuffer commandBuffer, Pipeline* pipeline, VkDescriptorSet descriptorSet)
 		{
-			vkCmdBindDescriptorSets(commandBuffer, pipeline->bindPoint, pipeline->layout.layout, 0, 1, &descriptorSet, 0, nullptr);
+			vkCmdBindDescriptorSets(commandBuffer, pipeline->bindPoint, pipeline->layout.handle, 0, 1, &descriptorSet, 0, nullptr);
 		}
 
 		VkDescriptorSetLayout create_descriptor_set_layout(Device* device, const std::vector<VkDescriptorSetLayoutBinding>& bindings)
@@ -302,7 +302,7 @@ namespace gfx
 
 	void bind_resource_set(CommandBuffer commandBuffer, Pipeline* pipeline, uint32_t index, const ResourceSet& resourceSet)
 	{
-		vkCmdBindDescriptorSets(commandBuffer, pipeline->bindPoint, pipeline->layout.layout, index, 1, &resourceSet, 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, pipeline->bindPoint, pipeline->layout.handle, index, 1, &resourceSet, 0, nullptr);
 	}
 
 	void bind_resource_sets(CommandBuffer commandBuffer, Pipeline* pipeline, std::initializer_list<ResourceSet> resourceSets) {
@@ -315,11 +315,11 @@ namespace gfx
 			handles[i++] = resourceSet;
 		}
 
-		vkCmdBindDescriptorSets(commandBuffer, pipeline->bindPoint, pipeline->layout.layout, 0, static_cast<uint32_t>(resourceSets.size()), handles, 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, pipeline->bindPoint, pipeline->layout.handle, 0, static_cast<uint32_t>(resourceSets.size()), handles, 0, nullptr);
 	}
 
 	void bind_resource_sets(CommandBuffer commandBuffer, Pipeline* pipeline, std::span<const ResourceSet> resourceSets) {
-		vkCmdBindDescriptorSets(commandBuffer, pipeline->bindPoint, pipeline->layout.layout, 0, static_cast<uint32_t>(resourceSets.size()), resourceSets.data(), 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, pipeline->bindPoint, pipeline->layout.handle, 0, static_cast<uint32_t>(resourceSets.size()), resourceSets.data(), 0, nullptr);
 	}
 
 } // namespace gfx
