@@ -19,7 +19,7 @@ namespace gfx
 		Buffer vertexBuffer = create_and_upload_buffer(device, params.vertices.data, {
 			.size = params.vertices.count * params.vertices.stride,
 			.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+			.requiredProperties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		});
 
 		Buffer indexBuffer = {};
@@ -33,7 +33,7 @@ namespace gfx
 			indexBuffer = create_and_upload_buffer(device, params.indices.data, {
 				.size = params.indices.count * indexStride,
 				.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-				.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+				.requiredProperties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 			});
 		}
 
@@ -53,7 +53,8 @@ namespace gfx
 		MappedBuffer vertexBuffer = create_mapped_buffer(device, {
 			.size = vertexSize,
 			.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			.properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+			.requiredProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+			.preferredProperties = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 		});
 
 		MappedBuffer indexBuffer = {};
@@ -70,7 +71,8 @@ namespace gfx
 			indexBuffer = create_mapped_buffer(device, {
 				.size = indexSize,
 				.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-				.properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+				.requiredProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+				.preferredProperties = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 			});
 		}
 

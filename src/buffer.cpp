@@ -39,28 +39,19 @@ namespace gfx
 			.pQueueFamilyIndices = nullptr
 		};
 
+
+		VmaAllocationCreateInfo allocInfo{};
+		allocInfo.flags = params.allocFlags;
+		allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+		allocInfo.requiredFlags = params.requiredProperties;
+		allocInfo.preferredFlags = params.preferredProperties;
+
 		VkBuffer buffer;
-		VkResult result = vkCreateBuffer(device->device, &bufferInfo, nullptr, &buffer);
+		VmaAllocation allocation;
+		VkResult result = vmaCreateBuffer(device->vmaAllocator, &bufferInfo, &allocInfo, &buffer, &allocation, nullptr);
 		VK_ASSERT(result);
 
-		VkMemoryRequirements memRequirements;
-		vkGetBufferMemoryRequirements(device->device, buffer, &memRequirements);
-
-		VkMemoryAllocateInfo allocInfo{
-			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-			.pNext = nullptr,
-			.allocationSize = memRequirements.size,
-			.memoryTypeIndex = detail::find_memory_type(device, memRequirements.memoryTypeBits, params.properties),
-		};
-
-		VkDeviceMemory deviceMemory;
-		result = vkAllocateMemory(device->device, &allocInfo, nullptr, &deviceMemory);
-		VK_ASSERT(result);
-
-		result = vkBindBufferMemory(device->device, buffer, deviceMemory, 0);
-		VK_ASSERT(result);
-
-		return Buffer{.buffer = buffer, .memory = deviceMemory, .size = params.size};
+		return Buffer{.buffer = buffer, .memory = allocation, .size = params.size};
 	}
 
 	MappedBuffer create_mapped_buffer(Device* device, const BufferDesc& params) {
@@ -68,7 +59,7 @@ namespace gfx
 			.buffer = create_buffer(device, params)
 		};
 
-		VkResult result = vkMapMemory(device->device, mappedBuffer.buffer.memory, 0, mappedBuffer.buffer.size, 0, &mappedBuffer.mapped);
+		VkResult result = vmaMapMemory(device->vmaAllocator, mappedBuffer.buffer.memory, &mappedBuffer.mapped);
 		VK_ASSERT(result);
 
 		return mappedBuffer;
@@ -82,7 +73,7 @@ namespace gfx
 
 		for (uint32_t i = 0; i < count; i++) {
 			auto& buffer = mappedBuffers.buffers[i];
-			VkResult result = vkMapMemory(device->device, buffer.memory, 0, buffer.size, 0, &mappedBuffers.mapped[i]);
+			VkResult result = vmaMapMemory(device->vmaAllocator, buffer.memory, &mappedBuffers.mapped[i]);
 			VK_ASSERT(result);
 		}
 
@@ -93,15 +84,27 @@ namespace gfx
 	{
 		// TODO: cache staging buffer? (user provided)
 		// TODO: re-use command buffer
-		Buffer staging = create_buffer(device, {.size = params.size, .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT, .properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT});
+		Buffer staging = create_buffer(device, {
+			.size = params.size,
+			.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			.requiredProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+			.preferredProperties = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			.allocFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+		});
 
 		void* mapped;
-		VkResult result = vkMapMemory(device->device, staging.memory, 0, staging.size, 0, &mapped);
+		VkResult result = vmaMapMemory(device->vmaAllocator, staging.memory, &mapped);
 		VK_ASSERT(result);
 		memcpy(mapped, data, static_cast<size_t>(staging.size));
-		vkUnmapMemory(device->device, staging.memory);
+		vmaFlushAllocation(device->vmaAllocator, staging.memory, 0, staging.size); // only needed if not HOST_COHERENT
+		vmaUnmapMemory(device->vmaAllocator, staging.memory);
 
-		Buffer buffer = create_buffer(device, {.size = params.size, .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | params.usage, .properties = params.properties});
+		Buffer buffer = create_buffer(device, {
+			.size = params.size,
+			.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | params.usage,
+			.requiredProperties = params.requiredProperties,
+			.preferredProperties = params.preferredProperties
+		});
 
 		VkCommandBuffer commandBuffer = detail::begin_one_time_commands(device);
 		copy_buffer(commandBuffer, staging, buffer);
@@ -117,7 +120,13 @@ namespace gfx
 		MultiBuffer multiBuffer(count);
 
 		for (size_t i = 0; i < count; i++) {
-			multiBuffer[i] = create_buffer(device, {.size = params.size, .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | params.usage, .properties = params.properties});
+			multiBuffer[i] = create_buffer(device, {
+				.size = params.size,
+				.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | params.usage,
+				.requiredProperties = params.requiredProperties,
+				.preferredProperties = params.preferredProperties,
+				.allocFlags = params.allocFlags
+			});
 		}
 
 		return multiBuffer;
@@ -127,19 +136,29 @@ namespace gfx
 	{
 		// TODO: cache staging buffer? (user provided)
 		// TODO: re-use command buffer
-		Buffer staging = create_buffer(device, {.size = params.size, .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT, .properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT});
+		Buffer staging = create_buffer(device, {
+			.size = params.size,
+			.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			.requiredProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, .preferredProperties = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			.allocFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+		});
 
 		VkCommandBuffer commandBuffer = detail::begin_one_time_commands(device);
 		void* mapped;
-		VkResult result = vkMapMemory(device->device, staging.memory, 0, staging.size, 0, &mapped);
+		VkResult result = vmaMapMemory(device->vmaAllocator, staging.memory, &mapped);
 		VK_ASSERT(result);
 		memcpy(mapped, data, static_cast<size_t>(staging.size));
-		vkUnmapMemory(device->device, staging.memory);
+		vmaUnmapMemory(device->vmaAllocator, staging.memory);
 
 		MultiBuffer multiBuffer(count);
 
 		for (size_t i = 0; i < count; i++) {
-			multiBuffer[i] = create_buffer(device, {.size = params.size, .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | params.usage, .properties = params.properties});
+			multiBuffer[i] = create_buffer(device, {
+				.size = params.size,
+				.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | params.usage,
+				.requiredProperties = params.requiredProperties,
+				.preferredProperties = params.preferredProperties
+			});
 			copy_buffer(commandBuffer, staging, multiBuffer[i]);
 		}
 
@@ -162,8 +181,7 @@ namespace gfx
 
 	void destroy_buffer(Device* device, const Buffer& buffer)
 	{
-		vkDestroyBuffer(device->device, buffer.buffer, nullptr);
-		vkFreeMemory(device->device, buffer.memory, nullptr);
+		vmaDestroyBuffer(device->vmaAllocator, buffer.buffer, buffer.memory);
 	}
 
 	void destroy_buffers(Device* device, const MultiBuffer& multiBuffer)

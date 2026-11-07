@@ -61,12 +61,12 @@ TextBuffer createTextBuffer(gfx::Device* device, const drafttype::HersheyFont& f
 		.glyphInstanceBuffer = gfx::create_and_upload_buffer(device, glyphInstances.data(), {
 			.size = glyphInstances.size() * sizeof(drafttype::ShapedGlyph),
 			.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-			.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+			.requiredProperties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		}),
 		.indirectBuffer = gfx::create_and_upload_buffer(device, commands.data(), {
 			.size = commands.size() * sizeof(VkDrawIndexedIndirectCommand),
 			.usage = VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
-			.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+			.requiredProperties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		})
 	};
 

@@ -14,7 +14,9 @@ namespace gfx
 		BufferDesc bufferDesc{
 			.size = size,
 			.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			.properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			.requiredProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+			.preferredProperties = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			.allocFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
 		};
 
 		UniformBuffer uniformBuffer = create_mapped_buffers(device, bufferDesc, count);
@@ -26,6 +28,7 @@ namespace gfx
 		assert(uniformBuffer.buffers.size() == uniformBuffer.mapped.size());
 
 		for (uint32_t i = 0; i < uniformBuffer.buffers.size(); i++) {
+			vmaUnmapMemory(device->vmaAllocator, uniformBuffer.buffers[i].memory);
 			destroy_buffer(device, uniformBuffer.buffers[i]);
 		}
 	}

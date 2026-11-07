@@ -139,7 +139,7 @@ namespace gfx
 
 	namespace detail
 	{
-		VkImage create_image(Device* device, const ImageDesc& params, VkDeviceMemory& imageMemory)
+		VkImage create_image(Device* device, const ImageDesc& params, VmaAllocation& allocation)
 		{
 			VkImageCreateInfo imageInfo{
 				.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -159,24 +159,14 @@ namespace gfx
 				.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 			};
 
+
+			VmaAllocationCreateInfo allocCreateInfo = {};
+			allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
+			allocCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+			allocCreateInfo.priority = 1.0f;
+
 			VkImage image;
-			VkResult result = vkCreateImage(device->device, &imageInfo, nullptr, &image);
-			VK_ASSERT(result);
-
-			VkMemoryRequirements memRequirements;
-			vkGetImageMemoryRequirements(device->device, image, &memRequirements);
-
-			VkMemoryAllocateInfo allocInfo{
-				.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-				.pNext = nullptr,
-				.allocationSize = memRequirements.size,
-				.memoryTypeIndex = detail::find_memory_type(device, memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-			};
-
-			result = vkAllocateMemory(device->device, &allocInfo, nullptr, &imageMemory);
-			VK_ASSERT(result);
-
-			result = vkBindImageMemory(device->device, image, imageMemory, 0);
+			VkResult result = vmaCreateImage(device->vmaAllocator, &imageInfo, &allocCreateInfo, &image, &allocation, nullptr);
 			VK_ASSERT(result);
 
 			return image;
@@ -318,7 +308,7 @@ namespace gfx
 
 	Image create_image(Device* device, const ImageDesc& params)
 	{
-		VkDeviceMemory imageMemory;
+		VmaAllocation imageMemory;
 		VkImage image = detail::create_image(device, params, imageMemory);
 		VkImageView imageView = detail::create_image_view(device, image, params.format, params.aspect, params.mipLevels);
 
@@ -335,15 +325,17 @@ namespace gfx
 		Buffer staging = create_buffer(device, {
 			.size = size,
 			.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			.properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+			.requiredProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+			.preferredProperties = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			.allocFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
 		});
 
 		void* data;
-		vkMapMemory(device->device, staging.memory, 0, size, 0, &data);
+		vmaMapMemory(device->vmaAllocator, staging.memory, &data);
 		memcpy(data, pixels, static_cast<size_t>(size));
-		vkUnmapMemory(device->device, staging.memory);
+		vmaUnmapMemory(device->vmaAllocator, staging.memory);
 
-		VkDeviceMemory imageMemory;
+		VmaAllocation imageMemory;
 		VkImage image = detail::create_image(device, params, imageMemory);
 
 		VkCommandBuffer commandBuffer = detail::begin_one_time_commands(device);
@@ -403,8 +395,6 @@ namespace gfx
 	void destroy_image(Device* device, Image& image)
 	{
 		vkDestroyImageView(device->device, image.imageView, nullptr);
-		vkDestroyImage(device->device, image.image, nullptr);
-		vkFreeMemory(device->device, image.memory, nullptr);
+		vmaDestroyImage(device->vmaAllocator, image.image, image.memory);
 	}
-
 } // namespace gfx

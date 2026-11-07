@@ -6,6 +6,7 @@
 #include <vulkan/vulkan.h>
 #include <vector>
 #include "types.h" // needed for CommandBuffer
+#include "detail/vma.h"
 
 namespace gfx {
 	struct Device;
@@ -16,11 +17,10 @@ namespace gfx {
 
 	struct Buffer {
 		VkBuffer buffer = VK_NULL_HANDLE;
-		VkDeviceMemory memory = VK_NULL_HANDLE;
+		VmaAllocation memory = VK_NULL_HANDLE;
 		VkDeviceSize size = 0;
-		// VkDeviceSize count;
-		// uint32_t stride;
 	};
+
 
 	struct MappedBuffer {
 		Buffer buffer;
@@ -38,8 +38,10 @@ namespace gfx {
 		uint64_t size;
 		// uint64_t count;
 		VkBufferUsageFlags usage;
-		VkMemoryPropertyFlags properties;
+		VkMemoryPropertyFlags requiredProperties;
+		VkMemoryPropertyFlags preferredProperties = 0;
 		VkSharingMode sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		VmaAllocatorCreateFlags allocFlags = 0;
 	};
 
 	[[nodiscard]] Buffer create_buffer(Device* device, const BufferDesc& params);

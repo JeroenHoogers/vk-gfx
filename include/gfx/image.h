@@ -7,6 +7,7 @@
 #include "types.h" // Needed for ResourceSet, ResourceSetLayout
 #include <vector>
 #include "resource.h"
+#include "detail/vma.h"
 
 namespace gfx
 {
@@ -35,7 +36,7 @@ namespace gfx
 
 	namespace detail
 	{
-		VkImage create_image(Device* device, const ImageDesc& params, VkDeviceMemory& imageMemory);
+		VkImage create_image(Device* device, const ImageDesc& params, VmaAllocation& allocation);
 		VkImageView create_image_view(Device* device, VkImage image, VkFormat format, VkImageAspectFlags aspect, uint32_t mipLevels = 1);
 		void transition_image_layout(VkCommandBuffer commands, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels = 1);
 
@@ -46,7 +47,7 @@ namespace gfx
 	{
 		VkImage image;
 		VkImageView imageView;
-		VkDeviceMemory memory;
+		VmaAllocation memory;
 		VkFormat format;
 	};
 

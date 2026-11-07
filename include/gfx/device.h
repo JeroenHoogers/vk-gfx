@@ -13,6 +13,7 @@
 #include "resource.h" // required for ResourcePoolDesc
 #include "swapchain.h" // required for SwapchainDesc
 #include "render_pass.h" // required for RenderPassDesc
+#include "detail/vma.h"
 
 namespace gfx
 {
@@ -57,6 +58,7 @@ namespace gfx
 		VkDevice device;
 		VkPhysicalDeviceFeatures features;
 		VkDebugUtilsMessengerEXT debugMessenger;
+		VmaAllocator vmaAllocator;
 		// TODO: consider creating a list of queues instead matching the queue requests?
 		Queue graphicsQueue = {};
 		Queue presentQueue = {};

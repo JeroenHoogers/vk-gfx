@@ -50,7 +50,7 @@ gfx::MultiBuffer createParticleBuffer(gfx::Device* device) {
 	gfx::MultiBuffer particleBuffers = gfx::create_and_upload_buffers(device, particles.data(), {
 		.size = particles.size() * sizeof(Particle),
 		.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-		.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+		.requiredProperties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 	}, FRAMES_IN_FLIGHT);
 
 	return particleBuffers;

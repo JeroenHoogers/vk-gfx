@@ -4,9 +4,7 @@ A minimal Vulkan framework for rendering and compute.
 
 ## Philosophy
 
-Vk-gfx simplifies Vulkan development with a clean, lightweight API centered around parameter structs with sensible defaults. It provides a straightforward starting point while remaining flexible and fully customizable.
-
-Rather than abstracting Vulkan away entirely, the framework stays close to its underlying design and philosophy. It removes much of the boilerplate without taking away control: Vulkan types remain directly accessible and raw Vulkan commands can be used whenever functionality is not (yet) exposed by the API.
+Vk-gfx simplifies Vulkan development with a clean, lightweight API by providing an easy starting point while remaining flexible and extendable. Rather than abstracting Vulkan away entirely, the framework stays close to its underlying design and philosophy. It removes much of the boilerplate without taking away control: Vulkan types remain directly accessible and raw Vulkan commands can be used whenever functionality is not (yet) exposed by the API.
 
 ## Usage
 
@@ -77,6 +75,7 @@ int main()
   - [x] Validation Layers
   - [x] Vulkan API version
   - [x] Command pool sizes
+  - [x] VMA allocator
 - [x] Pipelines
   - [x] Pipeline Cache
   - [x] Graphics
@@ -103,10 +102,7 @@ int main()
   - [x] Color attachments
   - [x] Depth / Stencil attachment
 - [x] Push constants
-- [x] Drawing:
-  - [x] Indexed
-  - [x] Instancing
-  - [x] Indirect drawing
+- [x] Drawing (Regular, Indexed, Indirect)
 - [ ] Dynamic state
   - [x] Viewport
   - [x] Scissor
@@ -262,14 +258,12 @@ See [examples/glfw_window.cpp](examples/glfw_window.cpp) for more details.
 
 ## Todo
 
-- [ ] Custom allocators
+- [ ] Custom allocation callbacks
 - [ ] Device querying / error handling / fallbacks
 - [ ] Task / Mesh shaders
-- [ ] Offscreen rendering
 - [ ] Dynamic rendering (Vulkan>= 1.2)
 - [ ] Ray-tracing support
 - [ ] User defined dynamic state
-- [ ] Multiple render passes
 - [ ] Timeline semaphores
 - [ ] Async Compute
 

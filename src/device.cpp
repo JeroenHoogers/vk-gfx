@@ -445,12 +445,24 @@ namespace gfx
 			debugMessenger = create_debug_utils_messenger_ext(instance, nullptr);
 		}
 
+		// VMA
+		VmaAllocatorCreateInfo allocatorCreateInfo = {};
+		allocatorCreateInfo.physicalDevice = physicalDevice;
+		allocatorCreateInfo.device = device;
+		allocatorCreateInfo.instance = instance;
+		allocatorCreateInfo.vulkanApiVersion = params.apiVersion;
+
+		VmaAllocator allocator;
+		VkResult result = vmaCreateAllocator(&allocatorCreateInfo, &allocator);
+		VK_ASSERT(result);
+
 		Device* pDevice = new Device{
 			.instance = instance,
 			.physicalDevice = physicalDevice,
 			.device = device,
 			.features = params.features,
 			.debugMessenger = debugMessenger,
+			.vmaAllocator = allocator,
 			.graphicsQueue = graphicsQueue,
 			.presentQueue = presentQueue,
 			.computeQueue = computeQueue,
@@ -510,6 +522,8 @@ namespace gfx
 		destroy_render_pass(device, device->renderPass);
 
 		destroy_pipeline_cache(device, device->pipelineCache);
+
+		vmaDestroyAllocator(device->vmaAllocator);
 
 		vkDestroyDevice(device->device, nullptr);
 

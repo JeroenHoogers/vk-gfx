@@ -37,6 +37,7 @@ set(LIBRARIES Vulkan::Vulkan)
 
 
 set(SOURCE_DIR src)
+set(DEPS_DIR deps)
 set(INCLUDE_DIR include)
 set(EXAMPLES_DIR examples)
 set(ASSETS_DIR assets)
@@ -55,6 +56,7 @@ set(SRC_LIB
     ${SOURCE_DIR}/image.cpp
     ${SOURCE_DIR}/resource.cpp
     ${SOURCE_DIR}/uniform_buffer.cpp
+    ${SOURCE_DIR}/vma.cpp
 )
 
 set(SRC_EXAMPLES
@@ -71,6 +73,8 @@ target_include_directories(vk-gfx
     PRIVATE
         ${SOURCE_DIR}
 )
+
+target_include_directories(vk-gfx SYSTEM PRIVATE ${DEPS_DIR})
 
 # Example executable
 if(VKGFX_BUILD_EXAMPLES)
