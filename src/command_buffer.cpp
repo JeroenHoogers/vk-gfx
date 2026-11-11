@@ -205,7 +205,7 @@ namespace gfx
 	}
 
 	void dispatch_indirect(CommandBuffer commands, const Buffer& indirectBuffer, uint32_t offset) {
-		vkCmdDispatchIndirect(commands, indirectBuffer.buffer, offset);
+		vkCmdDispatchIndirect(commands, indirectBuffer.handle, offset);
 	}
 
 	void draw(CommandBuffer commands, const Mesh* mesh, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
@@ -229,11 +229,11 @@ namespace gfx
 	void draw_indirect(CommandBuffer commands, const Mesh* mesh, const Buffer& indirectBuffer, uint32_t drawCount, uint32_t offset)
 	{
 		// bind mesh
-		VkBuffer vertexBuffers[] = {mesh->vertexBuffer.buffer};
+		VkBuffer vertexBuffers[] = {mesh->vertexBuffer.handle};
 		VkDeviceSize offsets[] = {0};
 		vkCmdBindVertexBuffers(commands, 0, 1, vertexBuffers, offsets);
 
-		vkCmdDrawIndirect(commands, indirectBuffer.buffer, offset, drawCount, sizeof(VkDrawIndirectCommand));
+		vkCmdDrawIndirect(commands, indirectBuffer.handle, offset, drawCount, sizeof(VkDrawIndirectCommand));
 	}
 
 	void draw_indexed_indirect(CommandBuffer commands, const Mesh* mesh, const Buffer& indirectBuffer, uint32_t drawCount, uint32_t offset)
@@ -243,6 +243,6 @@ namespace gfx
 			bind_mesh(commands, mesh);
 		}
 
-		vkCmdDrawIndexedIndirect(commands, indirectBuffer.buffer, offset, drawCount, sizeof(VkDrawIndexedIndirectCommand));
+		vkCmdDrawIndexedIndirect(commands, indirectBuffer.handle, offset, drawCount, sizeof(VkDrawIndexedIndirectCommand));
 	}
 } // namespace gfx

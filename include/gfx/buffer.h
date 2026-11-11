@@ -11,16 +11,11 @@
 namespace gfx {
 	struct Device;
 
-	namespace detail {
-		uint32_t find_memory_type(Device* device, uint32_t typeFilter, VkMemoryPropertyFlags properties);
-	}
-
 	struct Buffer {
-		VkBuffer buffer = VK_NULL_HANDLE;
-		VmaAllocation memory = VK_NULL_HANDLE;
+		VkBuffer handle = VK_NULL_HANDLE;
+		VmaAllocation allocation = VK_NULL_HANDLE;
 		VkDeviceSize size = 0;
 	};
-
 
 	struct MappedBuffer {
 		Buffer buffer;
@@ -44,6 +39,10 @@ namespace gfx {
 		VmaAllocatorCreateFlags allocFlags = 0;
 	};
 
+	namespace detail {
+		Buffer create_buffer_impl(Device* device, const BufferDesc& params, VmaAllocationInfo* allocationInfo);
+	}
+
 	[[nodiscard]] Buffer create_buffer(Device* device, const BufferDesc& params);
 	[[nodiscard]] Buffer create_and_upload_buffer(Device* device, const void* data, const BufferDesc& params);
 
@@ -55,7 +54,7 @@ namespace gfx {
 
 	void copy_buffer(CommandBuffer commands, const Buffer& src, const Buffer& dst);
 
-	void destroy_buffer(Device* device, const Buffer& buffer);
-	void destroy_buffer(Device* device, const MappedBuffer& buffer);
-	void destroy_buffers(Device* device, const MultiBuffer& buffer);
+	void destroy_buffer(Device* device, Buffer& buffer);
+	void destroy_buffer(Device* device, MappedBuffer& buffer);
+	void destroy_buffers(Device* device, MultiBuffer& buffer);
 }

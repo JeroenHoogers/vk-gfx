@@ -331,9 +331,9 @@ namespace gfx
 		});
 
 		void* data;
-		vmaMapMemory(device->vmaAllocator, staging.memory, &data);
+		vmaMapMemory(device->vmaAllocator, staging.allocation, &data);
 		memcpy(data, pixels, static_cast<size_t>(size));
-		vmaUnmapMemory(device->vmaAllocator, staging.memory);
+		vmaUnmapMemory(device->vmaAllocator, staging.allocation);
 
 		VmaAllocation imageMemory;
 		VkImage image = detail::create_image(device, params, imageMemory);
@@ -341,7 +341,7 @@ namespace gfx
 		VkCommandBuffer commandBuffer = detail::begin_one_time_commands(device);
 
 		detail::transition_image_layout(commandBuffer, image, params.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, params.mipLevels);
-		copy_buffer_to_image(commandBuffer, staging.buffer, image, params.extent.width, params.extent.height);
+		copy_buffer_to_image(commandBuffer, staging.handle, image, params.extent.width, params.extent.height);
 
 		// generate_mipmaps also transfers layout to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 		// TODO: also support loading mipmaps instead of generating them at runtime

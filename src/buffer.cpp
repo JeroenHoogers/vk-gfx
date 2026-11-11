@@ -5,64 +5,56 @@
 #include "gfx/device.h"
 #include "gfx/command_buffer.h"
 #include <cstring>
+#include <cassert>
 
 namespace gfx
 {
 	namespace detail
 	{
-		uint32_t find_memory_type(Device* device, uint32_t typeFilter, VkMemoryPropertyFlags properties)
+		Buffer create_buffer_impl(Device* device, const BufferDesc& params, VmaAllocationInfo* allocationInfo)
 		{
-			VkPhysicalDeviceMemoryProperties memProperties;
-			vkGetPhysicalDeviceMemoryProperties(device->physicalDevice, &memProperties);
-			for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-				auto flags = memProperties.memoryTypes[i].propertyFlags;
-				if ((typeFilter & (1 << i)) && (flags & properties) == properties) {
-					return i;
-				}
-			}
+			VkBufferCreateInfo bufferInfo{
+				.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+				.pNext = nullptr,
+				.flags = 0,
+				.size = params.size,
+				.usage = params.usage,
+				.sharingMode = params.sharingMode,
+				.queueFamilyIndexCount = 0,
+				.pQueueFamilyIndices = nullptr
+			};
 
-			fprintf(stderr, "failed to find suitable memory type!");
-			std::abort();
+			VmaAllocationCreateInfo allocInfo{};
+			allocInfo.flags = params.allocFlags;
+			allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+			allocInfo.requiredFlags = params.requiredProperties;
+			allocInfo.preferredFlags = params.preferredProperties;
+
+			VkBuffer buffer;
+			VmaAllocation allocation;
+			VkResult result = vmaCreateBuffer(device->vmaAllocator, &bufferInfo, &allocInfo, &buffer, &allocation, allocationInfo);
+			VK_ASSERT(result);
+
+			return Buffer{.handle = buffer, .allocation = allocation, .size = params.size};
 		}
-	} // namespace
+	} // namespace detail
 
 	Buffer create_buffer(Device* device, const BufferDesc& params)
 	{
-		VkBufferCreateInfo bufferInfo{
-			.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-			.pNext = nullptr,
-			.flags = 0,
-			.size = params.size,
-			.usage = params.usage,
-			.sharingMode = params.sharingMode,
-			.queueFamilyIndexCount = 0,
-			.pQueueFamilyIndices = nullptr
-		};
-
-
-		VmaAllocationCreateInfo allocInfo{};
-		allocInfo.flags = params.allocFlags;
-		allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-		allocInfo.requiredFlags = params.requiredProperties;
-		allocInfo.preferredFlags = params.preferredProperties;
-
-		VkBuffer buffer;
-		VmaAllocation allocation;
-		VkResult result = vmaCreateBuffer(device->vmaAllocator, &bufferInfo, &allocInfo, &buffer, &allocation, nullptr);
-		VK_ASSERT(result);
-
-		return Buffer{.buffer = buffer, .memory = allocation, .size = params.size};
+		return detail::create_buffer_impl(device, params, nullptr);
 	}
 
-	MappedBuffer create_mapped_buffer(Device* device, const BufferDesc& params) {
-		MappedBuffer mappedBuffer {
-			.buffer = create_buffer(device, params)
+	MappedBuffer create_mapped_buffer(Device* device, const BufferDesc& params)
+	{
+		assert((params.allocFlags & VMA_ALLOCATION_CREATE_MAPPED_BIT) > 0);
+
+		VmaAllocationInfo allocationInfo;
+		Buffer buffer = detail::create_buffer_impl(device, params, &allocationInfo);
+
+		return MappedBuffer {
+			.buffer = buffer,
+			.mapped = allocationInfo.pMappedData
 		};
-
-		VkResult result = vmaMapMemory(device->vmaAllocator, mappedBuffer.buffer.memory, &mappedBuffer.mapped);
-		VK_ASSERT(result);
-
-		return mappedBuffer;
 	}
 
 	MappedMultiBuffer create_mapped_buffers(Device* device, const BufferDesc& params, uint32_t count) {
@@ -73,7 +65,7 @@ namespace gfx
 
 		for (uint32_t i = 0; i < count; i++) {
 			auto& buffer = mappedBuffers.buffers[i];
-			VkResult result = vmaMapMemory(device->vmaAllocator, buffer.memory, &mappedBuffers.mapped[i]);
+			VkResult result = vmaMapMemory(device->vmaAllocator, buffer.allocation, &mappedBuffers.mapped[i]);
 			VK_ASSERT(result);
 		}
 
@@ -93,11 +85,11 @@ namespace gfx
 		});
 
 		void* mapped;
-		VkResult result = vmaMapMemory(device->vmaAllocator, staging.memory, &mapped);
+		VkResult result = vmaMapMemory(device->vmaAllocator, staging.allocation, &mapped);
 		VK_ASSERT(result);
 		memcpy(mapped, data, static_cast<size_t>(staging.size));
-		vmaFlushAllocation(device->vmaAllocator, staging.memory, 0, staging.size); // only needed if not HOST_COHERENT
-		vmaUnmapMemory(device->vmaAllocator, staging.memory);
+		vmaFlushAllocation(device->vmaAllocator, staging.allocation, 0, staging.size); // only needed if not HOST_COHERENT
+		vmaUnmapMemory(device->vmaAllocator, staging.allocation);
 
 		Buffer buffer = create_buffer(device, {
 			.size = params.size,
@@ -145,10 +137,10 @@ namespace gfx
 
 		VkCommandBuffer commandBuffer = detail::begin_one_time_commands(device);
 		void* mapped;
-		VkResult result = vmaMapMemory(device->vmaAllocator, staging.memory, &mapped);
+		VkResult result = vmaMapMemory(device->vmaAllocator, staging.allocation, &mapped);
 		VK_ASSERT(result);
 		memcpy(mapped, data, static_cast<size_t>(staging.size));
-		vmaUnmapMemory(device->vmaAllocator, staging.memory);
+		vmaUnmapMemory(device->vmaAllocator, staging.allocation);
 
 		MultiBuffer multiBuffer(count);
 
@@ -176,15 +168,23 @@ namespace gfx
 			.size = src.size
 		};
 
-		vkCmdCopyBuffer(commandBuffer, src.buffer, dst.buffer, 1, &copyRegion);
+		vkCmdCopyBuffer(commandBuffer, src.handle, dst.handle, 1, &copyRegion);
 	}
 
-	void destroy_buffer(Device* device, const Buffer& buffer)
+	void destroy_buffer(Device* device, MappedBuffer& mappedBuffer)
 	{
-		vmaDestroyBuffer(device->vmaAllocator, buffer.buffer, buffer.memory);
+		destroy_buffer(device, mappedBuffer.buffer);
+		mappedBuffer.mapped = nullptr;
 	}
 
-	void destroy_buffers(Device* device, const MultiBuffer& multiBuffer)
+	void destroy_buffer(Device* device, Buffer& buffer)
+	{
+		vmaDestroyBuffer(device->vmaAllocator, buffer.handle, buffer.allocation);
+		buffer.handle = VK_NULL_HANDLE;
+		buffer.allocation = nullptr;
+	}
+
+	void destroy_buffers(Device* device, MultiBuffer& multiBuffer)
 	{
 		for (size_t i = 0; i < multiBuffer.size(); i++) {
 			destroy_buffer(device, multiBuffer[i]);

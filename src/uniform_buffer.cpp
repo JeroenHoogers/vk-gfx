@@ -28,7 +28,7 @@ namespace gfx
 		assert(uniformBuffer.buffers.size() == uniformBuffer.mapped.size());
 
 		for (uint32_t i = 0; i < uniformBuffer.buffers.size(); i++) {
-			vmaUnmapMemory(device->vmaAllocator, uniformBuffer.buffers[i].memory);
+			vmaUnmapMemory(device->vmaAllocator, uniformBuffer.buffers[i].allocation);
 			destroy_buffer(device, uniformBuffer.buffers[i]);
 		}
 	}

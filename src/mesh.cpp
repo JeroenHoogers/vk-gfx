@@ -54,7 +54,8 @@ namespace gfx
 			.size = vertexSize,
 			.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			.requiredProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-			.preferredProperties = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+			.preferredProperties = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			.allocFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT
 		});
 
 		MappedBuffer indexBuffer = {};
@@ -72,7 +73,8 @@ namespace gfx
 				.size = indexSize,
 				.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 				.requiredProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-				.preferredProperties = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+				.preferredProperties = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+				.allocFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT
 			});
 		}
 
@@ -112,21 +114,21 @@ namespace gfx
 
 	void bind_mesh(CommandBuffer commands, const Mesh* mesh)
 	{
-		VkBuffer vertexBuffers[] = {mesh->vertexBuffer.buffer};
+		VkBuffer vertexBuffers[] = {mesh->vertexBuffer.handle};
 		VkDeviceSize offsets[] = {0};
 		vkCmdBindVertexBuffers(commands, 0, 1, vertexBuffers, offsets);
 		if(mesh->indexCount > 0) {
-			vkCmdBindIndexBuffer(commands, mesh->indexBuffer.buffer, 0, mesh->indexType);
+			vkCmdBindIndexBuffer(commands, mesh->indexBuffer.handle, 0, mesh->indexType);
 		}
 	}
 
 	void bind_dynamic_mesh(CommandBuffer commands, const DynamicMesh* mesh)
 	{
-		VkBuffer vertexBuffers[] = {mesh->vertexBuffer.buffer.buffer};
+		VkBuffer vertexBuffers[] = {mesh->vertexBuffer.buffer.handle};
 		VkDeviceSize offsets[] = {0};
 		vkCmdBindVertexBuffers(commands, 0, 1, vertexBuffers, offsets);
 		if(mesh->indexCount > 0) {
-			vkCmdBindIndexBuffer(commands, mesh->indexBuffer.buffer.buffer, 0, mesh->indexType);
+			vkCmdBindIndexBuffer(commands, mesh->indexBuffer.buffer.handle, 0, mesh->indexType);
 		}
 	}
 
@@ -134,17 +136,17 @@ namespace gfx
 	{
 		destroy_buffer(device, mesh.vertexBuffer);
 
-		if (mesh.indexBuffer.buffer) {
+		if (mesh.indexBuffer.handle) {
 			destroy_buffer(device, mesh.indexBuffer);
 		}
 	}
 
 	void destroy_dynamic_mesh(Device* device, DynamicMesh& mesh)
 	{
-		destroy_buffer(device, mesh.vertexBuffer.buffer);
+		destroy_buffer(device, mesh.vertexBuffer);
 
-		if (mesh.indexBuffer.buffer.buffer) {
-			destroy_buffer(device, mesh.indexBuffer.buffer);
+		if (mesh.indexBuffer.buffer.handle) {
+			destroy_buffer(device, mesh.indexBuffer);
 		}
 	}
 } // namespace gfx

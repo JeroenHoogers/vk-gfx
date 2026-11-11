@@ -64,7 +64,7 @@ namespace gfx
 		VkDescriptorBufferInfo get_buffer_descriptor_info(const Buffer* buffer, uint32_t offset, VkDeviceSize range)
 		{
 			return VkDescriptorBufferInfo{
-				.buffer = buffer->buffer,
+				.buffer = buffer->handle,
 				.offset = offset,
 				.range = range,
 			};
